@@ -11,6 +11,7 @@ import kotlin.concurrent.thread
 
 data class GolfCourse(
     val id: Long,
+    val elementType: String,
     val name: String,
     val latitude: Double,
     val longitude: Double,
@@ -165,6 +166,7 @@ object CourseDiscovery {
             courses.add(
                 GolfCourse(
                     id = element.optLong("id"),
+                    elementType = element.optString("type"),
                     name = name,
                     latitude = lat,
                     longitude = lon,
