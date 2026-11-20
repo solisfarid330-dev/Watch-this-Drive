@@ -2,6 +2,8 @@ package com.watchthisdrive.app
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import android.Manifest
 import android.content.pm.PackageManager
 import android.location.Location
@@ -26,6 +28,8 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.google.android.gms.location.LocationServices
 import com.watchthisdrive.app.data.CourseDiscovery
+import com.watchthisdrive.app.data.CourseGeometry
+import com.watchthisdrive.app.data.CourseGeometryLoader
 import com.watchthisdrive.app.data.GolfCourse
 import com.watchthisdrive.app.ui.GolfMap
 import com.watchthisdrive.app.ui.GolfTheme
@@ -597,15 +601,42 @@ private fun PlaceholderScreen(
 }
 
 @Composable
+@Composable
 private fun CourseDetailScreen(
     course: GolfCourse,
     onBack: () -> Unit,
     onViewOnMap: () -> Unit
 ) {
+    var geometry by remember(course.id) {
+        mutableStateOf<CourseGeometry?>(null)
+    }
+    var loading by remember(course.id) {
+        mutableStateOf(true)
+    }
+    var error by remember(course.id) {
+        mutableStateOf<String?>(null)
+    }
+
+    LaunchedEffect(course.id) {
+        CourseGeometryLoader.load(course) { result ->
+            result.fold(
+                onSuccess = {
+                    geometry = it
+                    loading = false
+                },
+                onFailure = {
+                    error = it.message ?: "Unable to load course geometry."
+                    loading = false
+                }
+            )
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFF101713))
+            .verticalScroll(rememberScrollState())
             .padding(22.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
@@ -634,6 +665,95 @@ private fun CourseDetailScreen(
             color = Color(0xFFB6C1B9),
             style = MaterialTheme.typography.bodyLarge
         )
+
+        Card(
+            colors = CardDefaults.cardColors(
+                containerColor = Color(0xFF1B2520)
+            ),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier.padding(18.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    "Course Mapping",
+                    color = Color.White,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+
+                when {
+                    loading -> {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            CircularProgressIndicator(
+                                color = Color(0xFFB8F36B),
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Text(
+                                "Searching OpenStreetMap for course features...",
+                                color = Color(0xFFB6C1B9)
+                            )
+                        }
+                    }
+
+                    error != null -> {
+                        Text(
+                            "Could not load course mapping: $error",
+                            color = Color(0xFFFFB4AB)
+                        )
+                    }
+
+                    else -> {
+                        val features = geometry?.features.orEmpty()
+
+                        Text(
+                            "${features.size} mapped features found",
+                            color = Color(0xFFB8F36B),
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        val featureTypes = listOf(
+                            "Holes" to "hole",
+                            "Tees" to "tee",
+                            "Fairways" to "fairway",
+                            "Greens" to "green",
+                            "Bunkers" to "bunker",
+                            "Water hazards" to "water_hazard"
+                        )
+
+                        featureTypes.forEach { (label, type) ->
+                            val count = features.count {
+                                it.featureType == type
+                            }
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(label, color = Color.White)
+                                Text(
+                                    count.toString(),
+                                    color = Color(0xFFB8F36B),
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+
+                        if (features.isEmpty()) {
+                            Text(
+                                "No golf features were mapped near this course. " +
+                                    "We won't invent missing course details.",
+                                color = Color(0xFFB6C1B9)
+                            )
+                        }
+                    }
+                }
+            }
+        }
 
         Button(
             onClick = onViewOnMap,
