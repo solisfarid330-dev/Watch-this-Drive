@@ -601,7 +601,6 @@ private fun PlaceholderScreen(
 }
 
 @Composable
-@Composable
 private fun CourseDetailScreen(
     course: GolfCourse,
     onBack: () -> Unit,
