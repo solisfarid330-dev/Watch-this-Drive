@@ -30,8 +30,6 @@ data class CourseGeometry(
 
 object CourseGeometryLoader {
 
-    private const val SEARCH_RADIUS_METERS = 2000
-
     private val OVERPASS_SERVERS = listOf(
         "https://ovp.dresel.systems/api-na/interpreter",
         "https://overpass.private.coffee/api/interpreter",
@@ -44,11 +42,7 @@ object CourseGeometryLoader {
     ) {
         thread {
             val result = runCatching {
-                val query = """
-                    [out:json][timeout:40];
-                    nwr(around:$SEARCH_RADIUS_METERS,${course.latitude},${course.longitude})["golf"];
-                    out center geom;
-                """.trimIndent()
+                val query = buildCourseQuery(course)
 
                 var lastError: Exception? = null
 
@@ -76,6 +70,28 @@ object CourseGeometryLoader {
         }
     }
 
+    private fun buildCourseQuery(course: GolfCourse): String {
+        val element = when (course.elementType.lowercase()) {
+            "relation" -> "relation(${course.id});"
+            "way" -> "way(${course.id});"
+            else -> throw Exception(
+                "This course is represented by an OSM node, " +
+                    "which does not provide a course boundary. " +
+                    "Boundary discovery is needed before its features can be mapped reliably."
+            )
+        }
+
+        return """
+            [out:json][timeout:60];
+            $element
+            map_to_area -> .courseArea;
+            (
+              nwr(area.courseArea)["golf"];
+            );
+            out center geom;
+        """.trimIndent()
+    }
+
     private fun fetchGeometry(
         server: String,
         query: String,
@@ -85,8 +101,8 @@ object CourseGeometryLoader {
 
         try {
             connection.requestMethod = "POST"
-            connection.connectTimeout = 10000
-            connection.readTimeout = 50000
+            connection.connectTimeout = 15000
+            connection.readTimeout = 70000
             connection.doOutput = true
 
             connection.setRequestProperty(
@@ -108,7 +124,9 @@ object CourseGeometryLoader {
             val responseCode = connection.responseCode
 
             if (responseCode !in 200..299) {
-                throw Exception("Geometry server returned HTTP $responseCode")
+                throw Exception(
+                    "Geometry server returned HTTP $responseCode"
+                )
             }
 
             val response = connection.inputStream.bufferedReader().use {
@@ -136,7 +154,6 @@ object CourseGeometryLoader {
             if (golfType.isBlank()) continue
 
             val points = mutableListOf<GeoPoint>()
-
             val geometry = element.optJSONArray("geometry")
 
             if (geometry != null) {
