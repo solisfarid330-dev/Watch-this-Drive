@@ -24,6 +24,12 @@ object CourseDiscovery {
 
     private const val SEARCH_RADIUS_METERS = 15000
 
+    private val OVERPASS_SERVERS = listOf(
+        "https://ovp.dresel.systems/api-na/interpreter",
+        "https://overpass.private.coffee/api/interpreter",
+        "https://overpass-api.de/api/interpreter"
+    )
+
     fun searchNearby(
         latitude: Double,
         longitude: Double,
@@ -41,46 +47,79 @@ object CourseDiscovery {
                     out center tags;
                 """.trimIndent()
 
-                val connection = URL(
-                    "https://overpass-api.de/api/interpreter"
-                ).openConnection() as HttpURLConnection
+                var lastError: Exception? = null
 
-                try {
-                    connection.requestMethod = "POST"
-                    connection.connectTimeout = 15000
-                    connection.readTimeout = 35000
-                    connection.doOutput = true
-                    connection.setRequestProperty(
-                        "Content-Type",
-                        "application/x-www-form-urlencoded; charset=UTF-8"
-                    )
-                    connection.setRequestProperty(
-                        "User-Agent",
-                        "WatchThisDrive/0.1 Android Golf App"
-                    )
-
-                    val body = "data=" + URLEncoder.encode(query, "UTF-8")
-                    connection.outputStream.use {
-                        it.write(body.toByteArray(Charsets.UTF_8))
+                for (server in OVERPASS_SERVERS) {
+                    try {
+                        return@runCatching fetchCourses(
+                            server,
+                            query,
+                            latitude,
+                            longitude
+                        )
+                    } catch (e: Exception) {
+                        lastError = e
                     }
-
-                    if (connection.responseCode !in 200..299) {
-                        throw Exception("Course search service returned HTTP ${connection.responseCode}")
-                    }
-
-                    val response = connection.inputStream.bufferedReader().use {
-                        it.readText()
-                    }
-
-                    parseCourses(response, latitude, longitude)
-                } finally {
-                    connection.disconnect()
                 }
+
+                throw Exception(
+                    "All course search servers failed. Please try again shortly. " +
+                        (lastError?.message ?: "")
+                )
             }
 
             Handler(Looper.getMainLooper()).post {
                 onResult(result)
             }
+        }
+    }
+
+    private fun fetchCourses(
+        server: String,
+        query: String,
+        latitude: Double,
+        longitude: Double
+    ): List<GolfCourse> {
+        val connection = URL(server).openConnection() as HttpURLConnection
+
+        try {
+            connection.requestMethod = "POST"
+            connection.connectTimeout = 10000
+            connection.readTimeout = 35000
+            connection.doOutput = true
+
+            connection.setRequestProperty(
+                "Content-Type",
+                "application/x-www-form-urlencoded; charset=UTF-8"
+            )
+            connection.setRequestProperty(
+                "Accept",
+                "application/json"
+            )
+            connection.setRequestProperty(
+                "User-Agent",
+                "WatchThisDrive/0.1 Android Golf App"
+            )
+
+            val body = "data=" + URLEncoder.encode(query, "UTF-8")
+
+            connection.outputStream.use {
+                it.write(body.toByteArray(Charsets.UTF_8))
+            }
+
+            val responseCode = connection.responseCode
+
+            if (responseCode !in 200..299) {
+                throw Exception("Search server returned HTTP $responseCode")
+            }
+
+            val response = connection.inputStream.bufferedReader().use {
+                it.readText()
+            }
+
+            return parseCourses(response, latitude, longitude)
+        } finally {
+            connection.disconnect()
         }
     }
 
@@ -100,11 +139,13 @@ object CourseDiscovery {
             if (name.isBlank()) continue
 
             val center = element.optJSONObject("center")
+
             val lat = if (center != null) {
                 center.optDouble("lat", Double.NaN)
             } else {
                 element.optDouble("lat", Double.NaN)
             }
+
             val lon = if (center != null) {
                 center.optDouble("lon", Double.NaN)
             } else {
@@ -114,6 +155,7 @@ object CourseDiscovery {
             if (!lat.isFinite() || !lon.isFinite()) continue
 
             val distance = FloatArray(1)
+
             Location.distanceBetween(
                 userLatitude,
                 userLongitude,
@@ -134,7 +176,9 @@ object CourseDiscovery {
         }
 
         return courses
-            .distinctBy { "${it.name.lowercase()}_${it.latitude}_${it.longitude}" }
+            .distinctBy {
+                "${it.name.lowercase()}_${it.latitude}_${it.longitude}"
+            }
             .sortedBy { it.distanceMeters }
     }
 }
