@@ -23,6 +23,7 @@ data class GolfCourse(
 object CourseDiscovery {
 
     private const val SEARCH_RADIUS_METERS = 15000
+    private const val DUPLICATE_DISTANCE_METERS = 500f
 
     private val OVERPASS_SERVERS = listOf(
         "https://ovp.dresel.systems/api-na/interpreter",
@@ -92,10 +93,7 @@ object CourseDiscovery {
                 "Content-Type",
                 "application/x-www-form-urlencoded; charset=UTF-8"
             )
-            connection.setRequestProperty(
-                "Accept",
-                "application/json"
-            )
+            connection.setRequestProperty("Accept", "application/json")
             connection.setRequestProperty(
                 "User-Agent",
                 "WatchThisDrive/0.1 Android Golf App"
@@ -176,9 +174,37 @@ object CourseDiscovery {
         }
 
         return courses
-            .distinctBy {
-                "${it.name.lowercase()}_${it.latitude}_${it.longitude}"
-            }
             .sortedBy { it.distanceMeters }
+            .fold(mutableListOf<GolfCourse>()) { unique, course ->
+
+                val normalizedName = course.name
+                    .lowercase()
+                    .replace(Regex("[^a-z0-9]"), "")
+
+                val duplicate = unique.any { existing ->
+                    val existingName = existing.name
+                        .lowercase()
+                        .replace(Regex("[^a-z0-9]"), "")
+
+                    val distanceBetween = FloatArray(1)
+
+                    Location.distanceBetween(
+                        course.latitude,
+                        course.longitude,
+                        existing.latitude,
+                        existing.longitude,
+                        distanceBetween
+                    )
+
+                    normalizedName == existingName &&
+                        distanceBetween[0] < DUPLICATE_DISTANCE_METERS
+                }
+
+                if (!duplicate) {
+                    unique.add(course)
+                }
+
+                unique
+            }
     }
 }
