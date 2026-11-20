@@ -23,7 +23,7 @@ data class GolfCourse(
 object CourseDiscovery {
 
     private const val SEARCH_RADIUS_METERS = 15000
-    private const val DUPLICATE_DISTANCE_METERS = 500f
+    private const val DUPLICATE_DISTANCE_METERS = 1000f
 
     private val OVERPASS_SERVERS = listOf(
         "https://ovp.dresel.systems/api-na/interpreter",

@@ -1,5 +1,7 @@
 package com.watchthisdrive.app
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import android.Manifest
 import android.content.pm.PackageManager
 import android.location.Location
@@ -44,7 +46,9 @@ private enum class Tab(val label: String) {
 private fun WatchThisDriveApp() {
     var selected by remember { mutableStateOf(Tab.HOME) }
     var showNearbyCourses by remember { mutableStateOf(false) }
+    var selectedCourse by remember { mutableStateOf<GolfCourse?>(null) }
     var location by remember { mutableStateOf<Location?>(null) }
+    var mapTarget by remember { mutableStateOf<Location?>(null) }
     var locationMessage by remember { mutableStateOf("Location not checked yet") }
 
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -147,11 +151,28 @@ private fun WatchThisDriveApp() {
                 .padding(if (showNearbyCourses) PaddingValues(0.dp) else padding)
         ) {
             if (showNearbyCourses) {
-                NearbyCoursesScreen(
-                    location = location,
-                    onLocate = { locate() },
-                    onBack = { showNearbyCourses = false }
-                )
+                if (selectedCourse != null) {
+                    CourseDetailScreen(
+                        course = selectedCourse!!,
+                        onBack = { selectedCourse = null },
+                        onViewOnMap = {
+                            mapTarget = Location("selected-course").apply {
+                                latitude = selectedCourse!!.latitude
+                                longitude = selectedCourse!!.longitude
+                            }
+                            selectedCourse = null
+                            showNearbyCourses = false
+                            selected = Tab.MAP
+                        }
+                    )
+                } else {
+                    NearbyCoursesScreen(
+                        location = location,
+                        onLocate = { locate() },
+                        onBack = { showNearbyCourses = false },
+                        onCourseSelected = { course -> selectedCourse = course }
+                    )
+                }
             } else {
                 when (selected) {
                     Tab.HOME -> HomeScreen(
@@ -164,7 +185,7 @@ private fun WatchThisDriveApp() {
                         }
                     )
 
-                    Tab.MAP -> GolfMap(location = location, onLocate = { locate() })
+                    Tab.MAP -> GolfMap(location = mapTarget ?: location, onLocate = { mapTarget = null; locate() })
 
                     Tab.SCORE -> PlaceholderScreen(
                         "Scorecard",
@@ -321,7 +342,8 @@ private fun HomeScreen(
 private fun NearbyCoursesScreen(
     location: Location?,
     onLocate: () -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onCourseSelected: (GolfCourse) -> Unit
 ) {
     var courses by remember { mutableStateOf<List<GolfCourse>>(emptyList()) }
     var loading by remember { mutableStateOf(false) }
@@ -465,7 +487,7 @@ private fun NearbyCoursesScreen(
                                 containerColor = Color(0xFF1D2A22)
                             ),
                             shape = RoundedCornerShape(16.dp),
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth().clickable { onCourseSelected(course) }
                         ) {
                             Row(
                                 Modifier.fillMaxWidth().padding(16.dp),
@@ -571,5 +593,59 @@ private fun PlaceholderScreen(
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.Bold
         )
+    }
+}
+
+@Composable
+private fun CourseDetailScreen(
+    course: GolfCourse,
+    onBack: () -> Unit,
+    onViewOnMap: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF101713))
+            .padding(22.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp)
+    ) {
+        OutlinedButton(onClick = onBack) {
+            Icon(Icons.Filled.ArrowBack, contentDescription = null)
+            Spacer(Modifier.width(8.dp))
+            Text("Back to Nearby Courses")
+        }
+
+        Icon(
+            Icons.Filled.GolfCourse,
+            contentDescription = null,
+            tint = Color(0xFFB8F36B),
+            modifier = Modifier.size(56.dp)
+        )
+
+        Text(
+            course.name,
+            color = Color.White,
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold
+        )
+
+        Text(
+            "${"%.1f".format(Locale.US, course.distanceMiles)} miles from your location",
+            color = Color(0xFFB6C1B9),
+            style = MaterialTheme.typography.bodyLarge
+        )
+
+        Button(
+            onClick = onViewOnMap,
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color(0xFFB8F36B),
+                contentColor = Color(0xFF101713)
+            )
+        ) {
+            Icon(Icons.Filled.Map, contentDescription = null)
+            Spacer(Modifier.width(8.dp))
+            Text("View on Satellite Map")
+        }
     }
 }
