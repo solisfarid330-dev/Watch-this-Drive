@@ -8,6 +8,7 @@ on:
     paths:
       - "scripts/discover_lake_arlington_naip.py"
       - "scripts/build_lake_arlington_naip_crop.py"
+      - "scripts/run_lake_arlington_imagery_candidates.py"
       - "scripts/compare_lake_arlington_osm_to_imagery.py"
       - "scripts/detect_lake_arlington_bare_ground_candidates.py"
       - "scripts/build_lake_arlington_candidate_review_atlas.py"
@@ -38,6 +39,9 @@ jobs:
 
       - name: Build georeferenced course crop from newest NAIP tiles
         run: python scripts/build_lake_arlington_naip_crop.py
+
+      - name: Run generic imagery candidate extraction
+        run: PYTHONPATH=. python scripts/run_lake_arlington_imagery_candidates.py
 
       - name: Compare OSM golf features with imagery
         run: python scripts/compare_lake_arlington_osm_to_imagery.py
