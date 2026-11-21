@@ -10,6 +10,7 @@ on:
       - "scripts/build_lake_arlington_naip_crop.py"
       - "scripts/run_lake_arlington_imagery_candidates.py"
       - "scripts/evaluate_lake_arlington_imagery_candidates.py"
+      - "scripts/course_intelligence/**"
       - "scripts/compare_lake_arlington_osm_to_imagery.py"
       - "scripts/detect_lake_arlington_bare_ground_candidates.py"
       - "scripts/build_lake_arlington_candidate_review_atlas.py"
