@@ -1,18 +1,22 @@
 #!/usr/bin/env python3
-"""Measure spectral candidate overlap with available OSM golf feature references."""
+"""Measure spectral candidate overlap and image signals against OSM references."""
 from __future__ import annotations
 
 import json
 from collections import defaultdict
 from pathlib import Path
 
+import numpy as np
+import rasterio
 from pyproj import Transformer
-from shapely.geometry import shape
+from rasterio.features import geometry_mask
+from shapely.geometry import mapping, shape
 from shapely.ops import transform as transform_geometry, unary_union
 
 ROOT = Path("artifacts")
 CANDIDATES = ROOT / "lake_arlington_imagery_candidates.geojson"
 OSM = ROOT / "lake_arlington_osm_golf_features.geojson"
+RASTER = ROOT / "lake_arlington_naip_2022_course_clip.tif"
 SUMMARY = ROOT / "lake_arlington_imagery_candidate_evaluation.json"
 TARGET_CRS = "EPSG:26914"
 
@@ -49,8 +53,7 @@ def main():
         kind = feature.get("properties", {}).get("golf")
         if kind not in REFERENCE_CLASSES:
             continue
-        geometry = shape(feature["geometry"])
-        geometry = transform_geometry(to_metric, geometry)
+        geometry = transform_geometry(to_metric, shape(feature["geometry"]))
         geometry = _area_geometry(geometry)
         if not geometry.is_empty:
             reference_by_type[kind].append(geometry)
@@ -90,22 +93,61 @@ def main():
             "overlap_with_osm_reference_classes": overlaps,
         }
 
-    # Reference-side coverage is useful for spotting spectral omissions.
     all_candidate_geometries = [
         geometry for geometries in candidates_by_type.values() for geometry in geometries
     ]
-    all_candidate_union = unary_union(all_candidate_geometries) if all_candidate_geometries else None
+    all_candidate_union = (
+        unary_union(all_candidate_geometries) if all_candidate_geometries else None
+    )
     reference_coverage = {}
     for reference_type, reference in reference_unions.items():
-        if all_candidate_union is None:
-            coverage = 0.0
-        else:
-            coverage = float(reference.intersection(all_candidate_union).area / reference.area)
+        coverage = (
+            float(reference.intersection(all_candidate_union).area / reference.area)
+            if all_candidate_union is not None and reference.area else 0.0
+        )
         reference_coverage[reference_type] = {
             "reference_area_m2": round(float(reference.area), 1),
             "covered_by_all_candidate_classes_fraction": round(coverage, 4),
-            "note": "Coverage is a rough comparison to incomplete OSM reference geometry, not accuracy against ground truth.",
+            "note": "Rough comparison to incomplete OSM reference geometry, not ground-truth accuracy.",
         }
+
+    # Inspect the actual NAIP spectral distributions inside each mapped feature.
+    spectral_reference_stats = {}
+    with rasterio.open(RASTER) as raster:
+        red, green, blue, nir = raster.read([1, 2, 3, 4]).astype(np.float32)
+        denominator = nir + red
+        ndvi = np.divide(
+            nir - red,
+            denominator,
+            out=np.zeros_like(red),
+            where=np.abs(denominator) > 1e-6,
+        )
+        brightness = (red + green + blue) / 3.0
+        valid = raster.read(1) > 0
+        for reference_type, reference in reference_unions.items():
+            mask = geometry_mask(
+                [mapping(reference)],
+                out_shape=(raster.height, raster.width),
+                transform=raster.transform,
+                invert=True,
+            ) & valid
+            values = ndvi[mask]
+            brightness_values = brightness[mask]
+            if values.size == 0:
+                continue
+            spectral_reference_stats[reference_type] = {
+                "pixel_count": int(values.size),
+                "ndvi_percentiles": {
+                    str(p): round(float(np.percentile(values, p)), 4)
+                    for p in [10, 25, 50, 75, 90]
+                },
+                "fraction_ndvi_at_least_0_35": round(float(np.mean(values >= 0.35)), 4),
+                "fraction_ndvi_at_most_0_18": round(float(np.mean(values <= 0.18)), 4),
+                "brightness_percentiles": {
+                    str(p): round(float(np.percentile(brightness_values, p)), 1)
+                    for p in [10, 50, 90]
+                },
+            }
 
     result = {
         "course": "Lake Arlington Golf Course",
@@ -114,6 +156,7 @@ def main():
         "reference_source": "OpenStreetMap golf-tagged features",
         "candidate_metrics": metrics,
         "osm_reference_coverage": reference_coverage,
+        "spectral_signals_inside_osm_reference_geometries": spectral_reference_stats,
         "limitations": [
             "OSM golf features are incomplete and are not ground truth.",
             "Overlap is a spatial screening metric, not precision/recall against verified labels.",
