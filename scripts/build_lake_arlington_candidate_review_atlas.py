@@ -69,10 +69,11 @@ def main() -> None:
                 page.paste(thumb, (x + 14, y + 12))
                 props = feature["properties"]
                 label = f'{feature["id"]}  |  {props.get("area_m2", 0):.1f} m2'
-                draw_page.text((x + 292, y + 40), label, fill=(255, 255, 255))
-                draw_page.text((x + 292, y + 78), "UNREVIEWED", fill=(255, 190, 120))
-                draw_page.text((x + 292, y + 104), "NOT CONFIRMED BUNKER", fill=(210, 210, 210))
-                draw_page.text((x + 292, y + 142), "Orange outline = candidate", fill=(210, 210, 210))
+                draw_page.text((x + 292, y + 34), label, fill=(255, 255, 255))
+                draw_page.text((x + 292, y + 78), "STATUS: UNREVIEWED", fill=(255, 190, 120))
+                draw_page.text((x + 292, y + 122), "NOT A CONFIRMED BUNKER", fill=(210, 210, 210))
+                draw_page.text((x + 292, y + 166), "Orange outline = candidate", fill=(210, 210, 210))
+                draw_page.text((x + 292, y + 210), "Crop: approx. 60 m across", fill=(170, 190, 210))
 
             page_number = page_start // PER_PAGE + 1
             filename = f"candidate_review_page_{page_number:02d}.png"
