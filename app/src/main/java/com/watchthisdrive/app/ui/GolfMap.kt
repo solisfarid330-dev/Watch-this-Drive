@@ -54,10 +54,11 @@ fun GolfMap(
     var mapReady by remember { mutableStateOf(false) }
     var geometry by remember(course?.id) { mutableStateOf<CourseGeometry?>(null) }
     var geometryMessage by remember(course?.id) { mutableStateOf<String?>(null) }
+    var retryToken by remember(course?.id) { mutableIntStateOf(0) }
     val key = BuildConfig.MAPTILER_API_KEY
     val styleUrl = if (key.isNotBlank()) "https://api.maptiler.com/maps/satellite/style.json?key=$key" else ""
 
-    LaunchedEffect(course?.id) {
+    LaunchedEffect(course?.id, retryToken) {
         geometry = null
         geometryMessage = null
         if (course != null) {
@@ -148,6 +149,15 @@ fun GolfMap(
                         color = Color(0xFFB8F36B),
                         style = MaterialTheme.typography.bodySmall
                     )
+                    if (geometryMessage?.startsWith("Course features couldn't be loaded") == true) {
+                        Spacer(Modifier.height(6.dp))
+                        TextButton(
+                            onClick = { retryToken++ },
+                            contentPadding = PaddingValues(horizontal = 0.dp, vertical = 2.dp)
+                        ) {
+                            Text("TRY AGAIN", color = Color(0xFFB8F36B))
+                        }
+                    }
                 }
             }
         }

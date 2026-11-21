@@ -44,23 +44,19 @@ object CourseGeometryLoader {
             val result = runCatching {
                 val query = buildCourseQuery(course)
 
-                var lastError: Exception? = null
+                val failures = mutableListOf<String>()
 
                 for (server in OVERPASS_SERVERS) {
                     try {
-                        return@runCatching fetchGeometry(
-                            server,
-                            query,
-                            course
-                        )
+                        return@runCatching fetchGeometry(server, query, course)
                     } catch (e: Exception) {
-                        lastError = e
+                        failures.add(e.message ?: "Map-data server failed")
                     }
                 }
 
                 throw Exception(
-                    "All geometry servers failed. " +
-                        (lastError?.message ?: "")
+                    "Couldn't retrieve course features from any map-data server. " +
+                        failures.joinToString(" • ")
                 )
             }
 
@@ -101,8 +97,9 @@ object CourseGeometryLoader {
 
         try {
             connection.requestMethod = "POST"
-            connection.connectTimeout = 15000
-            connection.readTimeout = 70000
+            connection.connectTimeout = 8000
+            connection.readTimeout = 18000
+            connection.instanceFollowRedirects = true
             connection.doOutput = true
 
             connection.setRequestProperty(
@@ -124,8 +121,12 @@ object CourseGeometryLoader {
             val responseCode = connection.responseCode
 
             if (responseCode !in 200..299) {
+                val errorBody = runCatching {
+                    connection.errorStream?.bufferedReader()?.use { it.readText() }
+                }.getOrNull().orEmpty().take(180)
                 throw Exception(
-                    "Geometry server returned HTTP $responseCode"
+                    "Geometry server ${URL(server).host} returned HTTP $responseCode" +
+                        if (errorBody.isBlank()) "" else ": $errorBody"
                 )
             }
 
