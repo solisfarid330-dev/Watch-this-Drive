@@ -62,10 +62,9 @@ fun CaddyScreen() {
     }
     var clubs by remember {
         mutableStateOf(defaultClubs.map { club ->
-            // Keep existing user carry values when upgrading from the earlier two-distance version.
             ClubDistance(
                 club.name,
-                preferences.getString("carry_${club.name}", club.carry) ?: club.carry
+                preferences.getString("carry_${club.name}", club.carryYards) ?: club.carryYards
             )
         })
     }
@@ -78,56 +77,21 @@ fun CaddyScreen() {
     ) {
         item {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    "CLUB MANAGEMENT",
-                    color = caddyGreen,
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    "Your club distances",
-                    color = Color.White,
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    "Set the distance each club normally carries the ball.",
-                    color = caddyMuted,
-                    style = MaterialTheme.typography.bodyMedium
-                )
+                Text("CLUB MANAGEMENT", color = caddyGreen, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                Text("Your club distances", color = Color.White, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                Text("Set the distance each club normally carries the ball.", color = caddyMuted, style = MaterialTheme.typography.bodyMedium)
             }
         }
-
         item {
-            Card(
-                colors = CardDefaults.cardColors(containerColor = caddyCard),
-                shape = RoundedCornerShape(16.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(
-                    Modifier.fillMaxWidth().padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Text(
-                        "CARRY DISTANCE (YD)",
-                        color = caddyGreen,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        "Distance the ball travels through the air to its first landing. Bounce and roll are not included. The caddy uses this number for club recommendations and hazard planning.",
-                        color = caddyMuted,
-                        style = MaterialTheme.typography.bodySmall
-                    )
+            Card(colors = CardDefaults.cardColors(containerColor = caddyCard), shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("CARRY DISTANCE (YD)", color = caddyGreen, fontWeight = FontWeight.Bold)
+                    Text("Distance the ball travels through the air to its first landing. Bounce and roll are not included. The caddy uses this number for club recommendations and hazard planning.", color = caddyMuted, style = MaterialTheme.typography.bodySmall)
                 }
             }
         }
-
         items(clubs, key = { it.name }) { club ->
-            Card(
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF18231C)),
-                shape = RoundedCornerShape(14.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
+            Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF18231C)), shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth()) {
                 OutlinedTextField(
                     value = club.carryYards,
                     onValueChange = { value ->
@@ -144,7 +108,6 @@ fun CaddyScreen() {
                 )
             }
         }
-
         item {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(
@@ -152,24 +115,15 @@ fun CaddyScreen() {
                         preferences.edit().apply {
                             clubs.forEach { club ->
                                 putString("carry_${club.name}", club.carryYards)
-                                // Remove obsolete total values from the previous screen design.
                                 remove("total_${club.name}")
                             }
                         }.apply()
                         savedMessage = "Club distances saved."
                     },
                     modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("SAVE CLUB DISTANCES")
-                }
-                savedMessage?.let {
-                    Text(it, color = caddyGreen, style = MaterialTheme.typography.bodySmall)
-                }
-                Text(
-                    "You can change these estimates whenever you like. Shot learning will update them as you play.",
-                    color = caddyMuted,
-                    style = MaterialTheme.typography.bodySmall
-                )
+                ) { Text("SAVE CLUB DISTANCES") }
+                savedMessage?.let { Text(it, color = caddyGreen, style = MaterialTheme.typography.bodySmall) }
+                Text("You can change these estimates whenever you like. Shot learning will update them as you play.", color = caddyMuted, style = MaterialTheme.typography.bodySmall)
             }
         }
     }
