@@ -91,18 +91,19 @@ def main():
         }
 
     # Reference-side coverage is useful for spotting spectral omissions.
+    all_candidate_geometries = [
+        geometry for geometries in candidates_by_type.values() for geometry in geometries
+    ]
+    all_candidate_union = unary_union(all_candidate_geometries) if all_candidate_geometries else None
     reference_coverage = {}
     for reference_type, reference in reference_unions.items():
-        candidate_union = candidate_unions.get("vegetated_turf_candidate")
-        if candidate_union is None:
-            candidate_union = candidate_unions.get("bare_ground_candidate")
-        if candidate_union is None:
+        if all_candidate_union is None:
             coverage = 0.0
         else:
-            coverage = float(reference.intersection(candidate_union).area / reference.area)
+            coverage = float(reference.intersection(all_candidate_union).area / reference.area)
         reference_coverage[reference_type] = {
             "reference_area_m2": round(float(reference.area), 1),
-            "covered_by_any_single_candidate_class_fraction": round(coverage, 4),
+            "covered_by_all_candidate_classes_fraction": round(coverage, 4),
             "note": "Coverage is a rough comparison to incomplete OSM reference geometry, not accuracy against ground truth.",
         }
 
