@@ -307,3 +307,26 @@ A first generated atlas page was inspected visually. It confirms why the candida
 The atlas typography was adjusted to separate candidate ID/area, review status, non-confirmation warning, outline key, and approximate crop width. Black regions in some close-ups are no-data outside the course-masked pilot crop; they are not terrain classifications.
 
 No candidate has been promoted to bunker status from this visual pass. Manual confirmation against the unmasked source imagery and surrounding hole context is still required.
+
+
+## Genericity contract — pilot versus production
+
+The Lake Arlington scripts and assets are pilot fixtures only. They are intentionally course-named so the first end-to-end experiment is reproducible; they must not be imported as the production course-processing implementation.
+
+The production Course Intelligence Engine must accept a course-independent input package containing at least:
+- A selected course boundary and retained alternative boundary candidates.
+- Course identity and geographic extent, without requiring a known course ID.
+- Available OSM observations and their source metadata.
+- Eligible imagery sources, provider terms, acquisition dates, resolution, bands, and spatial reference.
+- Runtime configuration for feature extraction, coordinate transforms, and quality thresholds.
+
+Genericity requirements before production integration:
+1. No Lake Arlington names, coordinates, OSM IDs, tile IDs, or file paths in production processing logic.
+2. No fixed UTM zone or other course-specific projection. Select an appropriate metric CRS from the course extent, or use a robust geodesic strategy.
+3. Do not assume every course is in the United States or has NAIP coverage. Resolve imagery providers and licensing by region; if no eligible imagery exists, report the limitation rather than silently substituting a restricted basemap.
+4. Treat spectral thresholds as provider/resolution-dependent candidate-generation settings, not universal golf-feature definitions. Calibrate and validate against reviewed examples across different courses, seasons, and imagery conditions.
+5. Keep missing or ambiguous OSM features eligible for imagery analysis and human correction; never require OSM to contain hole centerlines, greens, fairways, or hazards.
+6. Produce the same versioned course / hole / feature schema regardless of source provider or course.
+7. Run acceptance tests on multiple geographically distinct courses before calling the engine course-general. Lake Arlington alone validates only the pilot workflow.
+
+The intended reusable path is: course discovery → boundary selection → region-aware imagery/source selection → independent feature observations → cross-source alignment → hole reconstruction → QA/review → canonical course package. The Android app consumes that canonical package and does not contain per-course drawing rules.
