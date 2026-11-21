@@ -6,7 +6,6 @@ This is a metadata-only discovery step. It does not download or accept imagery.
 from __future__ import annotations
 
 import json
-import os
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -16,7 +15,8 @@ import requests
 COURSE_NAME = "Lake Arlington Golf Course"
 OSM_WAY_ID = 412547642
 OSM_API = f"https://api.openstreetmap.org/api/0.6/way/{OSM_WAY_ID}/full.json"
-STAC_SEARCH = "https://planetarycomputer.microsoft.com/api/stac/v1/search"
+STAC_ROOT = "https://planetarycomputer.microsoft.com/api/stac/v1"
+STAC_SEARCH = f"{STAC_ROOT}/search"
 COLLECTION = "naip"
 OUT = Path("artifacts/lake_arlington_naip_candidates.json")
 HEADERS = {
@@ -60,23 +60,49 @@ def search_items(polygon: dict) -> list[dict]:
     url = STAC_SEARCH
     params = None
     items: list[dict] = []
+    method = "POST"
+    next_body = body
     while url:
-        response = requests.post(
-            url, json=body if params is None else None,
-            params=params, headers=HEADERS, timeout=90
-        ) if params is None else requests.get(url, params=params, headers=HEADERS, timeout=90)
+        response = requests.request(
+            method, url, json=next_body if method == "POST" else None,
+            headers=HEADERS, timeout=90
+        )
         response.raise_for_status()
         page = response.json()
         items.extend(page.get("features", []))
         next_link = next((link for link in page.get("links", []) if link.get("rel") == "next"), None)
-        url = next_link.get("href") if next_link else None
-        params = None
+        if next_link:
+            method = next_link.get("method", "GET").upper()
+            url = next_link.get("href")
+            next_body = next_link.get("body") if method == "POST" else None
+        else:
+            url = None
     return items
+
+
+def fetch_collection_metadata() -> dict:
+    response = requests.get(f"{STAC_ROOT}/collections/{COLLECTION}", headers=HEADERS, timeout=45)
+    response.raise_for_status()
+    collection = response.json()
+    return {
+        "id": collection.get("id"),
+        "title": collection.get("title"),
+        "description": collection.get("description"),
+        "license": collection.get("license"),
+        "providers": collection.get("providers"),
+        "extent": collection.get("extent"),
+        "links": [
+            {"rel": link.get("rel"), "href": link.get("href"), "title": link.get("title")}
+            for link in collection.get("links", [])
+            if link.get("rel") in ("license", "about", "describedby", "root")
+        ],
+    }
 
 
 def main() -> int:
     OUT.parent.mkdir(parents=True, exist_ok=True)
     polygon = fetch_course_polygon()
+    collection_metadata = fetch_collection_metadata()
     items = search_items(polygon)
     candidates = []
     for item in items:
@@ -116,6 +142,7 @@ def main() -> int:
         "boundary_geojson": polygon,
         "catalog": STAC_SEARCH,
         "collection": COLLECTION,
+        "collection_metadata": collection_metadata,
         "queried_at_utc": datetime.now(timezone.utc).isoformat(),
         "candidate_count": len(candidates),
         "candidates": candidates,
