@@ -9,6 +9,7 @@ on:
       - "scripts/discover_lake_arlington_naip.py"
       - "scripts/build_lake_arlington_naip_crop.py"
       - "scripts/compare_lake_arlington_osm_to_imagery.py"
+      - "scripts/detect_lake_arlington_bare_ground_candidates.py"
       - ".github/workflows/discover-naip.yml"
 
 permissions:
@@ -28,7 +29,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        run: python -m pip install --disable-pip-version-check requests shapely rasterio pillow numpy
+        run: python -m pip install --disable-pip-version-check requests shapely rasterio pillow numpy scipy
 
       - name: Query NAIP catalog for Lake Arlington
         run: python scripts/discover_lake_arlington_naip.py
@@ -38,6 +39,9 @@ jobs:
 
       - name: Compare OSM golf features with imagery
         run: python scripts/compare_lake_arlington_osm_to_imagery.py
+
+      - name: Generate unreviewed bare-ground candidates
+        run: python scripts/detect_lake_arlington_bare_ground_candidates.py
 
       - name: Upload imagery candidate metadata
         if: always()
