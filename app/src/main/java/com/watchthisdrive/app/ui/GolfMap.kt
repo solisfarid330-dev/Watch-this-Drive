@@ -248,7 +248,8 @@ private data class FeatureStyle(
 
 private fun buildCourseGeoJson(features: List<CourseFeature>): String {
     val output = JSONArray()
-    features.forEach { feature ->
+    val displayFeatures = groupNearbyTeeMarkers(features)
+    displayFeatures.forEach { feature ->
         val kind = normalizeFeatureKind(feature.featureType) ?: return@forEach
         if (feature.points.isEmpty()) return@forEach
         val coordinates = JSONArray()
@@ -277,9 +278,75 @@ private fun buildCourseGeoJson(features: List<CourseFeature>): String {
             .put("shape", shape)
             .put("osm_id", feature.id)
             .put("element_type", feature.elementType)
+            .put("group_size", if (feature.name?.startsWith("tee-group:") == true) feature.name.substringAfter(":").toIntOrNull() ?: 1 else 1)
         output.put(JSONObject().put("type", "Feature").put("geometry", geometry).put("properties", properties))
     }
     return JSONObject().put("type", "FeatureCollection").put("features", output).toString()
+}
+
+/**
+ * OSM often stores each tee marker as a separate point. Nearby tee points are
+ * grouped for display so a tee box is represented as one approximate area
+ * marker rather than a cluster of distracting dots. This is display grouping,
+ * not a claim that the resulting centroid is a surveyed tee-box boundary.
+ */
+private fun groupNearbyTeeMarkers(features: List<CourseFeature>): List<CourseFeature> {
+    val teePoints = features.filter {
+        normalizeFeatureKind(it.featureType) == "tee" && it.points.size == 1
+    }
+    if (teePoints.size < 2) return features
+
+    val remaining = teePoints.toMutableSet()
+    val grouped = mutableListOf<CourseFeature>()
+
+    while (remaining.isNotEmpty()) {
+        val seed = remaining.first()
+        remaining.remove(seed)
+        val cluster = mutableListOf(seed)
+        var index = 0
+        while (index < cluster.size) {
+            val current = cluster[index++]
+            val nearby = remaining.filter { candidate ->
+                val sameKnownHole = current.holeNumber != null &&
+                    candidate.holeNumber != null &&
+                    current.holeNumber != candidate.holeNumber
+                !sameKnownHole && distanceMeters(current.points[0], candidate.points[0]) <= 18.0
+            }
+            cluster.addAll(nearby)
+            remaining.removeAll(nearby.toSet())
+        }
+
+        val center = GeoPoint(
+            latitude = cluster.map { it.points[0].latitude }.average(),
+            longitude = cluster.map { it.points[0].longitude }.average()
+        )
+        val holeNumbers = cluster.mapNotNull { it.holeNumber }.distinct()
+        grouped.add(
+            CourseFeature(
+                id = cluster.minOf { it.id },
+                elementType = if (cluster.size > 1) "derived" else cluster.first().elementType,
+                featureType = "tee_group",
+                holeNumber = holeNumbers.singleOrNull(),
+                name = if (cluster.size > 1) "tee-group:${cluster.size}" else cluster.first().name,
+                points = listOf(center)
+            )
+        )
+    }
+
+    val nonTeePoints = features.filterNot { it in teePoints }
+    return nonTeePoints + grouped
+}
+
+private fun distanceMeters(a: com.watchthisdrive.app.data.GeoPoint, b: com.watchthisdrive.app.data.GeoPoint): Double {
+    val earthRadius = 6_371_000.0
+    val lat1 = Math.toRadians(a.latitude)
+    val lat2 = Math.toRadians(b.latitude)
+    val dLat = lat2 - lat1
+    val dLon = Math.toRadians(b.longitude - a.longitude)
+    val h = kotlin.math.sin(dLat / 2) * kotlin.math.sin(dLat / 2) +
+        kotlin.math.cos(lat1) * kotlin.math.cos(lat2) *
+        kotlin.math.sin(dLon / 2) * kotlin.math.sin(dLon / 2)
+    return 2 * earthRadius * kotlin.math.asin(kotlin.math.sqrt(h))
 }
 
 private fun normalizeFeatureKind(value: String): String? = when (value.lowercase()) {
@@ -287,7 +354,7 @@ private fun normalizeFeatureKind(value: String): String? = when (value.lowercase
     "green" -> "green"
     "bunker" -> "bunker"
     "water_hazard", "water" -> "water_hazard"
-    "tee" -> "tee"
+    "tee", "tee_group" -> "tee"
     else -> null
 }
 
