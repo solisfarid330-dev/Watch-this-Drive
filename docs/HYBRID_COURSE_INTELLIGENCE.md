@@ -38,7 +38,37 @@ USGS exposes a NAIP imagery index with per-image fields for state, year, acquisi
 
 Before implementing automated retrieval, record each provider's license, attribution, permitted processing, retention rules, resolution, acquisition date, and geographic coverage.
 
-### Licensing and provenance
+#
+
+## Lake Arlington imagery pilot — source verification notes
+
+### Preferred discovery service
+
+Use the USGS NAIP Plus ImageServer as the first imagery catalog to query for the selected Lake Arlington boundary:
+
+- Service: https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPPlus/ImageServer
+- Its image catalog exposes per-raster fields including state, collection year, raster name, download URL, acquisition date, resolution value/units, band count, sensor type, and projection metadata.
+- Query the catalog spatially against the selected course boundary; do not select a tile based only on a statewide year label.
+- Record the returned raster identifier, acquisition date, ground sample distance, band count, download URL, and spatial reference in the pilot manifest.
+
+USDA's 2024 Texas image-date index is a useful independent date cross-check. It records image exposure polygons and attributes including acquisition date, color type, camera information, and spectral band ranges. The presence of a Texas 2024 index does not prove that the Lake Arlington course footprint was captured in 2024; the course polygon must intersect a specific exposure polygon.
+
+### Pilot acceptance gate
+
+Do not begin feature labeling or model work until a real raster covering the selected course boundary has been retrieved and its metadata recorded. Verify that:
+- The raster footprint covers the complete course area, including all holes.
+- The image is usable for visual interpretation (no major cloud, haze, shadow, or seasonal obstruction).
+- The spatial resolution and bands are recorded from the actual raster metadata.
+- The imagery's applicable USGS/USDA terms and attribution are retained with the asset.
+- The image is georeferenced and can be aligned with the existing OSM boundary candidates.
+
+If no suitable current NAIP raster is available, compare earlier NAIP vintages before considering another imagery provider. Do not substitute restricted Texas state imagery or map-display tiles without a separate license review.
+
+### Current verification status
+
+The official USGS NAIP Plus catalog and the USDA 2024 Texas acquisition-date index have been identified. The exact raster footprint, acquisition date, and resolution at Lake Arlington have **not yet been confirmed**, and no pilot image asset has been accepted. This is an explicit hold point, not a successful coverage claim.
+
+## Licensing and provenance
 
 Keep source observations separate and traceable. Every derived feature must record its source(s), source identifiers or imagery item identifier, imagery acquisition date where available, processing/model version, and review status.
 
