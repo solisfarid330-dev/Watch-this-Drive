@@ -8,7 +8,6 @@ on:
     paths:
       - "scripts/discover_lake_arlington_naip.py"
       - ".github/workflows/discover-naip.yml"
-      - "docs/HYBRID_COURSE_INTELLIGENCE.md"
 
 permissions:
   contents: read
