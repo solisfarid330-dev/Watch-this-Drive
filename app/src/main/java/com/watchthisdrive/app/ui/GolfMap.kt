@@ -359,11 +359,21 @@ private fun normalizeFeatureKind(value: String): String? = when (value.lowercase
 }
 
 private fun featureSummary(features: List<CourseFeature>): String {
-    val counts = listOf("tee", "fairway", "green", "bunker", "water_hazard").map { kind ->
-        val count = features.count { normalizeFeatureKind(it.featureType) == kind }
-        "$count ${if (kind == "water_hazard") "water" else kind}"
+    val labels = listOf(
+        "tee" to "tee areas",
+        "fairway" to "fairways",
+        "green" to "greens",
+        "bunker" to "bunkers",
+        "water_hazard" to "water"
+    )
+    val available = labels.filter { (kind, _) ->
+        features.any { normalizeFeatureKind(it.featureType) == kind }
+    }.map { it.second }
+    return if (available.isEmpty()) {
+        "No recognized mapped golf features"
+    } else {
+        "Mapped: ${available.joinToString(" · ")}. Some features may be missing."
     }
-    return counts.joinToString(" · ")
 }
 
 private const val COURSE_SOURCE_ID = "watch-this-drive-course-features"
