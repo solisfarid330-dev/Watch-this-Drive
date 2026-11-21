@@ -1,25 +1,25 @@
 #!/usr/bin/env python3
-"""Build a numbered visual review atlas for unreviewed bare-ground candidates."""
+"""Build a numbered, close-up visual review atlas for bare-ground candidates."""
 from __future__ import annotations
 
 import json
-import math
 from pathlib import Path
 
 import numpy as np
 import rasterio
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
 from rasterio.windows import Window
 from shapely.geometry import shape
-from rasterio.transform import rowcol
 
 ROOT = Path("artifacts")
 RASTER = ROOT / "lake_arlington_naip_2022_course_clip.tif"
 CANDIDATES = ROOT / "lake_arlington_bare_ground_candidates.geojson"
 OUT = ROOT / "candidate_review_atlas"
-CARD_W, CARD_H = 360, 280
-COLS, ROWS = 3, 4
+CARD_W, CARD_H = 540, 340
+COLS, ROWS = 2, 3
 PER_PAGE = COLS * ROWS
+CROP_SIZE = 160
+IMAGE_SIZE = 260
 
 
 def main() -> None:
@@ -42,32 +42,38 @@ def main() -> None:
             draw_page = ImageDraw.Draw(page)
             for slot, feature in enumerate(page_features):
                 geom = shape(feature["geometry"])
-                cx, cy = geom.centroid.x, geom.centroid.y
-                center_col, center_row = inv * (cx, cy)
-                half = 100  # 200 x 200 source pixels, approximately 120 m across
-                col0, row0 = int(round(center_col - half)), int(round(center_row - half))
-                window = Window(col0, row0, 200, 200)
-                rgb = ds.read([1, 2, 3], window=window, boundless=True, fill_value=0)
+                center_col, center_row = inv * (geom.centroid.x, geom.centroid.y)
+                # Shift edge windows inward instead of introducing black no-data wedges.
+                col0 = max(0, min(ds.width - CROP_SIZE, int(round(center_col - CROP_SIZE / 2))))
+                row0 = max(0, min(ds.height - CROP_SIZE, int(round(center_row - CROP_SIZE / 2))))
+                window = Window(col0, row0, CROP_SIZE, CROP_SIZE)
+                rgb = ds.read([1, 2, 3], window=window)
                 rgb = np.moveaxis(rgb, 0, -1).clip(0, 255).astype(np.uint8)
-                thumb = Image.fromarray(rgb, mode="RGB").resize((CARD_W - 20, 190), Image.Resampling.LANCZOS)
-
+                thumb = Image.fromarray(rgb, mode="RGB").resize(
+                    (IMAGE_SIZE, IMAGE_SIZE), Image.Resampling.LANCZOS
+                )
                 local = ImageDraw.Draw(thumb)
-                coords = list(geom.exterior.coords) if geom.geom_type == "Polygon" else []
                 outline = []
-                for x, y in coords:
-                    col, row = inv * (x, y)
-                    outline.append(((col - col0) * (CARD_W - 20) / 200,
-                                    (row - row0) * 190 / 200))
+                if geom.geom_type == "Polygon":
+                    for x, y in geom.exterior.coords:
+                        col, row = inv * (x, y)
+                        outline.append((
+                            (col - col0) * IMAGE_SIZE / CROP_SIZE,
+                            (row - row0) * IMAGE_SIZE / CROP_SIZE,
+                        ))
                 if len(outline) >= 3:
                     local.line(outline + [outline[0]], fill=(255, 90, 0), width=3)
 
                 x = (slot % COLS) * CARD_W
                 y = (slot // COLS) * CARD_H
-                page.paste(thumb, (x + 10, y + 10))
+                page.paste(thumb, (x + 14, y + 12))
                 props = feature["properties"]
                 label = f'{feature["id"]}  |  {props.get("area_m2", 0):.1f} m2'
-                draw_page.text((x + 10, y + 208), label, fill=(255, 255, 255))
-                draw_page.text((x + 10, y + 232), "UNREVIEWED — NOT A BUNKER LABEL", fill=(255, 190, 120))
+                draw_page.text((x + 292, y + 40), label, fill=(255, 255, 255))
+                draw_page.text((x + 292, y + 78), "UNREVIEWED", fill=(255, 190, 120))
+                draw_page.text((x + 292, y + 104), "Not a confirmed bunker", fill=(210, 210, 210))
+                draw_page.text((x + 292, y + 142), "Orange outline = candidate", fill=(210, 210, 210))
+
             page_number = page_start // PER_PAGE + 1
             filename = f"candidate_review_page_{page_number:02d}.png"
             page.save(OUT / filename, optimize=True)
@@ -78,7 +84,11 @@ def main() -> None:
             })
 
     (OUT / "index.json").write_text(json.dumps(index, indent=2), encoding="utf-8")
-    print(json.dumps(index, indent=2))
+    print(json.dumps({
+        "candidate_count": len(features),
+        "page_count": len(index["pages"]),
+        "pages": index["pages"],
+    }, indent=2))
 
 
 if __name__ == "__main__":
