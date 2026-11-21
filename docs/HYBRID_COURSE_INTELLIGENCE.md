@@ -185,3 +185,18 @@ This is a useful fallback if the direct USGS catalog spatial query is unavailabl
 ### Research limitation
 
 The research interface can read the viewer's documentation but cannot operate its interactive map/search controls. Therefore no Lake Arlington-specific vintage, flight date, tile footprint, pixel size, or image download has been verified through this route yet. Keep the pilot acceptance gate closed until those course-specific results are obtained.
+
+
+### Reproducible NAIP catalog query
+
+A metadata-only discovery script and GitHub Actions workflow have been added:
+
+- Script: `scripts/discover_lake_arlington_naip.py`
+- Workflow: `.github/workflows/discover-naip.yml`
+- The script retrieves the currently selected OSM boundary (way 412547642), queries the Microsoft Planetary Computer public STAC API for intersecting `naip` items, and records item dates, GSD where supplied, projection, footprint bounds, asset references, provider metadata, and collection-level license/provider metadata.
+- The workflow runs on changes to the discovery script/workflow on this feature branch or by manual dispatch, then uploads `lake-arlington-naip-candidates` as a 14-day artifact.
+- The STAC API is publicly accessible without an account, although Microsoft documents throttling for anonymous data access. The current task only queries catalog metadata; it does not download imagery.
+
+Important: do not equate a catalog response with permission to use an asset. Review the returned collection and item license/provider links and the underlying USDA terms before any download, derivative production, or commercial use. If the catalog metadata is ambiguous or inconsistent, stop and resolve it rather than assuming public-domain status from the NAIP name alone.
+
+The first automated run is the next verification gate. It must confirm that the OSM boundary is still retrievable and that the catalog returns actual intersecting items. A candidate item must then be checked for complete course coverage and image quality before it can be accepted as the pilot asset.
