@@ -11,6 +11,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import requests
+from shapely.geometry import box, shape
+from shapely.ops import unary_union
 
 COURSE_NAME = "Lake Arlington Golf Course"
 OSM_WAY_ID = 412547642
@@ -117,6 +119,7 @@ def main() -> int:
             "state": props.get("naip:state"),
             "projection_epsg": props.get("proj:epsg"),
             "bbox": item.get("bbox"),
+            "geometry": item.get("geometry"),
             "assets": {
                 key: {
                     "type": asset.get("type"),
@@ -135,6 +138,49 @@ def main() -> int:
             ],
         })
     candidates.sort(key=lambda item: (str(item.get("datetime") or ""), str(item.get("id") or "")), reverse=True)
+
+    # Estimate coverage by vintage using STAC tile footprints.
+    course_shape = shape(polygon)
+    coverage_by_vintage = []
+    years = sorted({str(item.get("naip_year")) for item in candidates if item.get("naip_year")}, reverse=True)
+    for year in years:
+        vintage_items = [item for item in candidates if str(item.get("naip_year")) == year]
+        footprints = [
+            shape(item["geometry"]) if item.get("geometry") else box(*item["bbox"])
+            for item in vintage_items if item.get("geometry") or item.get("bbox")
+        ]
+        if footprints:
+            covered = course_shape.intersection(unary_union(footprints))
+            coverage_by_vintage.append({
+                "year": year,
+                "item_count": len(vintage_items),
+                "course_coverage_percent": round(100 * covered.area / course_shape.area, 4),
+                "footprint_method": "STAC item geometry" if all(item.get("geometry") for item in vintage_items) else "STAC geometry/bbox fallback",
+                "item_ids": [item["id"] for item in vintage_items],
+                "dates": sorted({item.get("datetime") for item in vintage_items if item.get("datetime")}),
+                "gsd_meters_per_pixel": sorted({item.get("gsd_meters_per_pixel") for item in vintage_items if item.get("gsd_meters_per_pixel")}),
+            })
+
+    # Download low-resolution previews for visual triage, not as accepted imagery assets.
+    preview_dir = OUT.parent / "previews"
+    preview_dir.mkdir(parents=True, exist_ok=True)
+    newest_year = years[0] if years else None
+    preview_results = []
+    for item in candidates:
+        if str(item.get("naip_year")) != newest_year:
+            continue
+        preview_asset = next(
+            (asset for asset in item.get("assets", {}).values() if "overview" in (asset.get("roles") or [])),
+            None,
+        )
+        if not preview_asset:
+            continue
+        preview_response = requests.get(preview_asset["href"], headers=HEADERS, timeout=90)
+        preview_response.raise_for_status()
+        preview_path = preview_dir / f"{item['id']}.png"
+        preview_path.write_bytes(preview_response.content)
+        preview_results.append({"item_id": item["id"], "file": str(preview_path)})
+
     output = {
         "status": "MATCHES_FOUND" if candidates else "NO_MATCHES",
         "course": COURSE_NAME,
@@ -145,6 +191,9 @@ def main() -> int:
         "collection_metadata": collection_metadata,
         "queried_at_utc": datetime.now(timezone.utc).isoformat(),
         "candidate_count": len(candidates),
+        "vintage_coverage": coverage_by_vintage,
+        "newest_vintage_previews": preview_results,
+        "license_review_required": collection_metadata.get("license") not in ("public-domain", "CC0-1.0") or not collection_metadata.get("license"),
         "candidates": candidates,
         "acceptance_note": (
             "Metadata discovery only. Verify the returned item footprint covers the complete course, "
@@ -156,6 +205,10 @@ def main() -> int:
     print(f"Status: {output['status']}")
     print(f"OSM boundary: way {OSM_WAY_ID}")
     print(f"NAIP STAC candidates: {len(candidates)}")
+    for vintage in coverage_by_vintage:
+        print(f"- Vintage {vintage['year']}: {vintage['course_coverage_percent']}% course footprint coverage")
+    print(f"Newest vintage previews saved: {len(preview_results)}")
+    print(f"Collection license label: {collection_metadata.get('license')} (verify license links)")
     for candidate in candidates:
         print(
             f"- {candidate['id']} | year={candidate['naip_year']} | "
