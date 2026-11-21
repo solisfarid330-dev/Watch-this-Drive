@@ -169,3 +169,19 @@ The satellite basemap renderer is separate from the imagery-analysis provider. A
 - Do not claim a course is fully mapped based on raw feature counts.
 - Do not automatically publish or treat unreviewed detections as ground truth.
 - Do not hardcode Lake Arlington into production logic.
+
+
+### Alternate imagery discovery route — historical NAIP
+
+A browser-based NAIP explorer from All Things Spatial provides an alternate way to enumerate imagery over a searched area:
+
+- Viewer: https://naip.allthingsspatial.io/
+- It searches NAIP vintages from 2010–2023 through Microsoft Planetary Computer and reports the years found, pixel size, flight dates, tile count, and downloadable GeoTIFF tiles for the searched area.
+- It also describes a USGS analysis layer for pixel inspection and tile footprints, but that layer is a separate, potentially older snapshot and must not be confused with the newest available vintage.
+- The viewer states that its 2010–2023 historical catalog is sourced from Microsoft Planetary Computer; verify the specific tile's metadata and applicable distribution terms before accepting it into the pilot.
+
+This is a useful fallback if the direct USGS catalog spatial query is unavailable. It does not establish which vintage covers Lake Arlington until a search is actually run for the course footprint and the resulting tile metadata is inspected. The viewer's stated coverage stops at 2023, so it cannot by itself establish 2024 or 2025 coverage.
+
+### Research limitation
+
+The research interface can read the viewer's documentation but cannot operate its interactive map/search controls. Therefore no Lake Arlington-specific vintage, flight date, tile footprint, pixel size, or image download has been verified through this route yet. Keep the pilot acceptance gate closed until those course-specific results are obtained.
