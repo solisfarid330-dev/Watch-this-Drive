@@ -18,7 +18,7 @@ OUT = ROOT / "candidate_review_atlas"
 CARD_W, CARD_H = 540, 340
 COLS, ROWS = 2, 3
 PER_PAGE = COLS * ROWS
-CROP_SIZE = 160
+CROP_SIZE = 100
 IMAGE_SIZE = 260
 
 
@@ -71,7 +71,7 @@ def main() -> None:
                 label = f'{feature["id"]}  |  {props.get("area_m2", 0):.1f} m2'
                 draw_page.text((x + 292, y + 40), label, fill=(255, 255, 255))
                 draw_page.text((x + 292, y + 78), "UNREVIEWED", fill=(255, 190, 120))
-                draw_page.text((x + 292, y + 104), "Not a confirmed bunker", fill=(210, 210, 210))
+                draw_page.text((x + 292, y + 104), "NOT CONFIRMED BUNKER", fill=(210, 210, 210))
                 draw_page.text((x + 292, y + 142), "Orange outline = candidate", fill=(210, 210, 210))
 
             page_number = page_start // PER_PAGE + 1
