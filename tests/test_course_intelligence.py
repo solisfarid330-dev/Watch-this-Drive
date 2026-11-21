@@ -1,6 +1,7 @@
 import unittest
 
 from shapely.geometry import LineString, Point
+
 from scripts.course_intelligence.geometry import local_metric_transformer, project_wgs84
 from scripts.course_intelligence.association import associate_features_to_holes
 
@@ -17,17 +18,20 @@ class GenericGeometryTests(unittest.TestCase):
         hole_a = {
             "type": "Feature", "id": "way/1",
             "geometry": {"type": "LineString", "coordinates": [[0.0, 0.0], [0.0, 0.01]]},
-            "properties": {"golf": "hole", "tags": {"ref": "1"}, "_shape": LineString([(0.0, 0.0), (0.0, 0.01)])},
+            "properties": {"golf": "hole", "tags": {"ref": "1"}},
+            "_shape": LineString([(0.0, 0.0), (0.0, 0.01)]),
         }
         hole_b = {
             "type": "Feature", "id": "way/2",
             "geometry": {"type": "LineString", "coordinates": [[0.001, 0.0], [0.001, 0.01]]},
-            "properties": {"golf": "hole", "tags": {"ref": "2"}, "_shape": LineString([(0.001, 0.0), (0.001, 0.01)])},
+            "properties": {"golf": "hole", "tags": {"ref": "2"}},
+            "_shape": LineString([(0.001, 0.0), (0.001, 0.01)]),
         }
         green = {
             "type": "Feature", "id": "way/3",
             "geometry": {"type": "Point", "coordinates": [0.0005, 0.005]},
-            "properties": {"golf": "green", "_shape": Point(0.0005, 0.005)},
+            "properties": {"golf": "green"},
+            "_shape": Point(0.0005, 0.005),
         }
         holes, summary = associate_features_to_holes(
             [hole_a, hole_b, green], max_distance_m=200, ambiguity_margin_m=100
@@ -42,9 +46,9 @@ class GenericGeometryTests(unittest.TestCase):
     def test_no_course_specific_zone_is_required(self):
         features = [
             {"type": "Feature", "id": "h", "geometry": {"type": "LineString", "coordinates": [[151.2, -33.8], [151.2, -33.79]]},
-             "properties": {"golf": "hole", "_shape": LineString([(151.2, -33.8), (151.2, -33.79)])}},
+             "properties": {"golf": "hole"}, "_shape": LineString([(151.2, -33.8), (151.2, -33.79)])},
             {"type": "Feature", "id": "g", "geometry": {"type": "Point", "coordinates": [151.2001, -33.795]},
-             "properties": {"golf": "green", "_shape": Point(151.2001, -33.795)}},
+             "properties": {"golf": "green"}, "_shape": Point(151.2001, -33.795)},
         ]
         holes, summary = associate_features_to_holes(features)
         self.assertEqual(summary["hole_centerlines"], 1)
