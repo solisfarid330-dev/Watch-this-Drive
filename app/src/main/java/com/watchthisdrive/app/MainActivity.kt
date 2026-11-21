@@ -198,10 +198,7 @@ private fun WatchThisDriveApp() {
                         Icons.Filled.Scoreboard
                     )
 
-                    Tab.CADDY -> CaddyScreen(
-                        location = location,
-                        onLocate = { locate() }
-                    )
+                    Tab.CADDY -> CaddyScreen()
                 }
             }
         }
