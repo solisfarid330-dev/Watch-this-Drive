@@ -356,3 +356,15 @@ A reusable route-hypothesis stage has been added in `scripts/course_intelligence
 - Every route remains `confidence=unassessed` and `validation_status=requires_visual_review`.
 
 This deliberately small step proves only that candidate tee/green geometry can produce course-independent route hypotheses without OSM hole lines. It does **not** solve doglegs, hole order, crossing/parallel holes, multiple tee boxes, multiple greens, or image feature detection. A straight link is not a playable hole centerline. The next validation work must compare hypotheses against reviewed Lake Arlington geometry and add route topology / fairway-shape reasoning before any app or caddy integration.
+
+
+### Fairway-shape route hypotheses (experimental)
+
+The centerline-independent reconstruction stage now attempts a coarse grid-based path through supplied fairway candidate polygons. When a fairway corridor is available, it snaps tee/green endpoints to the fairway geometry and searches an 8-neighbor metric grid for a route that follows the corridor's shape. This can produce a bent route hypothesis for a dogleg-like polygon rather than always drawing a straight tee-to-green chord.
+
+- Grid spacing is configurable; the default is 6 metres.
+- If the fairway geometry is missing, too large for the bounded grid, disconnected, or otherwise unusable, the stage falls back to a straight-line hypothesis.
+- A length guard rejects extreme detours, such as paths created by accidentally merged neighboring fairways.
+- The output records whether it used `fairway_grid_path` or `straight_line_fallback`, and stores both straight-line and provisional route lengths.
+
+This remains experimental geometry reasoning, not computer vision or course truth. It depends on fairway polygons already being supplied, can follow incorrect/merged candidate polygons, and does not determine intended hole order or distinguish adjacent holes. Every output remains unassessed and requires visual review. A synthetic bent-fairway test now exercises this behavior.
