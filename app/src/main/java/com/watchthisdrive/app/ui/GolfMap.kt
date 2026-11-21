@@ -17,6 +17,7 @@ import com.watchthisdrive.app.data.CourseFeature
 import com.watchthisdrive.app.data.CourseGeometry
 import com.watchthisdrive.app.data.CourseGeometryLoader
 import com.watchthisdrive.app.data.GolfCourse
+import com.watchthisdrive.app.data.GeoPoint
 import org.json.JSONArray
 import org.json.JSONObject
 import org.maplibre.android.MapLibre
