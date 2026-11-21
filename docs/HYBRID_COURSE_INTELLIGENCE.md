@@ -34,6 +34,8 @@ Google Maps imagery must not be used to trace, digitize, train, test, or validat
 
 For an initial United States pilot, evaluate USDA NAIP imagery distributed through USGS/The National Map. NAIP is public-domain imagery with requested attribution; resolution, acquisition date, geographic coverage, and service access must be checked per course. Do not assume imagery is current or uniformly available. For courses outside the United States, add separately reviewed providers.
 
+USGS exposes a NAIP imagery index with per-image fields for state, year, acquisition date, resolution, band count, and download URL. USDA also publishes state-based image-date polygons; a 2024 Texas acquisition-date index is available. These indexes make per-course freshness checks possible, but the exact exposure date and resolution covering Lake Arlington still need to be queried and confirmed before selecting a pilot image. Do not infer the course's image date from the statewide collection year alone. Modern NAIP products may be 0.6 m or 0.3 m ground-sample distance, while older or generalized USGS descriptions may state 1 m; record the actual tile's metadata rather than hardcoding one resolution.
+
 Before implementing automated retrieval, record each provider's license, attribution, permitted processing, retention rules, resolution, acquisition date, and geographic coverage.
 
 ### Licensing and provenance
