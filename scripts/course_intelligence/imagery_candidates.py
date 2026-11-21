@@ -6,6 +6,7 @@ It deliberately does not call a region a tee, green, fairway, bunker, or hazard.
 from __future__ import annotations
 
 from collections import Counter
+from math import hypot
 
 import numpy as np
 from rasterio.features import shapes
@@ -100,7 +101,10 @@ def extract_imagery_candidates(
                 rotated = polygon.minimum_rotated_rectangle
                 rectangle_coords = list(rotated.exterior.coords) if not rotated.is_empty else []
                 edge_lengths = [
-                    float(shape({"type": "LineString", "coordinates": [rectangle_coords[i], rectangle_coords[i + 1]]}).length)
+                    hypot(
+                        rectangle_coords[i + 1][0] - rectangle_coords[i][0],
+                        rectangle_coords[i + 1][1] - rectangle_coords[i][1],
+                    )
                     for i in range(len(rectangle_coords) - 1)
                 ]
                 edge_lengths = sorted((edge for edge in edge_lengths if edge > 0), reverse=True)
