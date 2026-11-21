@@ -32,6 +32,7 @@ import com.watchthisdrive.app.data.CourseGeometry
 import com.watchthisdrive.app.data.CourseGeometryLoader
 import com.watchthisdrive.app.data.GolfCourse
 import com.watchthisdrive.app.ui.GolfMap
+import com.watchthisdrive.app.ui.CaddyScreen
 import com.watchthisdrive.app.ui.GolfTheme
 import java.util.Locale
 
@@ -51,6 +52,7 @@ private fun WatchThisDriveApp() {
     var selected by remember { mutableStateOf(Tab.HOME) }
     var showNearbyCourses by remember { mutableStateOf(false) }
     var selectedCourse by remember { mutableStateOf<GolfCourse?>(null) }
+    var activeCourse by remember { mutableStateOf<GolfCourse?>(null) }
     var location by remember { mutableStateOf<Location?>(null) }
     var mapTarget by remember { mutableStateOf<Location?>(null) }
     var locationMessage by remember { mutableStateOf("Location not checked yet") }
@@ -159,6 +161,13 @@ private fun WatchThisDriveApp() {
                     CourseDetailScreen(
                         course = selectedCourse!!,
                         onBack = { selectedCourse = null },
+                        onStartRound = {
+                            activeCourse = selectedCourse
+                            selectedCourse = null
+                            showNearbyCourses = false
+                            selected = Tab.CADDY
+                            locate()
+                        },
                         onViewOnMap = {
                             mapTarget = Location("selected-course").apply {
                                 latitude = selectedCourse!!.latitude
@@ -197,10 +206,14 @@ private fun WatchThisDriveApp() {
                         Icons.Filled.Scoreboard
                     )
 
-                    Tab.CADDY -> PlaceholderScreen(
-                        "Your caddy",
-                        "Default club distances will be ready from day one. The caddy will learn and adapt as you record shots.",
-                        Icons.Filled.SportsGolf
+                    Tab.CADDY -> CaddyScreen(
+                        course = activeCourse,
+                        location = location,
+                        onLocate = { locate() },
+                        onFindCourse = {
+                            selectedCourse = null
+                            showNearbyCourses = true
+                        }
                     )
                 }
             }
@@ -759,6 +772,7 @@ private fun PlaceholderScreen(
 private fun CourseDetailScreen(
     course: GolfCourse,
     onBack: () -> Unit,
+    onStartRound: () -> Unit,
     onViewOnMap: () -> Unit
 ) {
     var geometry by remember(course.id) {
@@ -907,6 +921,16 @@ private fun CourseDetailScreen(
                     }
                 }
             }
+        }
+
+        Button(
+            onClick = onStartRound,
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB8F36B), contentColor = Color(0xFF101713))
+        ) {
+            Icon(Icons.Filled.SportsGolf, contentDescription = null)
+            Spacer(Modifier.width(8.dp))
+            Text("START ROUND WITH CADDY")
         }
 
         Button(
