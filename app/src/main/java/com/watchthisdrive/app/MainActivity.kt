@@ -535,8 +535,8 @@ private fun NearbyCoursesScreen(
         }
 
         OutlinedButton(
-            onClick = { searchNearby() },
-            enabled = !loading && location != null,
+            onClick = { if (location == null) onLocate() else searchNearby() },
+            enabled = !loading,
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.outlinedButtonColors(
                 contentColor = Color(0xFFB8F36B),
@@ -623,7 +623,7 @@ private fun NearbyCoursesScreen(
                                             style = MaterialTheme.typography.titleMedium
                                         )
                                         Text(
-                                            "\${group.candidates.size} possible boundary\${if (group.candidates.size == 1) "" else "ies"}",
+                                            "\${group.candidates.size} possible boundary\${if (group.candidates.size == 1) "boundary" else "boundaries"}",
                                             color = Color(0xFFB8F36B),
                                             style = MaterialTheme.typography.bodySmall
                                         )
