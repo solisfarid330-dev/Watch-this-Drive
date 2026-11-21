@@ -33,6 +33,11 @@ class ImageryCandidateExtractionTests(unittest.TestCase):
             self.assertEqual(props["validation_status"], "unreviewed")
             self.assertIsNone(props["semantic_golf_feature"])
             self.assertTrue(props["not_ground_truth"])
+            self.assertIn("compactness", props["shape_metrics"])
+            self.assertIn("solidity", props["shape_metrics"])
+            self.assertIn("oriented_bbox_elongation", props["shape_metrics"])
+            self.assertIn("ndvi_mean", props["spectral_metrics"])
+            self.assertGreater(props["spectral_metrics"]["pixel_count"], 0)
 
     def test_course_mask_excludes_pixels_outside_course(self):
         mask = np.zeros((60, 60), dtype=bool)
