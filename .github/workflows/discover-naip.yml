@@ -9,6 +9,7 @@ on:
       - "scripts/discover_lake_arlington_naip.py"
       - "scripts/build_lake_arlington_naip_crop.py"
       - "scripts/run_lake_arlington_imagery_candidates.py"
+      - "scripts/evaluate_lake_arlington_imagery_candidates.py"
       - "scripts/compare_lake_arlington_osm_to_imagery.py"
       - "scripts/detect_lake_arlington_bare_ground_candidates.py"
       - "scripts/build_lake_arlington_candidate_review_atlas.py"
@@ -43,6 +44,9 @@ jobs:
       - name: Run generic imagery candidate extraction
         run: PYTHONPATH=. python scripts/run_lake_arlington_imagery_candidates.py
 
+      - name: Evaluate imagery candidates against mapped golf features
+        run: PYTHONPATH=. python scripts/evaluate_lake_arlington_imagery_candidates.py
+
       - name: Compare OSM golf features with imagery
         run: python scripts/compare_lake_arlington_osm_to_imagery.py
 
@@ -50,7 +54,7 @@ jobs:
         run: python scripts/detect_lake_arlington_bare_ground_candidates.py
 
       - name: Build provisional hole reconstruction draft
-        run: python scripts/build_lake_arlington_hole_reconstruction_draft.py
+        run: PYTHONPATH=. python scripts/build_lake_arlington_hole_reconstruction_draft.py
 
       - name: Build numbered candidate review atlas
         run: python scripts/build_lake_arlington_candidate_review_atlas.py
