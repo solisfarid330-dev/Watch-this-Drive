@@ -298,3 +298,12 @@ This is an association aid, not a completed hole reconstruction:
 - Draft geometry must not drive golfer-facing caddy or hazard advice.
 
 The output is `lake_arlington_hole_reconstruction_draft.geojson`, included in the pilot workflow artifact. The next validation step is comparing each provisional grouping against the NAIP imagery, then replacing ambiguous nearest-line assignments with reviewed hole-level geometry.
+
+
+### Visual inspection notes from the first review atlas
+
+A first generated atlas page was inspected visually. It confirms why the candidates must remain unreviewed: several outlines are tiny isolated patches, some sit near strong tree shadows or course-edge masking, and a few are larger elongated areas. This visual diversity is consistent with a mixed bare-ground candidate set, not a reliable bunker inventory.
+
+The atlas typography was adjusted to separate candidate ID/area, review status, non-confirmation warning, outline key, and approximate crop width. Black regions in some close-ups are no-data outside the course-masked pilot crop; they are not terrain classifications.
+
+No candidate has been promoted to bunker status from this visual pass. Manual confirmation against the unmasked source imagery and surrounding hole context is still required.
