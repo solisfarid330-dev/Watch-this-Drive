@@ -342,6 +342,56 @@ private fun HomeScreen(
     }
 }
 
+private data class CourseCandidateGroup(
+    val name: String,
+    val candidates: List<GolfCourse>
+)
+
+private fun groupCourseCandidates(courses: List<GolfCourse>): List<CourseCandidateGroup> {
+    val groups = mutableListOf<MutableList<GolfCourse>>()
+
+    courses.sortedBy { it.distanceMeters }.forEach { course ->
+        val normalizedName = course.name
+            .lowercase(Locale.ROOT)
+            .replace(Regex("[^a-z0-9]"), "")
+
+        val matchingGroup = groups.firstOrNull { group ->
+            val groupName = group.first().name
+                .lowercase(Locale.ROOT)
+                .replace(Regex("[^a-z0-9]"), "")
+
+            if (normalizedName != groupName) {
+                false
+            } else {
+                group.any { existing ->
+                    val distance = FloatArray(1)
+                    Location.distanceBetween(
+                        course.latitude,
+                        course.longitude,
+                        existing.latitude,
+                        existing.longitude,
+                        distance
+                    )
+                    distance[0] <= 1000f
+                }
+            }
+        }
+
+        if (matchingGroup == null) {
+            groups.add(mutableListOf(course))
+        } else {
+            matchingGroup.add(course)
+        }
+    }
+
+    return groups.map { group ->
+        CourseCandidateGroup(
+            name = group.first().name,
+            candidates = group.sortedBy { it.distanceMeters }
+        )
+    }.sortedBy { it.candidates.first().distanceMeters }
+}
+
 @Composable
 private fun NearbyCoursesScreen(
     location: Location?,
@@ -350,25 +400,52 @@ private fun NearbyCoursesScreen(
     onCourseSelected: (GolfCourse) -> Unit
 ) {
     var courses by remember { mutableStateOf<List<GolfCourse>>(emptyList()) }
+    var searchText by remember { mutableStateOf("") }
     var loading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var hasSearched by remember { mutableStateOf(false) }
+    var searchDescription by remember { mutableStateOf("Search by course name, city, or ZIP code — GPS is not required.") }
 
-    fun search() {
+    fun searchNearby() {
         val current = location
         if (current == null) {
-            errorMessage = "We need your location before searching. Check GPS and try again."
+            errorMessage = "Your GPS location isn't available. You can still search by course name, city, or ZIP code above."
             return
         }
 
         loading = true
         errorMessage = null
         hasSearched = true
+        searchDescription = "Searching within 15 km of your current GPS location."
 
         CourseDiscovery.searchNearby(
             latitude = current.latitude,
             longitude = current.longitude
         ) { result ->
+            result.onSuccess { found ->
+                courses = found
+                errorMessage = null
+            }.onFailure { problem ->
+                errorMessage = problem.message ?: "The nearby course search could not be completed."
+                courses = emptyList()
+            }
+            loading = false
+        }
+    }
+
+    fun searchByText() {
+        val query = searchText.trim()
+        if (query.isBlank()) {
+            errorMessage = "Enter a course name, city, or ZIP code to search."
+            return
+        }
+
+        loading = true
+        errorMessage = null
+        hasSearched = true
+        searchDescription = "Searching around \"$query\". GPS is not required."
+
+        CourseDiscovery.searchByText(query) { result ->
             result.onSuccess { found ->
                 courses = found
                 errorMessage = null
@@ -382,13 +459,17 @@ private fun NearbyCoursesScreen(
 
     LaunchedEffect(location) {
         if (location != null && !hasSearched) {
-            search()
+            searchNearby()
         }
+    }
+
+    val groupedCourses = remember(courses) {
+        groupCourseCandidates(courses)
     }
 
     Column(
         Modifier.fillMaxSize().padding(18.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) {
@@ -396,52 +477,84 @@ private fun NearbyCoursesScreen(
             }
             Column(Modifier.weight(1f)) {
                 Text(
-                    "NEARBY COURSES",
+                    "FIND A COURSE",
                     color = Color(0xFFB8F36B),
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    "Golf courses around you",
+                    "Search golf courses",
                     color = Color.White,
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
             }
-            IconButton(onClick = { search() }, enabled = !loading) {
+            IconButton(onClick = { searchNearby() }, enabled = !loading && location != null) {
                 Icon(
-                    Icons.Filled.Refresh,
-                    "Refresh courses",
+                    Icons.Filled.MyLocation,
+                    "Search near my location",
                     tint = Color(0xFFB8F36B)
                 )
             }
         }
 
+        OutlinedTextField(
+            value = searchText,
+            onValueChange = { searchText = it },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            enabled = !loading,
+            label = { Text("Course, city, or ZIP code") },
+            placeholder = { Text("e.g. Lake Arlington Golf Course") },
+            leadingIcon = {
+                Icon(Icons.Filled.Search, contentDescription = null)
+            },
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = Color.White,
+                unfocusedTextColor = Color.White,
+                focusedBorderColor = Color(0xFFB8F36B),
+                unfocusedBorderColor = Color(0xFF64736A),
+                focusedLabelColor = Color(0xFFB8F36B),
+                unfocusedLabelColor = Color(0xFFB6C1B9),
+                cursorColor = Color(0xFFB8F36B)
+            )
+        )
+
+        Button(
+            onClick = { searchByText() },
+            enabled = !loading && searchText.isNotBlank(),
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color(0xFFB8F36B),
+                contentColor = Color(0xFF101713)
+            )
+        ) {
+            Icon(Icons.Filled.Search, null)
+            Spacer(Modifier.width(8.dp))
+            Text("SEARCH COURSES", fontWeight = FontWeight.Bold)
+        }
+
+        OutlinedButton(
+            onClick = { if (location == null) onLocate() else searchNearby() },
+            enabled = !loading,
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.outlinedButtonColors(
+                contentColor = Color(0xFFB8F36B),
+                disabledContentColor = Color(0xFF64736A)
+            )
+        ) {
+            Icon(Icons.Filled.MyLocation, null)
+            Spacer(Modifier.width(8.dp))
+            Text("USE MY CURRENT LOCATION")
+        }
+
         Text(
-            "Searching within 15 km of your current GPS location.",
+            searchDescription,
             color = Color(0xFFB6C1B9),
-            style = MaterialTheme.typography.bodyMedium
+            style = MaterialTheme.typography.bodySmall
         )
 
         when {
-            location == null -> {
-                InfoCard(
-                    message = "Your location isn't available yet. Check your location permission and try again."
-                )
-                Button(
-                    onClick = onLocate,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFFB8F36B),
-                        contentColor = Color(0xFF101713)
-                    )
-                ) {
-                    Icon(Icons.Filled.MyLocation, null)
-                    Spacer(Modifier.width(8.dp))
-                    Text("CHECK MY LOCATION")
-                }
-            }
-
             loading -> {
                 Row(
                     Modifier.fillMaxWidth().padding(vertical = 20.dp),
@@ -450,77 +563,119 @@ private fun NearbyCoursesScreen(
                 ) {
                     CircularProgressIndicator(color = Color(0xFFB8F36B))
                     Spacer(Modifier.width(14.dp))
-                    Text("Searching for golf courses...", color = Color.White)
+                    Text("Searching OpenStreetMap...", color = Color.White)
                 }
             }
 
             errorMessage != null -> {
                 InfoCard(message = errorMessage!!)
-                Button(
-                    onClick = { search() },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFFB8F36B),
-                        contentColor = Color(0xFF101713)
-                    )
-                ) {
-                    Text("TRY AGAIN")
-                }
             }
 
             courses.isEmpty() && hasSearched -> {
                 InfoCard(
-                    message = "No mapped golf courses were found within 15 km. You can refresh or try again from another location."
+                    message = "No mapped golf courses were found around that search. Try the full course name with its city and state, or search a nearby town."
                 )
             }
 
             courses.isNotEmpty() -> {
                 Text(
-                    "${courses.size} course${if (courses.size == 1) "" else "s"} found",
+                    "${courses.size} boundary candidate${if (courses.size == 1) "" else "s"} across ${groupedCourses.size} course listing${if (groupedCourses.size == 1) "" else "s"}",
                     color = Color(0xFFB8F36B),
                     fontWeight = FontWeight.Bold
                 )
 
                 LazyColumn(
+                    modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                     contentPadding = PaddingValues(bottom = 16.dp)
                 ) {
-                    items(courses) { course ->
+                    items(
+                        items = groupedCourses,
+                        key = { group ->
+                            val first = group.candidates.first()
+                            "${group.name}-${first.elementType}-${first.id}"
+                        }
+                    ) { group ->
                         Card(
                             colors = CardDefaults.cardColors(
                                 containerColor = Color(0xFF1D2A22)
                             ),
                             shape = RoundedCornerShape(16.dp),
-                            modifier = Modifier.fillMaxWidth().clickable { onCourseSelected(course) }
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            Row(
-                                Modifier.fillMaxWidth().padding(16.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                            Column(
+                                Modifier.fillMaxWidth().padding(14.dp),
+                                verticalArrangement = Arrangement.spacedBy(9.dp)
                             ) {
-                                Icon(
-                                    Icons.Filled.GolfCourse,
-                                    null,
-                                    tint = Color(0xFFB8F36B),
-                                    modifier = Modifier.size(30.dp)
-                                )
-                                Spacer(Modifier.width(13.dp))
-                                Column(Modifier.weight(1f)) {
-                                    Text(
-                                        course.name,
-                                        color = Color.White,
-                                        fontWeight = FontWeight.SemiBold,
-                                        style = MaterialTheme.typography.titleMedium
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        Icons.Filled.GolfCourse,
+                                        null,
+                                        tint = Color(0xFFB8F36B),
+                                        modifier = Modifier.size(27.dp)
                                     )
-                                    Text(
-                                        "${"%.1f".format(Locale.US, course.distanceMiles)} miles away",
-                                        color = Color(0xFFB6C1B9),
-                                        style = MaterialTheme.typography.bodyMedium
-                                    )
+                                    Spacer(Modifier.width(10.dp))
+                                    Column(Modifier.weight(1f)) {
+                                        Text(
+                                            group.name,
+                                            color = Color.White,
+                                            fontWeight = FontWeight.SemiBold,
+                                            style = MaterialTheme.typography.titleMedium
+                                        )
+                                        Text(
+                                            "${group.candidates.size} possible ${if (group.candidates.size == 1) "boundary" else "boundaries"}",
+                                            color = Color(0xFFB8F36B),
+                                            style = MaterialTheme.typography.bodySmall
+                                        )
+                                    }
+                                }
+
+                                group.candidates.forEach { candidate ->
+                                    OutlinedButton(
+                                        onClick = { onCourseSelected(candidate) },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        colors = ButtonDefaults.outlinedButtonColors(
+                                            contentColor = Color.White
+                                        ),
+                                        border = androidx.compose.foundation.BorderStroke(
+                                            1.dp,
+                                            Color(0xFF526257)
+                                        ),
+                                        contentPadding = PaddingValues(
+                                            horizontal = 12.dp,
+                                            vertical = 8.dp
+                                        )
+                                    ) {
+                                        Column(
+                                            Modifier.weight(1f),
+                                            horizontalAlignment = Alignment.Start
+                                        ) {
+                                            Text(
+                                                "${candidate.elementType.replaceFirstChar { it.uppercase() }} #${candidate.id}",
+                                                fontWeight = FontWeight.SemiBold
+                                            )
+                                            Text(
+                                                "${"%.1f".format(Locale.US, candidate.distanceMiles)} mi from search center",
+                                                color = Color(0xFFB6C1B9),
+                                                style = MaterialTheme.typography.bodySmall
+                                            )
+                                        }
+                                        Icon(
+                                            Icons.Filled.ChevronRight,
+                                            contentDescription = "View this candidate"
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
                 }
+            }
+
+            else -> {
+                InfoCard(
+                    message = "Search by course name, city, or ZIP code, or use your current location to find nearby courses."
+                )
             }
         }
     }
