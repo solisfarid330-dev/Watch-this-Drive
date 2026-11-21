@@ -330,3 +330,16 @@ Genericity requirements before production integration:
 7. Run acceptance tests on multiple geographically distinct courses before calling the engine course-general. Lake Arlington alone validates only the pilot workflow.
 
 The intended reusable path is: course discovery → boundary selection → region-aware imagery/source selection → independent feature observations → cross-source alignment → hole reconstruction → QA/review → canonical course package. The Android app consumes that canonical package and does not contain per-course drawing rules.
+
+
+### Reusable geometry engine — first generic implementation
+
+The provisional hole-association algorithm has been extracted from the Lake Arlington fixture runner into `scripts/course_intelligence`. The shared module accepts WGS84 geometries and has no course names, IDs, file paths, or fixed UTM zone.
+
+- A local azimuthal-equidistant metric projection is derived from the supplied course geometry bounds, including southern-hemisphere courses.
+- Hole association is reusable and configurable by distance threshold and supported feature types.
+- Close runner-up centerlines remain explicit ambiguity metadata; associations remain provisional.
+- The Lake Arlington script is now a thin fixture adapter that loads the pilot GeoJSON, calls the shared module, and writes the pilot draft output.
+- A separate GitHub Actions test workflow exercises projection in Texas and Australia and tests ambiguous feature association.
+
+This is a first reusable geometry primitive, not yet the complete production engine. It still expects usable OSM hole centerlines for hole grouping; courses without those lines will need the independent imagery-based hole reconstruction path. Broader geographic and source-provider acceptance tests remain required.
