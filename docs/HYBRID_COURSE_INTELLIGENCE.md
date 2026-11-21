@@ -368,3 +368,14 @@ The centerline-independent reconstruction stage now attempts a coarse grid-based
 - The output records whether it used `fairway_grid_path` or `straight_line_fallback`, and stores both straight-line and provisional route lengths.
 
 This remains experimental geometry reasoning, not computer vision or course truth. It depends on fairway polygons already being supplied, can follow incorrect/merged candidate polygons, and does not determine intended hole order or distinguish adjacent holes. Every output remains unassessed and requires visual review. A synthetic bent-fairway test now exercises this behavior.
+
+
+### Generic multispectral candidate extraction (experimental)
+
+Added `scripts/course_intelligence/imagery_candidates.py` as a course-agnostic first raster-analysis primitive. It accepts a four-band Red/Green/Blue/NIR raster, georeferencing transform, and optional course-boundary mask. It emits broad:
+- `vegetated_turf_candidate` polygons using a configurable NDVI threshold.
+- `bare_ground_candidate` polygons using low NDVI and brightness thresholds.
+
+The output deliberately does not label these as tees, greens, fairways, bunkers, or hazards. It records spectral signal, area, source, low confidence, and unreviewed status. The course mask prevents candidate extraction outside the supplied course extent. Synthetic tests cover both candidate classes, mask behavior, invalid band counts, and mask dimensions.
+
+This is not a trained classifier. High-NDVI regions may be trees or rough rather than playable turf; bright low-NDVI regions may be sand, paths, exposed soil, or roofs. The next step is to validate spectral thresholds and morphology against the Lake Arlington NAIP crop and reviewed examples, then add shape/context features. Semantic golf-feature classification remains out of scope until evidence supports it.
