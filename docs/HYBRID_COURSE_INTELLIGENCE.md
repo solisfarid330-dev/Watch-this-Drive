@@ -395,3 +395,10 @@ Added `scripts/evaluate_lake_arlington_imagery_candidates.py` to quantify candid
 The pilot workflow also exposed and fixed an existing `PYTHONPATH` issue in the hole-reconstruction adapter. The generic test workflow's pull-request path filter now includes every `tests/test_*.py` suite, not just the original geometry tests.
 
 Next work should improve separation of playable turf from trees/rough using spatial context, texture, shape, and course layout—not simply lower the NDVI threshold. No spectral candidate is promoted to a confirmed golf feature.
+
+
+### First quantitative pilot comparison
+
+The first Lake Arlington spatial comparison produced 362 vegetation candidates covering about 133,021 m² and 100 bare-ground candidates covering about 17,883 m². When compared with the currently mapped OSM polygons, only about 0.77% of mapped fairway area intersected the vegetation candidates; vegetation candidates covered about 0.61% of their own union area inside mapped fairways. This confirms the visual finding that the initial high-NDVI mask is dominated by general vegetation and is not delineating fairways.
+
+These percentages are screening diagnostics only: OSM is incomplete, and the geometry comparison is not a labeled accuracy benchmark. The evaluation now also measures NDVI and brightness distributions inside mapped fairways, greens, tees, paths, and water features. That should help determine whether fairways are spectrally distinct in this image at all, before selecting a better feature representation or classifier.
