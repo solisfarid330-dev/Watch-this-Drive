@@ -95,6 +95,19 @@ def extract_imagery_candidates(
                 if polygon.is_empty or polygon.area < min_area_m2:
                     continue
                 counts[candidate_type] += 1
+                perimeter = float(polygon.length)
+                hull_area = float(polygon.convex_hull.area)
+                rotated = polygon.minimum_rotated_rectangle
+                rectangle_coords = list(rotated.exterior.coords) if not rotated.is_empty else []
+                edge_lengths = [
+                    float(shape({"type": "LineString", "coordinates": [rectangle_coords[i], rectangle_coords[i + 1]]}).length)
+                    for i in range(len(rectangle_coords) - 1)
+                ]
+                edge_lengths = sorted((edge for edge in edge_lengths if edge > 0), reverse=True)
+                elongation = edge_lengths[0] / edge_lengths[-1] if len(edge_lengths) >= 2 else None
+                component_ndvi = ndvi[component]
+                component_brightness = brightness[component]
+                component_rgb = array[component][:, :3]
                 features.append({
                     "type": "Feature",
                     "id": f"imagery_candidate_{len(features) + 1:05d}",
@@ -102,6 +115,27 @@ def extract_imagery_candidates(
                     "properties": {
                         "candidate_type": candidate_type,
                         "area_m2": round(float(polygon.area), 2),
+                        "shape_metrics": {
+                            "perimeter_m": round(perimeter, 2),
+                            "compactness": round(
+                                float(4.0 * np.pi * polygon.area / (perimeter ** 2)), 4
+                            ) if perimeter > 0 else None,
+                            "solidity": round(
+                                float(polygon.area / hull_area), 4
+                            ) if hull_area > 0 else None,
+                            "oriented_bbox_elongation": round(elongation, 3) if elongation is not None else None,
+                        },
+                        "spectral_metrics": {
+                            "ndvi_mean": round(float(component_ndvi.mean()), 4),
+                            "ndvi_stddev": round(float(component_ndvi.std()), 4),
+                            "brightness_mean": round(float(component_brightness.mean()), 2),
+                            "brightness_stddev": round(float(component_brightness.std()), 2),
+                            "red_mean": round(float(component_rgb[:, 0].mean()), 2),
+                            "green_mean": round(float(component_rgb[:, 1].mean()), 2),
+                            "blue_mean": round(float(component_rgb[:, 2].mean()), 2),
+                            "nir_mean": round(float(array[component][:, 3].mean()), 2),
+                            "pixel_count": int(component.sum()),
+                        },
                         "source": "multispectral_imagery_spectral_heuristic",
                         "spectral_signal": (
                             "high_ndvi_vegetation"
