@@ -379,3 +379,19 @@ Added `scripts/course_intelligence/imagery_candidates.py` as a course-agnostic f
 The output deliberately does not label these as tees, greens, fairways, bunkers, or hazards. It records spectral signal, area, source, low confidence, and unreviewed status. The course mask prevents candidate extraction outside the supplied course extent. Synthetic tests cover both candidate classes, mask behavior, invalid band counts, and mask dimensions.
 
 This is not a trained classifier. High-NDVI regions may be trees or rough rather than playable turf; bright low-NDVI regions may be sand, paths, exposed soil, or roofs. The next step is to validate spectral thresholds and morphology against the Lake Arlington NAIP crop and reviewed examples, then add shape/context features. Semantic golf-feature classification remains out of scope until evidence supports it.
+
+
+### Lake Arlington real-imagery extraction checkpoint
+
+The generic four-band candidate extractor was run against the real 2022-07-13 Lake Arlington NAIP course crop (2,448 × 2,055 pixels; 0.6 m pixels; EPSG:26914). The first thresholds produced:
+- 362 `vegetated_turf_candidate` polygons
+- 100 `bare_ground_candidate` polygons
+- 462 candidates total, all low-confidence and unreviewed
+
+Visual inspection of the overlay shows that the vegetation mask is fragmented and captures many tree crowns / scattered vegetation patches. It does not yet delineate clean fairway corridors. This is an important negative result: high NDVI alone is not a reliable fairway detector.
+
+Added `scripts/evaluate_lake_arlington_imagery_candidates.py` to quantify candidate overlap with available OSM fairway, green, tee, cartpath, and water geometries. The report is explicitly an exploratory spatial comparison, not ground-truth precision/recall, because OSM is incomplete. The workflow now runs that comparison after extracting the OSM reference features.
+
+The pilot workflow also exposed and fixed an existing `PYTHONPATH` issue in the hole-reconstruction adapter. The generic test workflow's pull-request path filter now includes every `tests/test_*.py` suite, not just the original geometry tests.
+
+Next work should improve separation of playable turf from trees/rough using spatial context, texture, shape, and course layout—not simply lower the NDVI threshold. No spectral candidate is promoted to a confirmed golf feature.
