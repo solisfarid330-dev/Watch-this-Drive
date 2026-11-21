@@ -225,3 +225,24 @@ The STAC collection response currently reports `license: proprietary`, while its
 
 
 Official source-rights cross-check: the USDA-published NAIP dataset record on Data.gov identifies the dataset license as the USA.gov Public Domain License and describes NAIP acquisition/resolution standards. The USDA FSA Digital Rights page says most FSA web information is public domain and requests appropriate attribution; USGS identifies NAIP as public-domain imagery. The STAC collection's `license: proprietary` field therefore conflicts with its own Public Domain license link and the official dataset-level record. Retain this discrepancy in provenance, use the underlying USDA NAIP source citation, and re-check any tile-specific metadata/contract note before distribution. Attribution should credit USDA Farm Production and Conservation Business Center, Geospatial Enterprise Operations (FPAC-BC-GEO), and USDA Farm Service Agency as appropriate.
+
+
+### First georeferenced imagery crop generated
+
+The expanded GitHub Actions workflow successfully read the two 2022 cloud-optimized GeoTIFF source tiles and generated a course-boundary crop:
+
+- Output: `lake_arlington_naip_2022_course_clip.tif`
+- Visual QA image: `lake_arlington_naip_2022_course_preview.png`
+- Manifest: `lake_arlington_naip_2022_course_manifest.json`
+- Source acquisition: 2022-07-13
+- Ground sample distance: 0.6 m/pixel
+- Output: 2,448 × 2,055 pixels, four bands (Red, Green, Blue, Near Infrared)
+- Coordinate reference system: EPSG:26914
+- Source tiles: the northwest and northeast 2022 NAIP items listed above
+- The preview draws the selected OSM boundary in yellow and masks pixels outside that boundary.
+
+The crop was visually inspected. The course is clearly represented and the image is suitable to begin manual feature labeling. This is now a real georeferenced pilot image asset, not just a catalog match or low-resolution preview. It is still not a validated hole/feature map: fairways, greens, bunkers, water, and hole associations must be digitized/checked against the image and OSM.
+
+Workflow run 44939990644 completed successfully and uploaded the GeoTIFF, PNG preview, manifest, candidate metadata, and tile previews as the `lake-arlington-naip-candidates` artifact (14-day retention).
+
+The image remains attributable to USDA NAIP. Keep the STAC `proprietary` versus USDA Public Domain metadata discrepancy in the manifest and source register; the official USDA Data.gov dataset record and USGS source information support public-domain use with attribution.
