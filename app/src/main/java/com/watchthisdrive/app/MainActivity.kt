@@ -32,6 +32,7 @@ import com.watchthisdrive.app.data.CourseGeometry
 import com.watchthisdrive.app.data.CourseGeometryLoader
 import com.watchthisdrive.app.data.GolfCourse
 import com.watchthisdrive.app.ui.GolfMap
+import com.watchthisdrive.app.ui.CaddyScreen
 import com.watchthisdrive.app.ui.GolfTheme
 import java.util.Locale
 
@@ -197,10 +198,9 @@ private fun WatchThisDriveApp() {
                         Icons.Filled.Scoreboard
                     )
 
-                    Tab.CADDY -> PlaceholderScreen(
-                        "Your caddy",
-                        "Default club distances will be ready from day one. The caddy will learn and adapt as you record shots.",
-                        Icons.Filled.SportsGolf
+                    Tab.CADDY -> CaddyScreen(
+                        location = location,
+                        onLocate = { locate() }
                     )
                 }
             }
