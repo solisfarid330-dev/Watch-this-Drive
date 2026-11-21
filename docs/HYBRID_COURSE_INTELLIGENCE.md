@@ -222,3 +222,6 @@ The STAC collection response currently reports `license: proprietary`, while its
 #### Current pilot status
 
 **Coverage and imagery date/resolution are now confirmed from the STAC metadata.** The visual previews confirm that the course is represented. The full-resolution GeoTIFFs have not yet been downloaded or quality-checked, and the catalog-license discrepancy remains open. The imagery-analysis acceptance gate therefore remains closed until those two checks are complete.
+
+
+Official source-rights cross-check: the USDA-published NAIP dataset record on Data.gov identifies the dataset license as the USA.gov Public Domain License and describes NAIP acquisition/resolution standards. The USDA FSA Digital Rights page says most FSA web information is public domain and requests appropriate attribution; USGS identifies NAIP as public-domain imagery. The STAC collection's `license: proprietary` field therefore conflicts with its own Public Domain license link and the official dataset-level record. Retain this discrepancy in provenance, use the underlying USDA NAIP source citation, and re-check any tile-specific metadata/contract note before distribution. Attribution should credit USDA Farm Production and Conservation Business Center, Geospatial Enterprise Operations (FPAC-BC-GEO), and USDA Farm Service Agency as appropriate.
