@@ -284,3 +284,17 @@ The experimental NAIP spectral heuristic completed successfully against the 2022
 The full-course overlay is useful for seeing spatial distribution but is too dense for reliable individual classification. The next workflow step therefore generates numbered close-up review pages, candidate IDs, approximate areas, and a page index. Manual review must classify each candidate as confirmed bunker, other bare ground, or reject/uncertain before it can enter the canonical course model.
 
 The 78-candidate count is a count of heuristic regions, not a bunker count or a model-accuracy result.
+
+
+### Provisional hole reconstruction data pass
+
+A conservative first-pass script now creates a draft package from existing OSM `golf=hole` centerlines. It preserves each centerline's source identity and tags, then associates nearby mapped tees, fairways, greens, bunkers, and water features using nearest-centerline distance in UTM zone 14N.
+
+This is an association aid, not a completed hole reconstruction:
+- The association radius is capped at 110 m and can still confuse neighboring holes.
+- Every association is marked provisional and each hole requires visual review.
+- The script does not infer missing geometry from imagery and does not invent missing holes.
+- Imagery is not yet used to generate fairway, green, bunker, or hazard polygons.
+- Draft geometry must not drive golfer-facing caddy or hazard advice.
+
+The output is `lake_arlington_hole_reconstruction_draft.geojson`, included in the pilot workflow artifact. The next validation step is comparing each provisional grouping against the NAIP imagery, then replacing ambiguous nearest-line assignments with reviewed hole-level geometry.
