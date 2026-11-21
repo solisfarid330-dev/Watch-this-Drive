@@ -118,6 +118,10 @@ def main() -> int:
             "gsd_meters_per_pixel": props.get("gsd"),
             "state": props.get("naip:state"),
             "projection_epsg": props.get("proj:epsg"),
+            "projection_shape": props.get("proj:shape"),
+            "projection_transform": props.get("proj:transform"),
+            "raster_bands": props.get("raster:bands"),
+            "eo_bands": props.get("eo:bands"),
             "bbox": item.get("bbox"),
             "geometry": item.get("geometry"),
             "assets": {
@@ -125,6 +129,9 @@ def main() -> int:
                     "type": asset.get("type"),
                     "roles": asset.get("roles"),
                     "title": asset.get("title"),
+                    "gsd": asset.get("gsd"),
+                    "eo:bands": asset.get("eo:bands"),
+                    "raster:bands": asset.get("raster:bands"),
                     "href": asset.get("href"),
                 }
                 for key, asset in assets.items()
