@@ -579,7 +579,7 @@ private fun NearbyCoursesScreen(
 
             courses.isNotEmpty() -> {
                 Text(
-                    "\${courses.size} boundary candidate\${if (courses.size == 1) "" else "s"} across \${groupedCourses.size} course listing\${if (groupedCourses.size == 1) "" else "s"}",
+                    "${courses.size} boundary candidate${if (courses.size == 1) "" else "s"} across ${groupedCourses.size} course listing${if (groupedCourses.size == 1) "" else "s"}",
                     color = Color(0xFFB8F36B),
                     fontWeight = FontWeight.Bold
                 )
@@ -593,7 +593,7 @@ private fun NearbyCoursesScreen(
                         items = groupedCourses,
                         key = { group ->
                             val first = group.candidates.first()
-                            "\${group.name}-\${first.elementType}-\${first.id}"
+                            "${group.name}-${first.elementType}-${first.id}"
                         }
                     ) { group ->
                         Card(
@@ -623,7 +623,7 @@ private fun NearbyCoursesScreen(
                                             style = MaterialTheme.typography.titleMedium
                                         )
                                         Text(
-                                            "\${group.candidates.size} possible boundary\${if (group.candidates.size == 1) "boundary" else "boundaries"}",
+                                            "${group.candidates.size} possible ${if (group.candidates.size == 1) "boundary" else "boundaries"}",
                                             color = Color(0xFFB8F36B),
                                             style = MaterialTheme.typography.bodySmall
                                         )
@@ -651,11 +651,11 @@ private fun NearbyCoursesScreen(
                                             horizontalAlignment = Alignment.Start
                                         ) {
                                             Text(
-                                                "\${candidate.elementType.replaceFirstChar { it.uppercase() }} #\${candidate.id}",
+                                                "${candidate.elementType.replaceFirstChar { it.uppercase() }} #${candidate.id}",
                                                 fontWeight = FontWeight.SemiBold
                                             )
                                             Text(
-                                                "\${"%.1f".format(Locale.US, candidate.distanceMiles)} mi from search center",
+                                                "${"%.1f".format(Locale.US, candidate.distanceMiles)} mi from search center",
                                                 color = Color(0xFFB6C1B9),
                                                 style = MaterialTheme.typography.bodySmall
                                             )
