@@ -10,6 +10,7 @@ on:
       - "scripts/build_lake_arlington_naip_crop.py"
       - "scripts/compare_lake_arlington_osm_to_imagery.py"
       - "scripts/detect_lake_arlington_bare_ground_candidates.py"
+      - "scripts/build_lake_arlington_candidate_review_atlas.py"
       - ".github/workflows/discover-naip.yml"
 
 permissions:
@@ -42,6 +43,9 @@ jobs:
 
       - name: Generate unreviewed bare-ground candidates
         run: python scripts/detect_lake_arlington_bare_ground_candidates.py
+
+      - name: Build numbered candidate review atlas
+        run: python scripts/build_lake_arlington_candidate_review_atlas.py
 
       - name: Upload imagery candidate metadata
         if: always()
