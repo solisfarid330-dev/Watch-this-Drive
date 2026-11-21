@@ -200,3 +200,25 @@ A metadata-only discovery script and GitHub Actions workflow have been added:
 Important: do not equate a catalog response with permission to use an asset. Review the returned collection and item license/provider links and the underlying USDA terms before any download, derivative production, or commercial use. If the catalog metadata is ambiguous or inconsistent, stop and resolve it rather than assuming public-domain status from the NAIP name alone.
 
 The first automated run is the next verification gate. It must confirm that the OSM boundary is still retrievable and that the catalog returns actual intersecting items. A candidate item must then be checked for complete course coverage and image quality before it can be accepted as the pilot asset.
+
+
+### Lake Arlington NAIP catalog results — 2026-11-21
+
+The automated GitHub Actions discovery job successfully queried the Microsoft Planetary Computer STAC catalog using the current OSM boundary (way 412547642).
+
+- 12 intersecting NAIP items were returned across six vintages: 2012, 2014, 2016, 2018, 2020, and 2022.
+- The newest matching vintage is 2022-07-13.
+- The 2022 vintage consists of two neighboring items: `tx_m_3209723_nw_14_060_20220713` and `tx_m_3209723_ne_14_060_20220713`.
+- Both report 0.6 m ground sample distance and EPSG:26914.
+- Their actual STAC item geometries, unioned together, cover 100% of the selected OSM course-boundary polygon. The same footprint check reports complete coverage for each older vintage as well.
+- Low-resolution rendered previews for both 2022 tiles were downloaded to the workflow artifact. Visual inspection confirms that the course area is present in the imagery. The previews are for triage only and are not accepted as the analysis raster.
+
+Artifact: `lake-arlington-naip-candidates` from GitHub Actions run 44939807097 (commit `2382b081064d73808e41d60e50989aa5ca94826f`). The workflow completed successfully.
+
+#### License metadata discrepancy — unresolved gate
+
+The STAC collection response currently reports `license: proprietary`, while its collection license link is titled `Public Domain` and points to USDA FSA policies. The official Data.gov NAIP dataset record identifies the dataset license as public domain, and USDA/USGS sources describe NAIP as public-domain imagery. This is strong supporting evidence, but the inconsistent STAC collection field must be documented and reconciled against the actual source tile's terms before accepting it for commercial processing or distribution. Do not silently overwrite the catalog's license field.
+
+#### Current pilot status
+
+**Coverage and imagery date/resolution are now confirmed from the STAC metadata.** The visual previews confirm that the course is represented. The full-resolution GeoTIFFs have not yet been downloaded or quality-checked, and the catalog-license discrepancy remains open. The imagery-analysis acceptance gate therefore remains closed until those two checks are complete.
