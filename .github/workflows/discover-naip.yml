@@ -8,6 +8,7 @@ on:
     paths:
       - "scripts/discover_lake_arlington_naip.py"
       - "scripts/build_lake_arlington_naip_crop.py"
+      - "scripts/compare_lake_arlington_osm_to_imagery.py"
       - ".github/workflows/discover-naip.yml"
 
 permissions:
@@ -34,6 +35,9 @@ jobs:
 
       - name: Build georeferenced course crop from newest NAIP tiles
         run: python scripts/build_lake_arlington_naip_crop.py
+
+      - name: Compare OSM golf features with imagery
+        run: python scripts/compare_lake_arlington_osm_to_imagery.py
 
       - name: Upload imagery candidate metadata
         if: always()
