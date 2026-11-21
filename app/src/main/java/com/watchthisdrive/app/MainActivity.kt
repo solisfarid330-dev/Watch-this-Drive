@@ -169,6 +169,7 @@ private fun WatchThisDriveApp() {
                             locate()
                         },
                         onViewOnMap = {
+                            activeCourse = selectedCourse
                             mapTarget = Location("selected-course").apply {
                                 latitude = selectedCourse!!.latitude
                                 longitude = selectedCourse!!.longitude
@@ -198,7 +199,11 @@ private fun WatchThisDriveApp() {
                         }
                     )
 
-                    Tab.MAP -> GolfMap(location = mapTarget ?: location, onLocate = { mapTarget = null; locate() })
+                    Tab.MAP -> GolfMap(
+                        location = mapTarget ?: location,
+                        course = activeCourse,
+                        onLocate = { mapTarget = null; locate() }
+                    )
 
                     Tab.SCORE -> PlaceholderScreen(
                         "Scorecard",
