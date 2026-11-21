@@ -246,3 +246,25 @@ The crop was visually inspected. The course is clearly represented and the image
 Workflow run 44939990644 completed successfully and uploaded the GeoTIFF, PNG preview, manifest, candidate metadata, and tile previews as the `lake-arlington-naip-candidates` artifact (14-day retention).
 
 The image remains attributable to USDA NAIP. Keep the STAC `proprietary` versus USDA Public Domain metadata discrepancy in the manifest and source register; the official USDA Data.gov dataset record and USGS source information support public-domain use with attribution.
+
+
+### First OSM-versus-imagery comparison
+
+The automated Overpass query returned 145 golf-tagged OSM elements inside the selected course boundary. The workflow converted their geometries to GeoJSON and rendered them over the georeferenced NAIP crop.
+
+Observed OSM tag counts:
+- 47 tees
+- 21 greens
+- 19 fairways
+- 18 hole features
+- 18 pins
+- 16 cartpaths
+- 5 water hazards
+- 1 lateral water hazard
+- **0 bunker-tagged features**
+
+Visual inspection of the overlay shows that many mapped hole/fairway/green geometries line up with the visible course layout. The imagery also contains multiple light sand-colored areas around playing surfaces that may be bunkers, while OSM returned no `golf=bunker` features. These are candidate omissions for manual review, not an automatically confirmed bunker inventory.
+
+The overlay also makes source limitations visible: OSM contains useful geometry, but it does not yet provide a complete feature inventory for this course. Imagery should therefore be used as an independent observation source, with human review to classify ambiguous areas and resolve geometry disagreements.
+
+Workflow run 44940085537 completed successfully. Its artifact includes the full-resolution four-band course crop, OSM raw response, OSM GeoJSON, comparison summary, and overlay preview. The GeoJSON and raw OSM response preserve the original OSM element type/ID and tags for provenance.
