@@ -402,3 +402,14 @@ Next work should improve separation of playable turf from trees/rough using spat
 The first Lake Arlington spatial comparison produced 362 vegetation candidates covering about 133,021 m² and 100 bare-ground candidates covering about 17,883 m². When compared with the currently mapped OSM polygons, only about 0.77% of mapped fairway area intersected the vegetation candidates; vegetation candidates covered about 0.61% of their own union area inside mapped fairways. This confirms the visual finding that the initial high-NDVI mask is dominated by general vegetation and is not delineating fairways.
 
 These percentages are screening diagnostics only: OSM is incomplete, and the geometry comparison is not a labeled accuracy benchmark. The evaluation now also measures NDVI and brightness distributions inside mapped fairways, greens, tees, paths, and water features. That should help determine whether fairways are spectrally distinct in this image at all, before selecting a better feature representation or classifier.
+
+
+### Candidate descriptors for separating playable turf from background vegetation
+
+The shared candidate extractor now records generic per-component descriptors in addition to its spectral class:
+- Shape: area, perimeter, compactness, convex-hull solidity, and oriented-bounding-box elongation.
+- Spectral: mean and standard deviation of NDVI and brightness, mean RGB/NIR values, and pixel count.
+
+These are evidence features for later classification, not semantic labels. The next classifier can combine them with neighborhood context, course topology, and imagery texture rather than treating NDVI as a decision by itself. No universal elongation/compactness threshold is being applied yet; fairways vary widely and trees/rough can have similar signatures.
+
+The follow-up full pilot run at commit `4a21136` successfully rebuilt the NAIP crop and candidate overlay, but the OSM comparison step failed before the spectral evaluation stage. The run therefore did not produce the new evaluation JSON; later dependent steps were skipped. This is recorded as an incomplete external-data run, not a successful validation. The pipeline now reruns when shared `scripts/course_intelligence/**` code changes.
