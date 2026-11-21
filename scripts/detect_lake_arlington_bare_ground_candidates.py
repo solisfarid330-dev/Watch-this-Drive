@@ -14,6 +14,8 @@ import rasterio
 from PIL import Image, ImageDraw
 from rasterio.features import rasterize, shapes
 from rasterio.transform import rowcol
+from rasterio.warp import transform_geom
+from rasterio.windows import Window, transform as window_transform
 from scipy import ndimage
 from shapely.geometry import mapping, shape
 
@@ -40,7 +42,7 @@ def main() -> None:
     green_buffers = []
     for feature in osm["features"]:
         if feature["properties"].get("golf") == "green":
-            geom = rasterio.warp.transform_geom(
+            geom = transform_geom(
                 "EPSG:4326", crs, feature["geometry"], precision=3
             )
             green_buffers.append(shape(geom).buffer(25))
@@ -84,13 +86,13 @@ def main() -> None:
         area_m2 = pixel_count * abs(transform.a * transform.e - transform.b * transform.d)
         if not 4.0 <= area_m2 <= 250.0:
             continue
-        window = rasterio.windows.Window(
+        window = Window(
             slices[1].start,
             slices[0].start,
             slices[1].stop - slices[1].start,
             slices[0].stop - slices[0].start,
         )
-        local_transform = rasterio.windows.transform(window, transform)
+        local_transform = window_transform(window, transform)
         for geom_json, value in shapes(
             local.astype("uint8"),
             mask=local,
