@@ -343,3 +343,16 @@ The provisional hole-association algorithm has been extracted from the Lake Arli
 - A separate GitHub Actions test workflow exercises projection in Texas and Australia and tests ambiguous feature association.
 
 This is a first reusable geometry primitive, not yet the complete production engine. It still expects usable OSM hole centerlines for hole grouping; courses without those lines will need the independent imagery-based hole reconstruction path. Broader geographic and source-provider acceptance tests remain required.
+
+
+### First OSM-centerline-independent reconstruction primitive
+
+A reusable route-hypothesis stage has been added in `scripts/course_intelligence/reconstruction.py`. It consumes independently sourced tee, green, and optional fairway candidate geometries and proposes possible straight tee-to-green links. It does not query or require `golf=hole` centerlines.
+
+- Candidate inputs can come from imagery segmentation, reviewed human digitization, or another eligible source; this module does not itself classify image pixels.
+- A local metric projection is derived from the supplied candidate geometries.
+- Straight-line length and optional fairway-corridor overlap provide a coarse ranking signal.
+- Competing routes sharing a tee or green are retained and marked ambiguous when their scores are close.
+- Every route remains `confidence=unassessed` and `validation_status=requires_visual_review`.
+
+This deliberately small step proves only that candidate tee/green geometry can produce course-independent route hypotheses without OSM hole lines. It does **not** solve doglegs, hole order, crossing/parallel holes, multiple tee boxes, multiple greens, or image feature detection. A straight link is not a playable hole centerline. The next validation work must compare hypotheses against reviewed Lake Arlington geometry and add route topology / fairway-shape reasoning before any app or caddy integration.
