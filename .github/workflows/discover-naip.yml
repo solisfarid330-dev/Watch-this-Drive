@@ -45,7 +45,10 @@ jobs:
       - name: Generate unreviewed bare-ground candidates
         run: python scripts/detect_lake_arlington_bare_ground_candidates.py
 
-      - name: Build provisional hole reconstruction draft\n        run: python scripts/build_lake_arlington_hole_reconstruction_draft.py\n\n      - name: Build numbered candidate review atlas
+      - name: Build provisional hole reconstruction draft
+        run: python scripts/build_lake_arlington_hole_reconstruction_draft.py
+
+      - name: Build numbered candidate review atlas
         run: python scripts/build_lake_arlington_candidate_review_atlas.py
 
       - name: Upload imagery candidate metadata
