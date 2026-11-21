@@ -268,3 +268,19 @@ Visual inspection of the overlay shows that many mapped hole/fairway/green geome
 The overlay also makes source limitations visible: OSM contains useful geometry, but it does not yet provide a complete feature inventory for this course. Imagery should therefore be used as an independent observation source, with human review to classify ambiguous areas and resolve geometry disagreements.
 
 Workflow run 44940085537 completed successfully. Its artifact includes the full-resolution four-band course crop, OSM raw response, OSM GeoJSON, comparison summary, and overlay preview. The GeoJSON and raw OSM response preserve the original OSM element type/ID and tags for provenance.
+
+
+
+### First bare-ground candidate pass — 2026-11-21
+
+The experimental NAIP spectral heuristic completed successfully against the 2022 four-band course crop.
+
+- It generated 78 low-confidence bare-ground candidates.
+- Candidate search was deliberately limited to 25 m buffers around OSM-mapped greens; it is not a whole-course bunker detector.
+- Candidate areas range from 4 to 250 m².
+- The heuristic uses low NDVI, brightness, and broad color thresholds. It can also select exposed soil, cartpath edges, shadows, or other non-bunker surfaces.
+- Every feature is explicitly tagged `bare_ground_candidate`, `confidence=low`, and `validation_status=unreviewed`. No candidate is ground truth and none may drive golfer-facing hazard advice.
+
+The full-course overlay is useful for seeing spatial distribution but is too dense for reliable individual classification. The next workflow step therefore generates numbered close-up review pages, candidate IDs, approximate areas, and a page index. Manual review must classify each candidate as confirmed bunker, other bare ground, or reject/uncertain before it can enter the canonical course model.
+
+The 78-candidate count is a count of heuristic regions, not a bunker count or a model-accuracy result.
