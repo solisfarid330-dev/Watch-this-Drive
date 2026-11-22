@@ -69,13 +69,14 @@ private fun PlayingCaddyScreen(
         .filter { it.featureType.equals("green", ignoreCase = true) }
         .sortedWith(compareBy<CourseFeature> { it.holeNumber?.toIntOrNull() ?: Int.MAX_VALUE }.thenBy { it.id })
     val numberedGreens = greens.filter { it.holeNumber?.trim()?.toIntOrNull() == activeHole }
-    val selectedGreen = numberedGreens.firstOrNull { it.id == selectedGreenId }
-        ?: numberedGreens.firstOrNull()
-        ?: greens.firstOrNull { it.id == selectedGreenId }
-    val target = selectedGreen?.let { greenCenter(it) }
     val reconstructedHole = remember(geometry, activeHole) {
         geometry?.let { HoleReconstructor.reconstruct(it).firstOrNull { hole -> hole.number == activeHole } }
     }
+    val selectedGreen = numberedGreens.firstOrNull { it.id == selectedGreenId }
+        ?: numberedGreens.firstOrNull()
+        ?: greens.firstOrNull { it.id == selectedGreenId }
+        ?: greens.firstOrNull { it.id == reconstructedHole?.greenSource?.id }
+    val target = selectedGreen?.let { greenCenter(it) }
     val approachHazards = remember(location?.latitude, location?.longitude, target?.latitude, target?.longitude, reconstructedHole) {
         if (location == null || target == null) emptyList()
         else (reconstructedHole?.water.orEmpty() + reconstructedHole?.bunkers.orEmpty())
@@ -163,8 +164,12 @@ private fun PlayingCaddyScreen(
                                     }
                                 }
                                 Text(
-                                    if (numberedGreens.isNotEmpty()) "Automatically selected from the mapped hole number."
-                                    else "No green is tagged for hole $activeHole; select the correct mapped green.",
+                                    when {
+                                        numberedGreens.isNotEmpty() -> "Automatically selected from the mapped hole number."
+                                        reconstructedHole != null && selectedGreen?.id == reconstructedHole.greenSource.id ->
+                                            "Matched to this hole using tee/green geometry; you can override it below."
+                                        else -> "No reliable green match for hole $activeHole; choose the correct mapped green."
+                                    },
                                     color = caddyMuted,
                                     style = MaterialTheme.typography.bodySmall
                                 )
