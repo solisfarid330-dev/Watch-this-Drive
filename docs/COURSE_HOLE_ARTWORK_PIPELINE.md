@@ -8,12 +8,14 @@ The same generated artwork package is consumed by **Illustrated Holes** and **Pl
 
 ## Current implementation status
 
-- The Python geometry and vector-rendering modules are course-independent.
-- OSM association and tee-to-green reconstruction retain ambiguity and mark inferred geometry as provisional.
-- Android currently loads packaged artwork assets. This is useful for validating the manifest/image contract, but it is **not** the final universal runtime-generation architecture.
-- The Caddy screen now requests the selected hole from the same artwork repository used by Illustrated Holes and falls back to its existing live reconstructed map if no matching image exists.
-- The APK workflow still contains a Lake Arlington pilot packaging step. It is a temporary fixture/demo path and must not be treated as proof that arbitrary selected courses are generated on demand.
-- A hosted generation service and Android runtime download/cache integration are not yet implemented. Do not describe the feature as globally available until those pieces are deployed and tested.
+- Android course acquisition now starts from the selected OSM boundary, retrieves mapped course/landscape features within its bounds, and spatially filters against stitched outer boundary rings when available. If no usable boundary exists, it falls back to a bounded coordinate search; that fallback has weaker isolation guarantees.
+- Hole reconstruction now prefers explicit hole numbers when associating tee clusters and greens, uses mapped fairway polygons when available, and only draws a synthetic corridor when no mapped fairway is associated. Mapped fairways remain separate from inferred geometry.
+- Bunkers and water are associated with the reconstructed tee-to-green corridor and nearby mapped fairway geometry. This is a first-pass spatial association, not a fully solved routing/graph problem.
+- The reconstructed-hole UI renders mapped fairway polygons and labels the fallback corridor as estimated.
+- Android Illustrated Holes still loads packaged artwork assets. It does not yet generate and cache a new course's illustrations on the device.
+- The Caddy screen uses the shared artwork repository when a packaged illustration exists and otherwise falls back to its reconstructed GPS-aware map.
+- The regular APK workflow no longer runs or packages the Lake Arlington-specific artwork pilot. Lake Arlington remains only a potential test fixture.
+- Python geometry/rendering scripts are prototypes/reference tools, not a production runtime dependency. A universal on-device renderer and local generated-artwork cache are not yet implemented.
 
 ## Runtime architecture to implement
 
@@ -40,9 +42,9 @@ Spectral and shape processing may identify broad candidates (turf-like, bare-gro
 
 ### 3. Generation service contract
 
-The Python renderer depends on native geospatial/image libraries and must run in a controlled backend worker, not on Android's UI thread or as an assumed APK capability.
+The earlier hosted-worker design below is retained only as an alternative. The agreed product architecture is to acquire data and generate artwork locally on Android, with no required backend processing. A backend may be used as an optional source/cache only if it does not become a release dependency.
 
-The service should expose an authenticated, versioned API with these conceptual operations:
+If a hosted service is ever chosen, it should expose an authenticated, versioned API with these conceptual operations:
 
 - Request generation using course element type/ID plus validated course coordinates and display name.
 - Return a ready cached package immediately, or a job ID when generation is needed.
@@ -53,13 +55,13 @@ The cache key must include stable course identity, a hash/version of acquired so
 
 ### 4. Android integration
 
-Implement one shared repository for both screens:
-- look up generated packages by stable course identity;
-- request generation when no current package exists;
-- poll or receive completion without blocking the main thread;
-- download images to app-private storage and decode off the main thread;
-- reuse cached images offline;
-- expose loading, ready, stale, and failed states;
+Implement one shared on-device generation/cache repository for both screens:
+- look up locally generated packages by stable course identity and source-geometry version;
+- generate artwork on-device when no current package exists;
+- run CPU-heavy geometry and drawing away from the main thread;
+- save generated images and manifests to app-private storage and decode off the main thread;
+- reuse cached images offline without network access after initial acquisition;
+- expose loading, ready, stale, partial, and failed states;
 - preserve the existing schematic Caddy map and satellite/map functionality as fallback.
 
 The UI must match artwork to the selected course and hole, never to a similarly named but ambiguous course. Do not remove the fallback until runtime generation is reliable.
