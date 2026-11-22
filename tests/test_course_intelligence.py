@@ -55,6 +55,16 @@ class GenericGeometryTests(unittest.TestCase):
         self.assertEqual(summary["associated_features_by_type"]["green"], 1)
 
 
+
+    def test_conflicting_explicit_reference_is_not_nearest_assigned(self):
+        hole = {"type": "Feature", "id": "h", "geometry": {"type": "LineString", "coordinates": [[0, 0], [0, .01]]},
+                "properties": {"golf": "hole", "tags": {"ref": "1"}}, "_shape": LineString([(0, 0), (0, .01)])}
+        green = {"type": "Feature", "id": "g", "geometry": {"type": "Point", "coordinates": [0, .005]},
+                 "properties": {"golf": "green", "tags": {"ref:hole": "9"}}, "_shape": Point(0, .005)}
+        holes, summary = associate_features_to_holes([hole, green])
+        self.assertEqual(holes[0]["properties"]["associated_feature_count"], 0)
+        self.assertEqual(summary["unassigned_feature_ids"], ["g"])
+
 if __name__ == "__main__":
     unittest.main()
 
