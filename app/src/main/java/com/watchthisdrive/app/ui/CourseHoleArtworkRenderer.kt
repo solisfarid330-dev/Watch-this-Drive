@@ -118,6 +118,17 @@ internal object CourseHoleArtworkRenderer {
         paint.shader = RadialGradient(WIDTH / 2f, HEIGHT / 2f, HEIGHT * .72f,
             intArrayOf(0x00000000, 0x1A06170F), null, Shader.TileMode.CLAMP)
         canvas.drawRect(full, paint); paint.shader = null
+        // Fine deterministic paper grain gives the light atlas background
+        // a printed-map texture without expensive per-pixel bitmap processing.
+        paint.style = Paint.Style.FILL
+        for (row in 0..47) for (col in 0..32) {
+            val seed = (row * 73 + col * 151 + hole.number * 197) % 997
+            if (seed % 3 != 0) continue
+            val x = ((col * 43 + row * 17 + seed * 3) % WIDTH).toFloat()
+            val y = ((row * 37 + col * 19 + seed * 5) % HEIGHT).toFloat()
+            paint.color = if (seed % 2 == 0) 0x24596D4A else 0x1D7E795B
+            canvas.drawCircle(x, y, 1.2f + (seed % 4) * 0.45f, paint)
+        }
 
         fun shape(points: List<GeoPoint>): Path? {
             if (points.size < 3) return null
@@ -325,6 +336,8 @@ internal object CourseHoleArtworkRenderer {
         }
         paint.color = 0xFFE65E4E.toInt(); canvas.drawPath(flag, paint)
         paint.color = 0xFF344B35.toInt(); canvas.drawCircle(pin.first, pin.second + 20f, 8f, paint)
+        text("TEE", tee.first, tee.second + 48f, 0xFF344B35.toInt(), 19f)
+        text("GREEN", greenCenter.first, greenCenter.second + 72f, 0xFF344B35.toInt(), 19f)
 
         // Header/footer are kept outside the fitted course viewport.
         paint.shader = LinearGradient(0f, 0f, 0f, 158f, 0xE610251D.toInt(), 0x0010251D, Shader.TileMode.CLAMP)
