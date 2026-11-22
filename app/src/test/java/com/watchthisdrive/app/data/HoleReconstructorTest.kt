@@ -110,4 +110,31 @@ class HoleReconstructorTest {
 
         assertTrue(HoleReconstructor.reconstruct(geometry).isEmpty())
     }
+    @Test
+    fun mappedTreesAndPathsAreAssociatedWithTheirNearbyHole() {
+        val fairway = listOf(
+            GeoPoint(0.0002, -0.0002),
+            GeoPoint(0.0038, -0.0002),
+            GeoPoint(0.0038, 0.0006),
+            GeoPoint(0.0002, 0.0006),
+            GeoPoint(0.0002, -0.0002)
+        )
+        val geometry = CourseGeometry(
+            99, "Fixture", listOf(
+                feature(1, "tee", 0.0, 0.0),
+                feature(2, "green", 0.004, 0.0002),
+                feature(3, "fairway", 0.0, 0.0, points = fairway),
+                feature(4, "tree", 0.002, 0.0008),
+                feature(5, "path", 0.002, 0.0009, points = listOf(
+                    GeoPoint(0.001, 0.0009), GeoPoint(0.003, 0.0009)
+                ))
+            )
+        )
+
+        val hole = HoleReconstructor.reconstruct(geometry).single()
+
+        assertEquals(1, hole.trees.size)
+        assertEquals(5L, hole.paths.single().id)
+    }
+
 }
