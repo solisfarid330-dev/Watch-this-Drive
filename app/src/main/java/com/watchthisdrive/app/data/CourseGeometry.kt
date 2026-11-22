@@ -485,26 +485,35 @@ object CourseGeometryLoader {
         val rings = mutableListOf<List<GeoPoint>>()
         while (remaining.isNotEmpty()) {
             val ring = remaining.removeAt(0).toMutableList()
-            var joined = true
-            while (joined && haversineMeters(
+            while (remaining.isNotEmpty() && haversineMeters(
                     ring.first().latitude, ring.first().longitude,
                     ring.last().latitude, ring.last().longitude
                 ) > 5.0
             ) {
-                joined = false
-                val end = ring.last()
-                val matchIndex = remaining.indexOfFirst { segment ->
-                    haversineMeters(end.latitude, end.longitude,
-                        segment.first().latitude, segment.first().longitude) <= 5.0 ||
-                    haversineMeters(end.latitude, end.longitude,
-                        segment.last().latitude, segment.last().longitude) <= 5.0
+                data class Join(val index: Int, val attachToStart: Boolean, val reverse: Boolean, val distance: Double)
+                val joins = remaining.mapIndexedNotNull { index, segment ->
+                    val appendFirst = haversineMeters(ring.last().latitude, ring.last().longitude,
+                        segment.first().latitude, segment.first().longitude)
+                    val appendLast = haversineMeters(ring.last().latitude, ring.last().longitude,
+                        segment.last().latitude, segment.last().longitude)
+                    val prependFirst = haversineMeters(ring.first().latitude, ring.first().longitude,
+                        segment.first().latitude, segment.first().longitude)
+                    val prependLast = haversineMeters(ring.first().latitude, ring.first().longitude,
+                        segment.last().latitude, segment.last().longitude)
+                    listOf(
+                        Join(index, false, false, appendFirst),
+                        Join(index, false, true, appendLast),
+                        Join(index, true, true, prependFirst),
+                        Join(index, true, false, prependLast)
+                    ).filter { it.distance <= 5.0 }.minByOrNull { it.distance }
                 }
-                if (matchIndex >= 0) {
-                    val segment = remaining.removeAt(matchIndex)
-                    val forward = haversineMeters(end.latitude, end.longitude,
-                        segment.first().latitude, segment.first().longitude) <= 5.0
-                    ring.addAll(if (forward) segment.drop(1) else segment.asReversed().drop(1))
-                    joined = true
+                val join = joins.minByOrNull { it.distance } ?: break
+                val segment = remaining.removeAt(join.index)
+                when {
+                    !join.attachToStart && !join.reverse -> ring.addAll(segment.drop(1))
+                    !join.attachToStart && join.reverse -> ring.addAll(segment.asReversed().drop(1))
+                    join.attachToStart && join.reverse -> ring.addAll(0, segment.asReversed().dropLast(1))
+                    else -> ring.addAll(0, segment.dropLast(1))
                 }
             }
             if (ring.size >= 4 && haversineMeters(
