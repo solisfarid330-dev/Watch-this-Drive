@@ -69,13 +69,13 @@ jobs:
       - name: Build centerline-led single-hole imagery review
         run: PYTHONPATH=. python scripts/build_lake_arlington_centerline_hole_review.py
 
-      - name: Render illustrated Hole 16 prototype with reusable engine
+      - name: Render every eligible course hole with reusable engine
         run: >-
-          PYTHONPATH=. python scripts/course_intelligence/vector_hole_renderer.py
+          PYTHONPATH=. python scripts/course_intelligence/render_course_holes.py
           --raster artifacts/lake_arlington_naip_2022_course_clip.tif
-          --hole artifacts/lake_arlington_centerline_hole_review.geojson
+          --draft artifacts/lake_arlington_hole_reconstruction_draft.geojson
           --context artifacts/lake_arlington_osm_golf_features.geojson
-          --out artifacts/lake_arlington_hole_16_vector_illustration.png
+          --out-dir artifacts/illustrated_holes
 
       - name: Upload imagery candidate metadata
         if: always()
