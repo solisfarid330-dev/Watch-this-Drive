@@ -166,8 +166,8 @@ private fun WatchThisDriveApp() {
                     CourseDetailScreen(
                         course = selectedCourse!!,
                         onBack = { selectedCourse = null },
-                        onGeometryLoaded = { loaded ->
-                            loadedGeometryCourseKey = courseGeometryHandoffKey(selectedCourse!!)
+                        onGeometryLoaded = { loadedCourse, loaded ->
+                            loadedGeometryCourseKey = courseGeometryHandoffKey(loadedCourse)
                             loadedCourseGeometry = loaded
                         },
                         onStartRound = {
@@ -789,7 +789,7 @@ private fun PlaceholderScreen(
 private fun CourseDetailScreen(
     course: GolfCourse,
     onBack: () -> Unit,
-    onGeometryLoaded: (CourseGeometry) -> Unit,
+    onGeometryLoaded: (GolfCourse, CourseGeometry) -> Unit,
     onStartRound: () -> Unit,
     onViewOnMap: () -> Unit
 ) {
@@ -803,12 +803,12 @@ private fun CourseDetailScreen(
         mutableStateOf<String?>(null)
     }
 
-    LaunchedEffect(course.id) {
+    LaunchedEffect(course.elementType, course.id) {
         CourseGeometryLoader.load(course) { result ->
             result.fold(
                 onSuccess = {
                     geometry = it
-                    onGeometryLoaded(it)
+                    onGeometryLoaded(course, it)
                     loading = false
                 },
                 onFailure = {
