@@ -138,3 +138,58 @@ fun CourseHoleArtworkPanel(course: GolfCourse) {
         }
     }
 }
+
+
+/**
+ * Shows the generated illustration for the requested hole when one is available.
+ * The caller supplies the existing live/reconstructed map as a safe fallback,
+ * so Caddy never loses its location-aware view for courses without artwork.
+ */
+@Composable
+fun CourseHoleArtworkForHole(
+    course: GolfCourse,
+    holeNumber: Int,
+    fallback: @Composable () -> Unit
+) {
+    val context = LocalContext.current
+    var loading by remember(course.elementType, course.id, holeNumber) { mutableStateOf(true) }
+    var bitmap by remember(course.elementType, course.id, holeNumber) { mutableStateOf<Bitmap?>(null) }
+
+    LaunchedEffect(course.elementType, course.id, holeNumber) {
+        loading = true
+        bitmap = withContext(Dispatchers.IO) {
+            val pack = CourseHoleArtworkRepository.load(context, course)
+            val entry = pack?.holes?.firstOrNull { it.number == holeNumber }
+            entry?.let { CourseHoleArtworkRepository.bitmap(context, it.assetPath) }
+        }
+        loading = false
+    }
+
+    when {
+        loading -> Box(
+            Modifier.fillMaxWidth().height(180.dp),
+            contentAlignment = androidx.compose.ui.Alignment.Center
+        ) {
+            CircularProgressIndicator(color = Color(0xFFB8F36B))
+        }
+        bitmap != null -> Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                "GENERATED HOLE ARTWORK",
+                color = Color(0xFFB8F36B),
+                style = MaterialTheme.typography.labelMedium
+            )
+            Image(
+                bitmap = bitmap!!.asImageBitmap(),
+                contentDescription = "Illustrated view of hole $holeNumber",
+                modifier = Modifier.fillMaxWidth().heightIn(min = 260.dp, max = 520.dp),
+                contentScale = ContentScale.Fit
+            )
+            Text(
+                "Tee at bottom · Green at top",
+                color = Color(0xFFB6C1B9),
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+        else -> fallback()
+    }
+}
