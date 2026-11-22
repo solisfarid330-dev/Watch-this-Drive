@@ -18,6 +18,9 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.watchthisdrive.app.data.GolfCourse
+import com.watchthisdrive.app.data.CourseGeometry
+import com.watchthisdrive.app.data.HoleReconstruction
+import java.io.File
 import org.json.JSONObject
 
 private data class HoleArtwork(val number: Int, val label: String, val assetPath: String)
@@ -79,12 +82,13 @@ private object CourseHoleArtworkRepository {
 }
 
 @Composable
-fun CourseHoleArtworkPanel(course: GolfCourse) {
+fun CourseHoleArtworkPanel(course: GolfCourse, geometry: CourseGeometry?) {
     val context = LocalContext.current
     var artwork by remember(course.elementType, course.id) { mutableStateOf<CourseArtworkPackage?>(null) }
     var loading by remember(course.elementType, course.id) { mutableStateOf(true) }
     var selected by remember(course.elementType, course.id) { mutableStateOf<Int?>(null) }
     var image by remember(course.elementType, course.id) { mutableStateOf<Bitmap?>(null) }
+    var generatedImages by remember(course.elementType, course.id) { mutableStateOf<Map<Int, File>>(emptyMap()) }
 
     LaunchedEffect(course.elementType, course.id) {
         loading = true
@@ -95,10 +99,26 @@ fun CourseHoleArtworkPanel(course: GolfCourse) {
         selected = loaded?.holes?.firstOrNull()?.number
         loading = false
     }
-    LaunchedEffect(artwork, selected) {
+    LaunchedEffect(course.elementType, course.id, geometry, artwork) {
+        if (geometry != null && artwork?.holes.isNullOrEmpty()) {
+            generatedImages = withContext(Dispatchers.Default) {
+                HoleReconstructor.reconstruct(geometry).associate { hole ->
+                    hole.number to CourseHoleArtworkRenderer.render(hole, context.cacheDir, course.elementType + "-" + course.id)
+                }
+            }
+            if (selected == null) selected = generatedImages.keys.minOrNull()
+        }
+    }
+
+    LaunchedEffect(artwork, generatedImages, selected) {
         val hole = artwork?.holes?.firstOrNull { it.number == selected }
+        val generated = selected?.let { generatedImages[it] }
         image = withContext(Dispatchers.IO) {
-            hole?.let { CourseHoleArtworkRepository.bitmap(context, it.assetPath) }
+            when {
+                hole != null -> CourseHoleArtworkRepository.bitmap(context, hole.assetPath)
+                generated != null -> BitmapFactory.decodeFile(generated.absolutePath)
+                else -> null
+            }
         }
     }
 
@@ -108,18 +128,21 @@ fun CourseHoleArtworkPanel(course: GolfCourse) {
             Text("Illustrated holes", color = Color.White, style = MaterialTheme.typography.titleLarge)
             when {
                 loading -> CircularProgressIndicator(color = Color(0xFFB8F36B))
-                artwork?.holes.isNullOrEmpty() -> Text(
-                    "Hole illustrations aren't available for this course yet. The satellite map and mapped course details are still available.",
+                artwork?.holes.isNullOrEmpty() && generatedImages.isEmpty() -> Text(
+                    if (geometry == null) "Course geometry is loading. Hole illustrations will be generated when it arrives."
+                    else "There is not enough mapped tee/green geometry to reconstruct holes for this course yet. Satellite maps and mapped course details remain available.",
                     color = Color(0xFFB6C1B9))
                 else -> {
-                    Text("${artwork?.holes?.size ?: 0} generated hole views",
+                    val availableNumbers = (artwork?.holes?.map { it.number }.orEmpty() + generatedImages.keys).distinct().sorted()
+                    Text("${availableNumbers.size} hole views · generated and cached on this device",
                         color = Color(0xFFB8F36B), style = MaterialTheme.typography.labelMedium)
                     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        artwork?.holes?.forEach { hole ->
-                            FilterChip(selected = selected == hole.number,
-                                onClick = { selected = hole.number },
-                                label = { Text("Hole " + hole.label) })
+                        availableNumbers.forEach { number ->
+                            val label = artwork?.holes?.firstOrNull { it.number == number }?.label ?: number.toString()
+                            FilterChip(selected = selected == number,
+                                onClick = { selected = number },
+                                label = { Text("Hole " + label) })
                         }
                     }
                     if (image != null) {
