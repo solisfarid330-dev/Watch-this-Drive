@@ -33,6 +33,7 @@ import com.watchthisdrive.app.data.CourseGeometryLoader
 import com.watchthisdrive.app.data.GolfCourse
 import com.watchthisdrive.app.ui.GolfMap
 import com.watchthisdrive.app.ui.CaddyScreen
+import com.watchthisdrive.app.ui.CourseHoleArtworkPanel
 import com.watchthisdrive.app.ui.GolfTheme
 import java.util.Locale
 
@@ -838,6 +839,8 @@ private fun CourseDetailScreen(
             color = Color(0xFFB6C1B9),
             style = MaterialTheme.typography.bodyLarge
         )
+
+        CourseHoleArtworkPanel(course = course)
 
         Card(
             colors = CardDefaults.cardColors(
