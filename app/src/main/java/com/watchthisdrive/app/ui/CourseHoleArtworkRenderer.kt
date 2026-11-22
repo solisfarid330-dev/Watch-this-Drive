@@ -4,7 +4,6 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Path
-import android.graphics.RectF
 import com.watchthisdrive.app.data.GeoPoint
 import com.watchthisdrive.app.data.ReconstructedHole
 import java.io.File
@@ -28,7 +27,11 @@ internal object CourseHoleArtworkRenderer {
             append('|').append(hole.tee).append('|').append(hole.green)
             hole.mappedFairways.forEach { append('|').append(it.elementType).append(':').append(it.id) }
             hole.bunkers.forEach { append('|').append("b:").append(it.id) }
-            hole.water.forEach { append('|').append("w:").append(it.id) }
+            hole.water.forEach { append('|').append("w:").append(it.id).append(it.points) }
+            append('|').append(hole.greenBoundary)
+            append('|').append(hole.fairwayEstimate)
+            hole.mappedFairways.forEach { append('|').append(it.points) }
+            hole.mappedCenterline?.let { append('|').append(it.id).append(it.points) }
         }
         val digest = MessageDigest.getInstance("SHA-256")
             .digest(signature.toByteArray()).take(12).joinToString("") { "%02x".format(it) }
