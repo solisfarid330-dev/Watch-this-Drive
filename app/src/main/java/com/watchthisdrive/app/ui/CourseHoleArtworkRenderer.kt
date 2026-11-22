@@ -37,6 +37,7 @@ internal object CourseHoleArtworkRenderer {
             hole.bunkers.forEach { append("|b:").append(it.id).append(it.points) }
             hole.water.forEach { append("|w:").append(it.id).append(it.points) }
             hole.mappedCenterline?.let { append("|c:").append(it.id).append(it.points) }
+            (hole.rough + hole.woodland + hole.paths).forEach { append("|s:").append(it.featureType).append(it.id).append(it.points) }
         }
         val digest = MessageDigest.getInstance("SHA-256")
             .digest(signature.toByteArray()).take(12).joinToString("") { "%02x".format(it) }
@@ -48,6 +49,7 @@ internal object CourseHoleArtworkRenderer {
             hole.mappedFairways.forEach { addAll(it.points) }
             (hole.bunkers + hole.water).forEach { addAll(it.points) }
             hole.mappedCenterline?.let { addAll(it.points) }
+            (hole.rough + hole.woodland + hole.paths).forEach { addAll(it.points) }
         }.distinct()
         val midLat = Math.toRadians((hole.tee.latitude + hole.green.latitude) / 2.0)
         val lonScale = 111320.0 * cos(midLat)
@@ -149,6 +151,26 @@ internal object CourseHoleArtworkRenderer {
             paint.textAlign = Paint.Align.LEFT
         }
 
+        // Mapped woodland and rough establish the surrounding course landscape.
+        hole.woodland.forEach { feature ->
+            val path = polygon(feature.points, 0xFF24432D.toInt(), 0xFF587A48.toInt(), 5f)
+            if (path != null) {
+                canvas.save(); canvas.clipPath(path)
+                for (row in 0..12) for (col in 0..8) {
+                    val x = 42f + col * 145f + (row % 2) * 48f
+                    val y = 190f + row * 126f
+                    paint.color = if ((row + col) % 3 == 0) 0x447FA15A else 0x33617F48
+                    canvas.drawCircle(x, y, 19f + ((row * 7 + col * 3) % 11), paint)
+                    paint.color = 0x226F9856
+                    canvas.drawCircle(x - 5f, y - 6f, 9f, paint)
+                }
+                canvas.restore()
+            }
+        }
+        hole.rough.forEach { feature ->
+            polygon(feature.points, 0xFF4E7843.toInt(), 0x887FA36A.toInt(), 3f)
+        }
+
         // Water bodies, with soft shore outlines and ripples.
         hole.water.forEach { feature ->
             val path = polygon(feature.points, 0xFF247D9E.toInt(), 0xFF91D5DF.toInt(), 8f)
@@ -218,6 +240,12 @@ internal object CourseHoleArtworkRenderer {
                 paint.color = 0xFFFFEAC0.toInt(); paint.style = Paint.Style.STROKE; paint.strokeWidth = 4f
                 canvas.drawCircle(q.first, q.second, 19f, paint); paint.style = Paint.Style.FILL
             }
+        }
+
+        // Cart and walking paths use a pale edge with a warm center.
+        hole.paths.forEach { feature ->
+            drawLine(feature.points, 0xBFE6DCC2.toInt(), 10f)
+            drawLine(feature.points, 0xFFE0D3AE.toInt(), 5f)
         }
 
         // Centerline is an unobtrusive routing hint, not a mapped fairway edge.
