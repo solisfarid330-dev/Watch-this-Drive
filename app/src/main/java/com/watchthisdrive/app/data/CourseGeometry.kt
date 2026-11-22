@@ -77,18 +77,13 @@ object CourseGeometryLoader {
             )
         }
 
-        // Area lookup is best when the selected OSM boundary can be
-        // converted to an Overpass area. Some selected golf-course ways
-        // cannot be converted, so also search around the selected course
-        // center as a fallback. The parser de-duplicates overlapping hits.
+        // Query the selected course's surrounding area directly. The previous
+        // area-conversion query could make Overpass return an XML runtime error
+        // for some course boundary ways; the app expects JSON and then failed
+        // before the Caddy could display any greens.
         return """
-            [out:json][timeout:60];
-            $element
-            map_to_area -> .courseArea;
-            (
-              nwr(area.courseArea)["golf"];
-              nwr(around:2000,${course.latitude},${course.longitude})["golf"];
-            );
+            [out:json][timeout:25];
+            nwr(around:2000,${course.latitude},${course.longitude})["golf"];
             out center geom;
         """.trimIndent()
     }
@@ -102,8 +97,10 @@ object CourseGeometryLoader {
 
         try {
             connection.requestMethod = "POST"
-            connection.connectTimeout = 8000
-            connection.readTimeout = 18000
+            connection.connectTimeout = 10000
+            // Keep this longer than the Overpass query timeout so a valid
+            // response is not cut off while the server is still processing.
+            connection.readTimeout = 32000
             connection.instanceFollowRedirects = true
             connection.doOutput = true
 
@@ -137,6 +134,18 @@ object CourseGeometryLoader {
 
             val response = connection.inputStream.bufferedReader().use {
                 it.readText()
+            }
+
+            // Overpass can return an XML error document with HTTP 200. Do not
+            // pass that body to JSONObject; report a useful server-side error
+            // and let the loader try the next endpoint.
+            val trimmed = response.trimStart()
+            if (!trimmed.startsWith("{")) {
+                val detail = trimmed.replace(Regex("\\s+"), " ").take(220)
+                throw Exception(
+                    "Geometry server ${URL(server).host} returned a non-JSON response" +
+                        if (detail.isBlank()) "." else ": $detail"
+                )
             }
 
             return parseGeometry(response, course)
