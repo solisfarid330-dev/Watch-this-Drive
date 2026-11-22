@@ -74,7 +74,7 @@ object HoleReconstructor {
                     return@forEachIndexed
                 }
                 // Explicit matching is a strong preference, not a small tie-break.
-                val line = selectCenterline(holeLines, tee.point, greenPoint, greenNumber ?: teeNumber)
+                val line = selectCenterline(holeLines, tee.point, greenPoint, greenNumber ?: teeNumber, geometry.features.filter { it.featureType.equals("fairway", true) && it.points.size >= 3 })
                 // A centerline whose two endpoints actually meet this tee/green
                 // is strong evidence of the intended pairing.
                 val routeBonus = if (line != null) -min(500.0,
@@ -122,7 +122,7 @@ object HoleReconstructor {
 
             // OSM golf=hole centerlines can preserve doglegs even where
             // fairway polygons are absent or fragmented.
-            val centerline = selectCenterline(holeLines, teePoint, greenPoint, holeNumber)
+            val centerline = selectCenterline(holeLines, teePoint, greenPoint, holeNumber, fairways)
             val route = centerline?.points.orEmpty()
             val mapped = fairwaysForHole(fairways, teePoint, greenPoint, holeNumber, route)
             // Prefer metadata on the explicitly numbered hole centerline.
@@ -238,17 +238,51 @@ object HoleReconstructor {
         lines: List<CourseFeature>,
         tee: GeoPoint,
         green: GeoPoint,
-        holeNumber: Int?
+        holeNumber: Int?,
+        fairways: List<CourseFeature>
     ): CourseFeature? {
         val eligible = lines.filter { number(it.holeNumber) == null || holeNumber == null ||
             number(it.holeNumber) == holeNumber }
         return eligible.mapNotNull { line ->
             val endpoint = endpointDistance(tee, green, line.points)
+            if (endpoint > 180.0) return@mapNotNull null
+
+            // Endpoint proximity alone can select a neighboring or badly drawn
+            // route. When mapped fairways exist, sample the interior of the line
+            // and measure how closely it follows the actual playable polygons.
+            val alignment = fairwayAlignmentMeters(line.points, fairways)
+            if (fairways.isNotEmpty() && alignment != null && alignment > 62.0) {
+                return@mapNotNull null
+            }
             val explicitBonus = if (holeNumber != null && number(line.holeNumber) == holeNumber) -35.0 else 0.0
-            // A line passing near both points in its middle is not enough:
-            // its two ends must plausibly represent this hole's tee and green.
-            if (endpoint > 180.0) null else line to (endpoint + explicitBonus)
+            val alignmentPenalty = alignment?.times(1.8) ?: 0.0
+            line to (endpoint + alignmentPenalty + explicitBonus)
         }.minByOrNull { it.second }?.first
+    }
+
+    private fun fairwayAlignmentMeters(
+        route: List<GeoPoint>,
+        fairways: List<CourseFeature>
+    ): Double? {
+        if (route.size < 2 || fairways.isEmpty()) return null
+        val samples = buildList {
+            route.forEachIndexed { index, point ->
+                if (index != 0 && index != route.lastIndex) add(point)
+            }
+            route.zipWithNext().forEach { (a, b) ->
+                add(GeoPoint((a.latitude + b.latitude) / 2.0, (a.longitude + b.longitude) / 2.0))
+            }
+        }
+        if (samples.isEmpty()) return null
+        val distances = samples.map { point ->
+            fairways.minOf { feature ->
+                if (isClosedPolygon(feature.points) && pointInPolygon(point, feature.points)) 0.0
+                else feature.points.zipWithNext().minOfOrNull { (a, b) ->
+                    distanceToSegment(point, a, b)
+                } ?: Double.POSITIVE_INFINITY
+            }
+        }.filter { it.isFinite() }
+        return distances.takeIf { it.isNotEmpty() }?.average()
     }
 
     private fun endpointDistance(tee: GeoPoint, green: GeoPoint, line: List<GeoPoint>): Double {
@@ -282,10 +316,20 @@ object HoleReconstructor {
         fun orient(p: GeoPoint, q: GeoPoint, r: GeoPoint): Double =
             (q.longitude - p.longitude) * (r.latitude - p.latitude) -
                 (q.latitude - p.latitude) * (r.longitude - p.longitude)
+        fun onSegment(p: GeoPoint, q: GeoPoint, r: GeoPoint): Boolean =
+            q.longitude >= min(p.longitude, r.longitude) - 1e-12 &&
+                q.longitude <= max(p.longitude, r.longitude) + 1e-12 &&
+                q.latitude >= min(p.latitude, r.latitude) - 1e-12 &&
+                q.latitude <= max(p.latitude, r.latitude) + 1e-12
         val o1 = orient(a, b, c); val o2 = orient(a, b, d)
         val o3 = orient(c, d, a); val o4 = orient(c, d, b)
-        return (o1 == 0.0 || o2 == 0.0 || (o1 > 0.0) != (o2 > 0.0)) &&
-            (o3 == 0.0 || o4 == 0.0 || (o3 > 0.0) != (o4 > 0.0))
+        val epsilon = 1e-12
+        if (((o1 > epsilon && o2 < -epsilon) || (o1 < -epsilon && o2 > epsilon)) &&
+            ((o3 > epsilon && o4 < -epsilon) || (o3 < -epsilon && o4 > epsilon))) return true
+        return (abs(o1) <= epsilon && onSegment(a, c, b)) ||
+            (abs(o2) <= epsilon && onSegment(a, d, b)) ||
+            (abs(o3) <= epsilon && onSegment(c, a, d)) ||
+            (abs(o4) <= epsilon && onSegment(c, b, d))
     }
     private fun featureDistanceToPoint(point: GeoPoint, feature: CourseFeature): Double {
         if (isClosedPolygon(feature.points) && pointInPolygon(point, feature.points)) return 0.0
