@@ -139,7 +139,7 @@ fun CourseHoleArtworkPanel(course: GolfCourse, geometry: CourseGeometry?) {
                     color = Color(0xFFB6C1B9))
                 else -> {
                     val availableNumbers = (artwork?.holes?.map { it.number }.orEmpty() + generatedImages.keys).distinct().sorted()
-                    Text("${availableNumbers.size} hole views · generated and cached on this device",
+                    Text("${availableNumbers.size} hole views · ${generatedImages.size} generated on this device",
                         color = Color(0xFFB8F36B), style = MaterialTheme.typography.labelMedium)
                     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)) {
