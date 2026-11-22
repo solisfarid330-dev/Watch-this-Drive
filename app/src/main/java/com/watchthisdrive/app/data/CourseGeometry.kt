@@ -535,23 +535,6 @@ object CourseGeometryLoader {
         return best
     }
 
-    private fun pointInRing(point: GeoPoint, ring: List<GeoPoint>): Boolean {
-        var inside = false
-        var j = ring.lastIndex
-        for (i in ring.indices) {
-            val a = ring[i]
-            val b = ring[j]
-            val crosses = (a.latitude > point.latitude) != (b.latitude > point.latitude) &&
-                point.longitude < (b.longitude - a.longitude) *
-                (point.latitude - a.latitude) /
-                ((b.latitude - a.latitude).takeIf { kotlin.math.abs(it) > 1e-12 } ?: 1e-12) +
-                a.longitude
-            if (crosses) inside = !inside
-            j = i
-        }
-        return inside
-    }
-
     private fun haversineMeters(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
         val radius = 6_371_000.0
         val dLat = Math.toRadians(lat2 - lat1)
