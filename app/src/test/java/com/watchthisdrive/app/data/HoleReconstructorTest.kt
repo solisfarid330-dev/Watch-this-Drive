@@ -77,6 +77,27 @@ class HoleReconstructorTest {
     }
 
     @Test
+    fun mappedHoleCenterlineIsRetainedForDoglegRouting() {
+        val centerline = listOf(
+            GeoPoint(0.0, 0.0),
+            GeoPoint(0.001, 0.0005),
+            GeoPoint(0.002, 0.0025),
+            GeoPoint(0.004, 0.004)
+        )
+        val geometry = CourseGeometry(
+            99, "Fixture", listOf(
+                feature(1, "tee", 0.0, 0.0),
+                feature(2, "green", 0.004, 0.004),
+                feature(3, "hole", 0.0, 0.0, points = centerline)
+            )
+        )
+
+        val hole = HoleReconstructor.reconstruct(geometry).single()
+
+        assertEquals(3L, hole.mappedCenterline?.id)
+        assertEquals(centerline, hole.mappedCenterline?.points)
+    }
+    @Test
     fun explicitHoleNumbersPreventCrossHoleTeeGreenPairing() {
         val geometry = CourseGeometry(
             99, "Fixture", listOf(
