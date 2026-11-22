@@ -1,0 +1,63 @@
+name: Generate Lake Arlington hole artwork APK
+
+on:
+  push:
+    branches:
+      - feature/course-hole-artwork-generation
+    paths:
+      - "scripts/render_osm_course_artwork.py"
+      - "scripts/package_course_hole_artwork.py"
+      - ".github/workflows/lake-arlington-artwork-apk.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  generate-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install vector rendering dependencies
+        run: python -m pip install --disable-pip-version-check pillow shapely pyproj
+      - name: Fetch OSM geometry and render hole illustrations
+        run: |
+          python scripts/render_osm_course_artwork.py \
+            --course-element-type way \
+            --course-element-id 412547640 \
+            --course-name "Lake Arlington Golf Course" \
+            --out-dir build/lake-arlington-artwork
+      - name: Package generated illustrations into Android assets
+        run: |
+          python scripts/package_course_hole_artwork.py \
+            --source build/lake-arlington-artwork \
+            --destination app/src/main/assets/course_holes \
+            --element-type way \
+            --element-id 412547640 \
+            --course-name "Lake Arlington Golf Course"
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Set up Gradle 8.9
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+      - name: Build debug APK with generated course artwork
+        env:
+          MAPTILER_API_KEY: ${{ secrets.MAPTILER_API_KEY }}
+        run: gradle --no-daemon assembleDebug
+      - name: Upload APK and artwork preview
+        uses: actions/upload-artifact@v4
+        with:
+          name: lake-arlington-artwork-debug-apk
+          path: |
+            app/build/outputs/apk/debug/app-debug.apk
+            build/lake-arlington-artwork/
+            app/src/main/assets/course_holes/way-412547640/
+          if-no-files-found: error
+          retention-days: 14
