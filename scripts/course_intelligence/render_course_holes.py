@@ -77,7 +77,9 @@ def main() -> None:
                 greens = [{"geometry": {"type": "Point", "coordinates": [b.x, b.y]}, "golf_type": "green", "association_status": "inferred_centerline_endpoint"}]
                 inferred.extend(["tee", "green"])
 
-            features = [{"type": "Feature", "id": hole.get("id"), "geometry": hole["geometry"], "properties": {"role": "osm_hole_centerline", "hole_label": label}}]
+            features = [{"type": "Feature", "id": hole.get("id"), "geometry": hole["geometry"], "properties": {"role": "osm_hole_centerline", "hole_label": label, "source_tags": props.get("source_tags", {})}}]
+            # Preserve the actual OSM hole outline as a first-class geometry.
+            # It constrains inferred fairway geometry; it is not a fairway itself.
             synthetic = [item for item in tees + greens if item.get("association_status") == "inferred_centerline_endpoint"]
             for feature_index, item in enumerate(associated + synthetic, start=1):
                 if not item.get("geometry"):
@@ -85,7 +87,7 @@ def main() -> None:
                 features.append({
                     "type": "Feature", "id": f"{hole.get('id')}-feature-{feature_index}",
                     "geometry": item["geometry"],
-                    "properties": {"role": "mapped_osm_feature", "golf_type": item.get("golf_type"), "association_status": item.get("association_status"), "inference": item.get("association_status") == "inferred_centerline_endpoint"},
+                    "properties": {"role": "mapped_osm_feature", "golf_type": item.get("golf_type"), "association_status": item.get("association_status"), "source_feature_id": item.get("source_feature_id"), "source_tags": item.get("source_tags", {}), "inference": item.get("association_status") == "inferred_centerline_endpoint"},
                 })
             hole_input = temp / f"candidate-{index:03d}.geojson"
             hole_input.write_text(json.dumps({
