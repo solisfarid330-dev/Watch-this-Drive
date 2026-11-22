@@ -60,7 +60,7 @@ fun ReconstructedHoleMap(
             horizontalArrangement = Arrangement.spacedBy(14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            LegendDot(Color(0xFF79B95B), "Estimated fairway")
+            LegendDot(Color(0xFF79B95B), if (hole.usesMappedFairway) "Mapped fairway" else "Estimated fairway")
             LegendDot(Color(0xFFB8F36B), "Green")
             LegendDot(Color(0xFFE6C77A), "Bunker")
             LegendDot(Color(0xFF43B9E8), "Water")
@@ -88,6 +88,7 @@ private fun HoleDrawing(
         add(hole.green)
         addAll(hole.greenBoundary)
         addAll(hole.fairwayEstimate)
+        hole.mappedFairways.forEach { addAll(it.points) }
         hole.bunkers.forEach { addAll(it.points) }
         hole.water.forEach { addAll(it.points) }
     }
@@ -124,7 +125,13 @@ private fun HoleDrawing(
             val y = size.height * i / 8f
             drawLine(Color(0x14202F22), Offset(0f, y), Offset(size.width, y), 1.dp.toPx())
         }
-        polygon(hole.fairwayEstimate, Color(0xFF79B95B), Color(0xFFB5D99B))
+        if (hole.usesMappedFairway) {
+            hole.mappedFairways.forEach { fairway ->
+                polygon(fairway.points, Color(0xFF79B95B), Color(0xFFB5D99B))
+            }
+        } else {
+            polygon(hole.fairwayEstimate, Color(0xFF79B95B), Color(0xFFB5D99B))
+        }
         polygon(hole.greenBoundary, Color(0xFFB8F36B), Color(0xFFF0FFD8))
 
         (hole.bunkers + hole.water).forEach { hazard ->
