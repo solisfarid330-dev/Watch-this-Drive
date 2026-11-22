@@ -19,7 +19,9 @@ import com.watchthisdrive.app.data.CourseFeature
 import com.watchthisdrive.app.data.CourseGeometry
 import com.watchthisdrive.app.data.CourseGeometryLoader
 import com.watchthisdrive.app.data.GolfCourse
+import com.watchthisdrive.app.data.HoleReconstructor
 import java.util.Locale
+import kotlin.math.roundToInt
 
 private data class ClubDistance(val name: String, val carryYards: String)
 
@@ -73,6 +75,8 @@ private fun PlayingCaddyScreen(
     var loading by remember(course?.id) { mutableStateOf(false) }
     var error by remember(course?.id) { mutableStateOf<String?>(null) }
     var selectedGreenId by remember(course?.id) { mutableStateOf<Long?>(null) }
+    var selectedHoleIndex by remember(course?.id) { mutableStateOf(0) }
+    var holeMenuExpanded by remember { mutableStateOf(false) }
 
     LaunchedEffect(course?.id) {
         geometry = null
@@ -92,6 +96,8 @@ private fun PlayingCaddyScreen(
         .sortedWith(compareBy<CourseFeature> { it.holeNumber?.toIntOrNull() ?: Int.MAX_VALUE }.thenBy { it.id })
     val selectedGreen = greens.firstOrNull { it.id == selectedGreenId } ?: greens.firstOrNull()
     val target = selectedGreen?.let { greenCenter(it) }
+    val reconstructedHoles = remember(geometry) { geometry?.let { HoleReconstructor.reconstruct(it) }.orEmpty() }
+    val selectedHole = reconstructedHoles.getOrNull(selectedHoleIndex) ?: reconstructedHoles.firstOrNull()
 
     val preferences = LocalContext.current.getSharedPreferences("watch_this_drive_caddy", Context.MODE_PRIVATE)
     val clubs = remember {
@@ -173,6 +179,35 @@ private fun PlayingCaddyScreen(
                                     color = caddyMuted,
                                     style = MaterialTheme.typography.bodySmall
                                 )
+                            }
+                        }
+                    }
+                }
+            }
+            item {
+                Card(colors = CardDefaults.cardColors(containerColor = caddyCard), shape = RoundedCornerShape(18.dp)) {
+                    Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text("RECONSTRUCTED HOLE", color = caddyGreen, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                        when {
+                            loading -> Text("Building hole layouts from mapped tees, greens and hazards…", color = caddyMuted)
+                            reconstructedHoles.isEmpty() -> Text("Insufficient mapped tee and green features for a hole preview.", color = caddyMuted)
+                            else -> {
+                                Text("${reconstructedHoles.size} estimated hole layout(s) generated. Choose one to preview.", color = caddyMuted, style = MaterialTheme.typography.bodySmall)
+                                OutlinedButton(onClick = { holeMenuExpanded = true }, modifier = Modifier.fillMaxWidth()) {
+                                    Text(selectedHole?.let { "HOLE ${it.number} · ${(it.lengthMeters * 1.0936133).roundToInt()} yd" } ?: "SELECT HOLE")
+                                }
+                                DropdownMenu(expanded = holeMenuExpanded, onDismissRequest = { holeMenuExpanded = false }) {
+                                    reconstructedHoles.forEachIndexed { index, hole ->
+                                        DropdownMenuItem(
+                                            text = { Text("Hole ${hole.number} · ${(hole.lengthMeters * 1.0936133).roundToInt()} yd") },
+                                            onClick = { selectedHoleIndex = index; holeMenuExpanded = false }
+                                        )
+                                    }
+                                }
+                                selectedHole?.let { hole ->
+                                    ReconstructedHoleMap(hole = hole, location = location, modifier = Modifier.fillMaxWidth().height(440.dp))
+                                }
+                                Text("Early estimate: tee/green pairing may be wrong where hole numbers are missing. Fairway is generated, not surveyed.", color = caddyMuted, style = MaterialTheme.typography.bodySmall)
                             }
                         }
                     }

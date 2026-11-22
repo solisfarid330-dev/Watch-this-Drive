@@ -46,7 +46,7 @@ fun ReconstructedHoleMap(
             style = MaterialTheme.typography.titleLarge
         )
         Text(
-            "Fairway shape is an estimate · Green, tee and hazards use available mapped data",
+            "Fairway shape is an estimate · GPS is shown when near this hole",
             color = Color(0xFFCBD5CC),
             style = MaterialTheme.typography.bodySmall
         )
@@ -90,7 +90,6 @@ private fun HoleDrawing(
         addAll(hole.fairwayEstimate)
         hole.bunkers.forEach { addAll(it.points) }
         hole.water.forEach { addAll(it.points) }
-        if (location != null) add(GeoPoint(location.latitude, location.longitude))
     }
     Canvas(modifier.background(Color(0xFF24432D), RoundedCornerShape(20.dp))) {
         if (allPoints.isEmpty()) return@Canvas
@@ -149,11 +148,24 @@ private fun HoleDrawing(
 
         // Current GPS marker, with an accuracy halo when available.
         if (location != null) {
-            val you = project(GeoPoint(location.latitude, location.longitude))
-            val accuracyRadius = (location.accuracy / 2f).coerceIn(8.dp.toPx(), 34.dp.toPx())
-            drawCircle(Color(0x3342A5F5), accuracyRadius, you)
-            drawCircle(Color(0xFF42A5F5), 7.dp.toPx(), you)
-            drawCircle(Color.White, 7.dp.toPx(), you, style = Stroke(2.dp.toPx()))
+            val gps = GeoPoint(location.latitude, location.longitude)
+            // A distant GPS fix must never expand the bounds and shrink the hole.
+            val latitudeMargin = max((maxLat - minLat) * 0.12, 0.00015)
+            val longitudeMargin = max((maxLon - minLon) * 0.12, 0.00015)
+            val nearHole = gps.latitude in (minLat - latitudeMargin)..(maxLat + latitudeMargin) &&
+                gps.longitude in (minLon - longitudeMargin)..(maxLon + longitudeMargin)
+            if (nearHole) {
+                val raw = project(gps)
+                val inset = 12.dp.toPx()
+                val you = Offset(
+                    raw.x.coerceIn(inset, size.width - inset),
+                    raw.y.coerceIn(inset, size.height - inset)
+                )
+                val accuracyRadius = (location.accuracy / 2f).coerceIn(8.dp.toPx(), 34.dp.toPx())
+                drawCircle(Color(0x3342A5F5), accuracyRadius, you)
+                drawCircle(Color(0xFF42A5F5), 7.dp.toPx(), you)
+                drawCircle(Color.White, 7.dp.toPx(), you, style = Stroke(2.dp.toPx()))
+            }
         }
     }
 }
