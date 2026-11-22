@@ -77,8 +77,9 @@ private fun PlayingCaddyScreen(
     val approachHazards = remember(location?.latitude, location?.longitude, target?.latitude, target?.longitude, reconstructedHole) {
         if (location == null || target == null) emptyList()
         else (reconstructedHole?.water.orEmpty() + reconstructedHole?.bunkers.orEmpty())
-            .filter { hazardNearShotLine(it, location, target) }
+            .mapNotNull { hazard -> hazardSafeLayupYards(hazard, location, target)?.let { hazard to it } }
     }
+    val safeLayupYards = approachHazards.minOfOrNull { it.second }
     val loading = course != null && geometry == null
     val error: String? = null
     val preferences = LocalContext.current.getSharedPreferences("watch_this_drive_caddy", Context.MODE_PRIVATE)
@@ -101,7 +102,8 @@ private fun PlayingCaddyScreen(
         val valid = clubs.mapNotNull { club ->
             club.carryYards.toIntOrNull()?.takeIf { it > 0 }?.let { club to it }
         }.sortedBy { it.second }
-        valid.firstOrNull { it.second >= yards } ?: valid.lastOrNull()
+        if (safeLayupYards != null) valid.lastOrNull { it.second <= safeLayupYards }
+        else valid.firstOrNull { it.second >= yards } ?: valid.lastOrNull()
     }
 
     LazyColumn(
@@ -190,12 +192,19 @@ private fun PlayingCaddyScreen(
                 Card(colors = CardDefaults.cardColors(containerColor = caddyCard), shape = RoundedCornerShape(18.dp)) {
                     Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text("CLUB RECOMMENDATION", color = caddyGreen, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
-                        Text(recommendation?.first?.name ?: "Waiting for distance", color = Color.White, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                        Text(recommendation?.let { "Typical carry: " + it.second + " yd" } ?: "A recommendation appears when GPS and a mapped green are available.", color = caddyMuted)
-                        Text("Recommendation uses carry distance only. It does not yet account for wind, slope, or pin position.", color = caddyMuted, style = MaterialTheme.typography.bodySmall)
+                        Text(
+                            recommendation?.first?.name ?: if (safeLayupYards != null) "No safe lay-up club" else "Waiting for distance",
+                            color = Color.White, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            recommendation?.let { (if (safeLayupYards != null) "Lay-up carry: " else "Typical carry: ") + it.second + " yd" }
+                                ?: "A recommendation appears when GPS and a mapped green are available.",
+                            color = caddyMuted
+                        )
+                        Text("Recommendations use carry distance only; wind, slope and exact pin position are not yet modelled.", color = caddyMuted, style = MaterialTheme.typography.bodySmall)
                         approachHazards.firstOrNull()?.let { hazard ->
                             Text(
-                                "HAZARD AHEAD: mapped ${hazard.featureType.replace('_', ' ')} lies close to the direct line to this green. Consider a safer lay-up rather than carrying blindly at the target.",
+                                "HAZARD AHEAD: mapped ${hazard.first.featureType.replace('_', ' ')}. Aim to land about ${hazard.second} yd from here to stay short of its mapped edge.",
                                 color = Color(0xFFFFC078),
                                 style = MaterialTheme.typography.bodySmall,
                                 fontWeight = FontWeight.SemiBold
@@ -278,21 +287,25 @@ private fun PlayingCaddyScreen(
     }
 }
 
-private fun hazardNearShotLine(feature: CourseFeature, start: Location, end: Location): Boolean {
-    if (feature.points.isEmpty()) return false
+private fun hazardSafeLayupYards(feature: CourseFeature, start: Location, end: Location): Int? {
+    if (feature.points.isEmpty()) return null
     val midLat = Math.toRadians((start.latitude + end.latitude) / 2.0)
     val scaleX = 111_320.0 * kotlin.math.cos(midLat)
     val dx = (end.longitude - start.longitude) * scaleX
     val dy = (end.latitude - start.latitude) * 111_320.0
     val lengthSquared = dx * dx + dy * dy
-    if (lengthSquared < 1.0) return false
-    return feature.points.any { point ->
+    if (lengthSquared < 1.0) return null
+    val lengthMeters = kotlin.math.sqrt(lengthSquared)
+    val hazardFront = feature.points.mapNotNull { point ->
         val px = (point.longitude - start.longitude) * scaleX
         val py = (point.latitude - start.latitude) * 111_320.0
-        val t = ((px * dx + py * dy) / lengthSquared).coerceIn(0.0, 1.0)
-        if (t !in 0.08..0.96) false
-        else kotlin.math.hypot(px - t * dx, py - t * dy) <= 28.0
-    }
+        val t = (px * dx + py * dy) / lengthSquared
+        if (t !in 0.08..0.96) null
+        else if (kotlin.math.hypot(px - t * dx, py - t * dy) <= 28.0) t * lengthMeters
+        else null
+    }.minOrNull() ?: return null
+    // Leave a 15-yard buffer before the nearest mapped hazard boundary.
+    return (hazardFront * 1.0936133 - 15.0).roundToInt().coerceAtLeast(0)
 }
 
 private fun greenLabel(green: CourseFeature, index: Int): String =
