@@ -9,6 +9,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
@@ -61,13 +63,18 @@ fun CourseHoleArtworkPanel(course: GolfCourse) {
 
     LaunchedEffect(course.elementType, course.id) {
         loading = true
-        artwork = CourseHoleArtworkRepository.load(context, course)
-        selected = artwork?.holes?.firstOrNull()?.number
+        val loaded = withContext(Dispatchers.IO) {
+            CourseHoleArtworkRepository.load(context, course)
+        }
+        artwork = loaded
+        selected = loaded?.holes?.firstOrNull()?.number
         loading = false
     }
     LaunchedEffect(artwork, selected) {
         val hole = artwork?.holes?.firstOrNull { it.number == selected }
-        image = hole?.let { CourseHoleArtworkRepository.bitmap(context, it.assetPath) }
+        image = withContext(Dispatchers.IO) {
+            hole?.let { CourseHoleArtworkRepository.bitmap(context, it.assetPath) }
+        }
     }
 
     Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp),
