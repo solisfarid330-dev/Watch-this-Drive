@@ -37,7 +37,7 @@ internal object CourseHoleArtworkRenderer {
             hole.bunkers.forEach { append("|b:").append(it.id).append(it.points) }
             hole.water.forEach { append("|w:").append(it.id).append(it.points) }
             hole.mappedCenterline?.let { append("|c:").append(it.id).append(it.points) }
-            (hole.rough + hole.woodland + hole.paths).forEach { append("|s:").append(it.featureType).append(it.id).append(it.points) }
+            (hole.rough + hole.woodland + hole.paths + hole.trees).forEach { append("|s:").append(it.featureType).append(it.id).append(it.points) }
         }
         val digest = MessageDigest.getInstance("SHA-256")
             .digest(signature.toByteArray()).take(12).joinToString("") { "%02x".format(it) }
@@ -49,7 +49,7 @@ internal object CourseHoleArtworkRenderer {
             hole.mappedFairways.forEach { addAll(it.points) }
             (hole.bunkers + hole.water).forEach { addAll(it.points) }
             hole.mappedCenterline?.let { addAll(it.points) }
-            (hole.rough + hole.woodland + hole.paths).forEach { addAll(it.points) }
+            (hole.rough + hole.woodland + hole.paths + hole.trees).forEach { addAll(it.points) }
         }.distinct()
         val midLat = Math.toRadians((hole.tee.latitude + hole.green.latitude) / 2.0)
         val lonScale = 111320.0 * cos(midLat)
@@ -169,6 +169,22 @@ internal object CourseHoleArtworkRenderer {
         }
         hole.rough.forEach { feature ->
             polygon(feature.points, 0xFF4E7843.toInt(), 0x887FA36A.toInt(), 3f)
+        }
+
+        // Individual mapped trees use layered crowns and small cast shadows.
+        hole.trees.forEachIndexed { index, feature ->
+            feature.points.forEach { point ->
+                val q = xy(point)
+                val radius = 11f + (index % 4) * 2.5f
+                paint.color = 0x55301D13
+                canvas.drawCircle(q.first + 4f, q.second + 6f, radius + 2f, paint)
+                paint.color = 0xFF183A29.toInt()
+                canvas.drawCircle(q.first, q.second, radius, paint)
+                paint.color = 0xFF315C39.toInt()
+                canvas.drawCircle(q.first - radius * .22f, q.second - radius * .28f, radius * .67f, paint)
+                paint.color = 0xFF527A46.toInt()
+                canvas.drawCircle(q.first - radius * .32f, q.second - radius * .42f, radius * .31f, paint)
+            }
         }
 
         // Water bodies, with soft shore outlines and ripples.
