@@ -77,12 +77,17 @@ object CourseGeometryLoader {
             )
         }
 
+        // Area lookup is best when the selected OSM boundary can be
+        // converted to an Overpass area. Some selected golf-course ways
+        // cannot be converted, so also search around the selected course
+        // center as a fallback. The parser de-duplicates overlapping hits.
         return """
             [out:json][timeout:60];
             $element
             map_to_area -> .courseArea;
             (
               nwr(area.courseArea)["golf"];
+              nwr(around:2000,\${course.latitude},\${course.longitude})["golf"];
             );
             out center geom;
         """.trimIndent()
@@ -211,10 +216,12 @@ object CourseGeometryLoader {
             )
         }
 
+        val uniqueFeatures = features.distinctBy { it.elementType to it.id }
+
         return CourseGeometry(
             courseId = course.id,
             courseName = course.name,
-            features = features
+            features = uniqueFeatures
         )
     }
 }
