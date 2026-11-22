@@ -145,6 +145,9 @@ def main():
             local_geometry(shapely_transform(to_source, shape(feature["geometry"])))
             for feature in fairways
         ]
+        inferred_fairway = not local_fairways
+        if inferred_fairway:
+            local_fairways = [local_centerline.buffer(17.0, cap_style=1, join_style=1)]
 
         # Portrait crop: enough lateral context to show neighboring landscape.
         _, line_min_y, _, line_max_y = local_centerline.bounds
@@ -256,17 +259,23 @@ def main():
 
         # Emphasize the active hole's actual mapped fairway polygon(s).
         for geometry in local_fairways:
-            draw_polygon(draw, geometry, COLORS["fairway_edge"])
+            edge_color = (117, 143, 91) if inferred_fairway else COLORS["fairway_edge"]
+            fill_color = (151, 180, 111) if inferred_fairway else COLORS["fairway"]
+            draw_polygon(draw, geometry, edge_color)
             inset = geometry.buffer(-2.4)
             if not inset.is_empty:
-                draw_polygon(draw, inset, COLORS["fairway"])
+                draw_polygon(draw, inset, fill_color)
 
         # Green at top, tee boxes at bottom, irrespective of compass direction.
         for geometry in local_greens:
-            draw_polygon(draw, geometry, COLORS["green_edge"])
-            inset = geometry.buffer(-1.2)
-            if not inset.is_empty:
-                draw_polygon(draw, inset, COLORS["green"])
+            if geometry.geom_type == "Point":
+                gx, gy = pixel((geometry.x, geometry.y))
+                draw.ellipse((gx - 23, gy - 18, gx + 23, gy + 18), fill=(111, 169, 105), outline=COLORS["green_edge"], width=3)
+            else:
+                draw_polygon(draw, geometry, COLORS["green_edge"])
+                inset = geometry.buffer(-1.2)
+                if not inset.is_empty:
+                    draw_polygon(draw, inset, COLORS["green"])
             flag_point = geometry.representative_point()
             flag_x, flag_y = pixel((flag_point.x, flag_point.y))
             radius = 9
@@ -305,6 +314,7 @@ def main():
             "mapped_tees": len(tees),
             "mapped_greens": len(greens),
             "mapped_fairway_features": len(fairways),
+            "fairway_geometry": "mapped" if not inferred_fairway else "inferred_centerline_buffer_17m",
             "imagery_derived_canopy": "low_confidence_context_only",
             "course_context_features_in_crop": context_count,
             "limitations": [
