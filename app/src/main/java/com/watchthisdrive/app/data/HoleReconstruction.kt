@@ -251,7 +251,7 @@ object HoleReconstructor {
             // route. When mapped fairways exist, sample the interior of the line
             // and measure how closely it follows the actual playable polygons.
             val alignment = fairwayAlignmentMeters(line.points, fairways)
-            if (fairways.isNotEmpty() && alignment != null && alignment > 62.0) {
+            if (fairways.isNotEmpty() && alignment != null && alignment > 58.0) {
                 return@mapNotNull null
             }
             val explicitBonus = if (holeNumber != null && number(line.holeNumber) == holeNumber) -35.0 else 0.0
@@ -265,15 +265,22 @@ object HoleReconstructor {
         fairways: List<CourseFeature>
     ): Double? {
         if (route.size < 2 || fairways.isEmpty()) return null
-        val samples = buildList {
-            route.forEachIndexed { index, point ->
-                if (index != 0 && index != route.lastIndex) add(point)
-            }
-            route.zipWithNext().forEach { (a, b) ->
-                add(GeoPoint((a.latitude + b.latitude) / 2.0, (a.longitude + b.longitude) / 2.0))
+        // Sample the complete route at a fixed ground interval. OSM centerlines
+        // often contain only a few long segments, so checking vertices/midpoints
+        // can miss a substantial lateral excursion between them.
+        val samples = mutableListOf<GeoPoint>()
+        route.zipWithNext().forEach { (a, b) ->
+            val segmentLength = meters(a, b)
+            val steps = ceil(segmentLength / 18.0).toInt().coerceAtLeast(1)
+            for (step in 0 until steps) {
+                val fraction = step.toDouble() / steps
+                samples += GeoPoint(
+                    a.latitude + (b.latitude - a.latitude) * fraction,
+                    a.longitude + (b.longitude - a.longitude) * fraction
+                )
             }
         }
-        if (samples.isEmpty()) return null
+        samples += route.last()
         val distances = samples.map { point ->
             fairways.minOf { feature ->
                 if (isClosedPolygon(feature.points) && pointInPolygon(point, feature.points)) 0.0
@@ -281,8 +288,12 @@ object HoleReconstructor {
                     distanceToSegment(point, a, b)
                 } ?: Double.POSITIVE_INFINITY
             }
-        }.filter { it.isFinite() }
-        return distances.takeIf { it.isNotEmpty() }?.average()
+        }.filter { it.isFinite() }.sorted()
+        if (distances.isEmpty()) return null
+        // A good average can hide a long section that runs beside the fairway.
+        // Reject sustained departures as well as a poor overall fit.
+        val upperTail = distances[((distances.size - 1) * 0.85).roundToInt()]
+        return max(distances.average(), upperTail * 0.72)
     }
 
     private fun endpointDistance(tee: GeoPoint, green: GeoPoint, line: List<GeoPoint>): Double {
