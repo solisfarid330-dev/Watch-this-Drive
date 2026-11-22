@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - feature/hybrid-course-intelligence-foundation
+      - feature/automatic-vector-hole-renderer
     paths:
       - "scripts/discover_lake_arlington_naip.py"
       - "scripts/build_lake_arlington_naip_crop.py"
@@ -67,6 +68,14 @@ jobs:
 
       - name: Build centerline-led single-hole imagery review
         run: PYTHONPATH=. python scripts/build_lake_arlington_centerline_hole_review.py
+
+      - name: Render illustrated Hole 16 prototype with reusable engine
+        run: >-
+          PYTHONPATH=. python scripts/course_intelligence/vector_hole_renderer.py
+          --raster artifacts/lake_arlington_naip_2022_course_clip.tif
+          --hole artifacts/lake_arlington_centerline_hole_review.geojson
+          --context artifacts/lake_arlington_osm_golf_features.geojson
+          --out artifacts/lake_arlington_hole_16_vector_illustration.png
 
       - name: Upload imagery candidate metadata
         if: always()
