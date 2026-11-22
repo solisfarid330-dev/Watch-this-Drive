@@ -53,27 +53,36 @@ fun GolfMap(
         MapView(context).apply { onCreate(Bundle()) }
     }
     var mapReady by remember { mutableStateOf(false) }
-    var geometry by remember(course?.id) { mutableStateOf<CourseGeometry?>(null) }
-    var geometryMessage by remember(course?.id) { mutableStateOf<String?>(null) }
+    var geometry by remember(course?.id) {
+        mutableStateOf(course?.let { loadCachedGeometry(context, it) })
+    }
+    var geometryMessage by remember(course?.id) {
+        mutableStateOf(if (geometry != null) "Saved map · checking for updates…" else null)
+    }
     var retryToken by remember(course?.id) { mutableIntStateOf(0) }
     val key = BuildConfig.MAPTILER_API_KEY
     val styleUrl = if (key.isNotBlank()) "https://api.maptiler.com/maps/satellite/style.json?key=$key" else ""
 
     LaunchedEffect(course?.id, retryToken) {
-        geometry = null
-        geometryMessage = null
         if (course != null) {
-            geometryMessage = "Loading mapped course features…"
+            geometryMessage = if (geometry == null) "Loading course features…" else "Saved map · refreshing in background…"
             CourseGeometryLoader.load(course) { result ->
-                result.onSuccess {
-                    geometry = it
-                    geometryMessage = if (it.features.isEmpty()) {
-                        "No mapped golf features were found for this course."
+                result.onSuccess { fresh ->
+                    if (fresh.features.isNotEmpty()) {
+                        saveCachedGeometry(context, fresh)
+                        geometry = fresh
+                        geometryMessage = null
+                    } else if (geometry == null) {
+                        geometryMessage = "No mapped golf features were found for this course."
                     } else {
-                        null
+                        geometryMessage = "Saved map shown · refresh returned no features"
                     }
-                }.onFailure {
-                    geometryMessage = "Course features couldn't be loaded: " + (it.message ?: "unknown error")
+                }.onFailure { error ->
+                    geometryMessage = if (geometry != null) {
+                        "Saved map shown · background refresh failed"
+                    } else {
+                        "Course features couldn't be loaded: " + (error.message ?: "unknown error")
+                    }
                 }
             }
         } else {
@@ -150,14 +159,34 @@ fun GolfMap(
                         color = Color(0xFFB8F36B),
                         style = MaterialTheme.typography.bodySmall
                     )
-                    if (geometryMessage?.startsWith("Course features couldn't be loaded") == true) {
+                    if (geometryMessage?.contains("failed") == true ||
+                        geometryMessage?.startsWith("Course features couldn't be loaded") == true) {
                         Spacer(Modifier.height(6.dp))
                         TextButton(
                             onClick = { retryToken++ },
                             contentPadding = PaddingValues(horizontal = 0.dp, vertical = 2.dp)
                         ) {
-                            Text("TRY AGAIN", color = Color(0xFFB8F36B))
+                            Text("REFRESH NOW", color = Color(0xFFB8F36B))
                         }
+                    }
+                }
+            }
+        }
+        if (geometry != null) {
+            Card(
+                Modifier.align(androidx.compose.ui.Alignment.BottomStart).padding(start = 12.dp, bottom = 18.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xE618231C))
+            ) {
+                Column(Modifier.padding(horizontal = 10.dp, vertical = 8.dp)) {
+                    Text("MAP KEY", color = Color.White, style = MaterialTheme.typography.labelSmall)
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        LegendItem("#72B85A", "Fairway")
+                        LegendItem("#B8F36B", "Green")
+                        LegendItem("#E6C77A", "Bunker")
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        LegendItem("#43B9E8", "Water")
+                        LegendItem("#A7C98B", "Tee marker")
                     }
                 }
             }
@@ -170,6 +199,72 @@ fun GolfMap(
         ) {
             Icon(Icons.Filled.MyLocation, contentDescription = "Find my location")
         }
+    }
+}
+
+@Composable
+private fun LegendItem(hex: String, label: String) {
+    Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        Box(Modifier.size(10.dp).padding(0.dp), contentAlignment = androidx.compose.ui.Alignment.Center) {
+            androidx.compose.foundation.Canvas(Modifier.size(9.dp)) {
+                drawCircle(Color(android.graphics.Color.parseColor(hex)))
+            }
+        }
+        Text(label, color = Color.White, style = MaterialTheme.typography.labelSmall)
+    }
+}
+
+private fun cacheKey(courseId: Long) = "course_geometry_$courseId"
+
+private fun loadCachedGeometry(context: android.content.Context, course: GolfCourse): CourseGeometry? =
+    runCatching {
+        val raw = context.getSharedPreferences("course_geometry_cache", android.content.Context.MODE_PRIVATE)
+            .getString(cacheKey(course.id), null) ?: return null
+        val root = JSONObject(raw)
+        val array = root.getJSONArray("features")
+        val features = mutableListOf<CourseFeature>()
+        for (i in 0 until array.length()) {
+            val item = array.getJSONObject(i)
+            val pointsJson = item.getJSONArray("points")
+            val points = mutableListOf<GeoPoint>()
+            for (j in 0 until pointsJson.length()) {
+                val point = pointsJson.getJSONObject(j)
+                points.add(GeoPoint(point.getDouble("lat"), point.getDouble("lon")))
+            }
+            features.add(CourseFeature(
+                id = item.getLong("id"),
+                elementType = item.getString("elementType"),
+                featureType = item.getString("featureType"),
+                holeNumber = item.optString("holeNumber").takeIf { it.isNotBlank() },
+                name = item.optString("name").takeIf { it.isNotBlank() },
+                points = points
+            ))
+        }
+        CourseGeometry(course.id, course.name, features)
+    }.getOrNull()
+
+private fun saveCachedGeometry(context: android.content.Context, geometry: CourseGeometry) {
+    runCatching {
+        val features = JSONArray()
+        geometry.features.forEach { feature ->
+            val points = JSONArray()
+            feature.points.forEach { point ->
+                points.put(JSONObject().put("lat", point.latitude).put("lon", point.longitude))
+            }
+            features.put(JSONObject()
+                .put("id", feature.id)
+                .put("elementType", feature.elementType)
+                .put("featureType", feature.featureType)
+                .put("holeNumber", feature.holeNumber ?: "")
+                .put("name", feature.name ?: "")
+                .put("points", points))
+        }
+        val root = JSONObject()
+            .put("courseId", geometry.courseId)
+            .put("courseName", geometry.courseName)
+            .put("features", features)
+        context.getSharedPreferences("course_geometry_cache", android.content.Context.MODE_PRIVATE)
+            .edit().putString(cacheKey(geometry.courseId), root.toString()).apply()
     }
 }
 
@@ -367,13 +462,14 @@ private fun featureSummary(features: List<CourseFeature>): String {
         "bunker" to "bunkers",
         "water_hazard" to "water"
     )
-    val available = labels.filter { (kind, _) ->
-        features.any { normalizeFeatureKind(it.featureType) == kind }
-    }.map { it.second }
-    return if (available.isEmpty()) {
+    val counts = labels.mapNotNull { (kind, label) ->
+        val count = features.count { normalizeFeatureKind(it.featureType) == kind }
+        if (count > 0) "$count $label" else null
+    }
+    return if (counts.isEmpty()) {
         "No recognized mapped golf features"
     } else {
-        "Mapped: ${available.joinToString(" · ")}. Some features may be missing."
+        "Mapped: ${counts.joinToString(" · ")}. Coverage may be incomplete."
     }
 }
 
