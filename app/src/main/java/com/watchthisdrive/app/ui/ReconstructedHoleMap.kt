@@ -46,7 +46,7 @@ fun ReconstructedHoleMap(
             style = MaterialTheme.typography.titleLarge
         )
         Text(
-            "Fairway shape is an estimate · GPS is shown when near this hole",
+            if (hole.usesMappedFairway) "Mapped fairway shape · GPS is shown when near this hole" else "Estimated fairway corridor · GPS is shown when near this hole",
             color = Color(0xFFCBD5CC),
             style = MaterialTheme.typography.bodySmall
         )
