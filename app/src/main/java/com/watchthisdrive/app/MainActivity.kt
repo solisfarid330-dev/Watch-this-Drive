@@ -820,6 +820,8 @@ private fun CourseDetailScreen(
             style = MaterialTheme.typography.bodyLarge
         )
 
+        CourseHoleArtworkPanel(course = course)
+
         Card(
             colors = CardDefaults.cardColors(
                 containerColor = Color(0xFF1B2520)
