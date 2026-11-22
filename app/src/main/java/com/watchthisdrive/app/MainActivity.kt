@@ -399,7 +399,7 @@ private fun RoundHubScreen(
                 Text("Tap + or − to record this hole. Scorecard updates automatically.", color = Color(0xFFB6C1B9), style = MaterialTheme.typography.bodySmall)
             }
         }
-        GolfMap(location = mapTarget ?: location, course = course, onLocate = onLocate, sharedGeometry = courseGeometry, useSharedGeometry = true, modifier = Modifier.padding(horizontal = 14.dp))
+        GolfMap(location = mapTarget ?: location, course = course, onLocate = onLocate, sharedGeometry = courseGeometry, sharedGeometryError = geometryError, useSharedGeometry = true, modifier = Modifier.padding(horizontal = 14.dp))
         CourseHoleArtworkForHole(
             course = course,
             holeNumber = activeHole,
@@ -420,6 +420,7 @@ private fun RoundHubScreen(
             onFindCourse = onFindCourse,
             activeHole = activeHole,
             geometry = courseGeometry,
+            geometryError = geometryError,
             modifier = Modifier.height(380.dp)
         )
     }
