@@ -18,7 +18,7 @@ import kotlin.math.*
 
 /** Rich tee-bottom/green-top artwork, fitted to the complete reconstructed hole. */
 internal object CourseHoleArtworkRenderer {
-    private const val VERSION = 8
+    private const val VERSION = 9
     private const val WIDTH = 1200
     private const val HEIGHT = 1800
     private const val LEFT = 48.0
@@ -170,10 +170,11 @@ internal object CourseHoleArtworkRenderer {
             if (path != null) {
                 canvas.save(); canvas.clipPath(path)
                 for (row in 0..12) for (col in 0..8) {
-                    val x = 42f + col * 145f + (row % 2) * 48f
-                    val y = 190f + row * 126f
-                    paint.color = if ((row + col) % 3 == 0) 0x447FA15A else 0x33617F48
-                    canvas.drawCircle(x, y, 19f + ((row * 7 + col * 3) % 11), paint)
+                    val seed = (feature.id % 97L).toInt()
+                    val x = 42f + col * 145f + (row % 2) * 48f + ((seed * 13 + row * 7 + col * 3) % 31)
+                    val y = 190f + row * 126f + ((seed * 5 + col * 11) % 37)
+                    paint.color = if ((row + col + seed) % 3 == 0) 0x447FA15A else 0x33617F48
+                    canvas.drawCircle(x, y, 19f + ((row * 7 + col * 3 + seed) % 11), paint)
                     paint.color = 0x226F9856
                     canvas.drawCircle(x - 5f, y - 6f, 9f, paint)
                 }
@@ -181,7 +182,19 @@ internal object CourseHoleArtworkRenderer {
             }
         }
         hole.rough.forEach { feature ->
-            polygon(feature.points, 0xFF4E7843.toInt(), 0x887FA36A.toInt(), 3f)
+            val path = polygon(feature.points, 0xFF4E7843.toInt(), 0x887FA36A.toInt(), 3f)
+            if (path != null) {
+                canvas.save(); canvas.clipPath(path)
+                val seed = (feature.id % 113L).toInt()
+                paint.style = Paint.Style.STROKE; paint.strokeWidth = 2.2f
+                for (row in 0..25) for (col in 0..17) {
+                    val x = (seed * 17 + col * 71 + row * 29) % WIDTH
+                    val y = (seed * 11 + row * 67 + col * 19) % HEIGHT
+                    paint.color = if ((row + col + seed) % 2 == 0) 0x557FA35A else 0x44658A48
+                    canvas.drawLine(x.toFloat(), y.toFloat(), x + 5f, y - 8f, paint)
+                }
+                paint.style = Paint.Style.FILL; canvas.restore()
+            }
         }
 
         // Individual mapped trees use layered crowns and small cast shadows.
