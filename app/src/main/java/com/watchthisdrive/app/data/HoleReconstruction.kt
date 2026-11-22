@@ -148,7 +148,10 @@ object HoleReconstructor {
     ): List<CourseFeature> {
         if (fairways.isEmpty()) return emptyList()
         val numbered = fairways.filter { number(it.holeNumber) == holeNumber }
-        val pool = (if (numbered.isNotEmpty()) numbered else fairways).take(80)
+        val routeScoped = if (centerline.size >= 2) {
+            fairways.filter { featureDistanceToPolyline(it, centerline) <= 140.0 }
+        } else emptyList()
+        val pool = (if (numbered.isNotEmpty()) numbered else if (routeScoped.isNotEmpty()) routeScoped else fairways).take(80)
         val starts = pool.indices.filter { featureDistanceToPoint(tee, pool[it]) <= 115.0 }
         val ends = pool.indices.filter { featureDistanceToPoint(green, pool[it]) <= 115.0 }
         if (starts.isNotEmpty() && ends.isNotEmpty()) {
