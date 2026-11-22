@@ -214,4 +214,53 @@ class HoleReconstructorTest {
         assertEquals(fairway, hole.mappedFairways.single().points)
     }
 
+    @Test
+    fun explicitlyNumberedFairwayFromAnotherHoleIsNotAssigned() {
+        val neighboringFairway = listOf(
+            GeoPoint(0.0002, -0.0003),
+            GeoPoint(0.0038, -0.0003),
+            GeoPoint(0.0038, 0.0003),
+            GeoPoint(0.0002, 0.0003),
+            GeoPoint(0.0002, -0.0003)
+        )
+        val geometry = CourseGeometry(99, "Numbered fairway fixture", listOf(
+            feature(1, "tee", 0.0, 0.0, "1"),
+            feature(2, "green", 0.004, 0.0, "1"),
+            feature(3, "fairway", 0.0, 0.0, "2", neighboringFairway)
+        ))
+
+        val hole = HoleReconstructor.reconstruct(geometry).single()
+
+        assertTrue(hole.mappedFairways.isEmpty())
+        assertFalse(hole.usesMappedFairway)
+    }
+
+    @Test
+    fun overlappingFairwayPolygonsCanFormOneConnectedHoleRoute() {
+        val first = listOf(
+            GeoPoint(0.0002, -0.0005),
+            GeoPoint(0.0022, -0.0005),
+            GeoPoint(0.0022, 0.0005),
+            GeoPoint(0.0002, 0.0005),
+            GeoPoint(0.0002, -0.0005)
+        )
+        val second = listOf(
+            GeoPoint(0.0016, -0.0001),
+            GeoPoint(0.0038, -0.0001),
+            GeoPoint(0.0038, 0.0009),
+            GeoPoint(0.0016, 0.0009),
+            GeoPoint(0.0016, -0.0001)
+        )
+        val geometry = CourseGeometry(99, "Connected fairway fixture", listOf(
+            feature(1, "tee", 0.0, 0.0),
+            feature(2, "green", 0.004, 0.0004),
+            feature(3, "fairway", 0.0, 0.0, points = first),
+            feature(4, "fairway", 0.0, 0.0, points = second)
+        ))
+
+        val hole = HoleReconstructor.reconstruct(geometry).single()
+
+        assertEquals(setOf(3L, 4L), hole.mappedFairways.map { it.id }.toSet())
+    }
+
 }
