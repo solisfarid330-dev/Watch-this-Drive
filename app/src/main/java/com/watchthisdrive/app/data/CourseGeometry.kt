@@ -215,20 +215,36 @@ object CourseGeometryLoader {
         // A course marker may sit close to the edge of its own boundary.
         // Rank candidates by distance to their actual outline, not only by the
         // polygon centroid (which can be hundreds of metres away).
+        val marker = GeoPoint(course.latitude, course.longitude)
         val chosen = candidates.minByOrNull { element ->
-            val outline = readGeometry(element.optJSONArray("geometry")) +
-                (element.optJSONArray("members")?.let { members ->
-                    (0 until members.length()).flatMap { index ->
-                        readGeometry(members.optJSONObject(index)?.optJSONArray("geometry"))
-                    }
-                } ?: emptyList())
-            if (outline.isNotEmpty()) {
-                outlineDistanceMeters(GeoPoint(course.latitude, course.longitude), outline)
-            } else {
-                val center = element.optJSONObject("center")
-                val lat = center?.optDouble("lat", course.latitude) ?: course.latitude
-                val lon = center?.optDouble("lon", course.longitude) ?: course.longitude
-                haversineMeters(course.latitude, course.longitude, lat, lon)
+            val candidateBoundary = mutableListOf<CourseFeature>()
+            val ownGeometry = readGeometry(element.optJSONArray("geometry"))
+            if (ownGeometry.isNotEmpty()) candidateBoundary += CourseFeature(
+                element.optLong("id"), element.optString("type"), "course_boundary",
+                null, course.name, ownGeometry
+            )
+            element.optJSONArray("members")?.let { members ->
+                for (index in 0 until members.length()) {
+                    val member = members.optJSONObject(index) ?: continue
+                    if (member.optString("role").let { it.isNotBlank() && it != "outer" }) continue
+                    val geometry = readGeometry(member.optJSONArray("geometry"))
+                    if (geometry.isNotEmpty()) candidateBoundary += CourseFeature(
+                        member.optLong("ref"), member.optString("type", "way"),
+                        "course_boundary", null, course.name, geometry
+                    )
+                }
+            }
+            val outline = candidateBoundary.flatMap { it.points }
+            val rings = stitchBoundaryRings(candidateBoundary)
+            when {
+                rings.any { pointInRing(marker, it) } -> 0.0
+                outline.isNotEmpty() -> outlineDistanceMeters(marker, outline)
+                else -> {
+                    val center = element.optJSONObject("center")
+                    val lat = center?.optDouble("lat", course.latitude) ?: course.latitude
+                    val lon = center?.optDouble("lon", course.longitude) ?: course.longitude
+                    haversineMeters(course.latitude, course.longitude, lat, lon)
+                }
             }
         } ?: return null
 
