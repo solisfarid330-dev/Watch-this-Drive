@@ -47,12 +47,17 @@ private enum class Tab(val label: String) {
     HOME("Home"), MAP("Course"), SCORE("Scorecard"), CADDY("Caddy")
 }
 
+private fun courseGeometryHandoffKey(course: GolfCourse): String =
+    course.elementType.lowercase(Locale.ROOT) + ":" + course.id
+
 @Composable
 private fun WatchThisDriveApp() {
     var selected by remember { mutableStateOf(Tab.HOME) }
     var showNearbyCourses by remember { mutableStateOf(false) }
     var selectedCourse by remember { mutableStateOf<GolfCourse?>(null) }
     var activeCourse by remember { mutableStateOf<GolfCourse?>(null) }
+    var loadedGeometryCourseKey by remember { mutableStateOf<String?>(null) }
+    var loadedCourseGeometry by remember { mutableStateOf<CourseGeometry?>(null) }
     var location by remember { mutableStateOf<Location?>(null) }
     var mapTarget by remember { mutableStateOf<Location?>(null) }
     var locationMessage by remember { mutableStateOf("Location not checked yet") }
@@ -161,6 +166,10 @@ private fun WatchThisDriveApp() {
                     CourseDetailScreen(
                         course = selectedCourse!!,
                         onBack = { selectedCourse = null },
+                        onGeometryLoaded = { loadedCourse, loaded ->
+                            loadedGeometryCourseKey = courseGeometryHandoffKey(loadedCourse)
+                            loadedCourseGeometry = loaded
+                        },
                         onStartRound = {
                             activeCourse = selectedCourse
                             selectedCourse = null
@@ -213,6 +222,9 @@ private fun WatchThisDriveApp() {
 
                     Tab.CADDY -> CaddyScreen(
                         course = activeCourse,
+                        initialGeometry = activeCourse?.let { course ->
+                            if (loadedGeometryCourseKey == courseGeometryHandoffKey(course)) loadedCourseGeometry else null
+                        },
                         location = location,
                         onLocate = { locate() },
                         onFindCourse = {
@@ -777,6 +789,7 @@ private fun PlaceholderScreen(
 private fun CourseDetailScreen(
     course: GolfCourse,
     onBack: () -> Unit,
+    onGeometryLoaded: (GolfCourse, CourseGeometry) -> Unit,
     onStartRound: () -> Unit,
     onViewOnMap: () -> Unit
 ) {
@@ -790,11 +803,12 @@ private fun CourseDetailScreen(
         mutableStateOf<String?>(null)
     }
 
-    LaunchedEffect(course.id) {
+    LaunchedEffect(course.elementType, course.id) {
         CourseGeometryLoader.load(course) { result ->
             result.fold(
                 onSuccess = {
                     geometry = it
+                    onGeometryLoaded(course, it)
                     loading = false
                 },
                 onFailure = {

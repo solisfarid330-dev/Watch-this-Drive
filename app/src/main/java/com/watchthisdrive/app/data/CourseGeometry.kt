@@ -30,6 +30,14 @@ data class CourseGeometry(
 
 object CourseGeometryLoader {
 
+    // Reuse geometry loaded by Course Detail when Playing Caddy opens.
+    // A temporary Overpass outage must not erase data already obtained
+    // successfully during this app session.
+    private val memoryCache = java.util.concurrent.ConcurrentHashMap<String, CourseGeometry>()
+
+    private fun cacheKey(course: GolfCourse): String =
+        "${course.elementType.lowercase()}:${course.id}"
+
     private val OVERPASS_SERVERS = listOf(
         "https://ovp.dresel.systems/api-na/interpreter",
         "https://overpass.private.coffee/api/interpreter",
@@ -40,15 +48,28 @@ object CourseGeometryLoader {
         course: GolfCourse,
         onResult: (Result<CourseGeometry>) -> Unit
     ) {
+        val key = cacheKey(course)
+        val cached = memoryCache[key]
+
+        // Deliver a previously loaded course immediately. Still refresh in
+        // the background, but never replace good cached data with a network
+        // error from a temporarily unavailable Overpass instance.
+        if (cached != null) {
+            Handler(Looper.getMainLooper()).post {
+                onResult(Result.success(cached))
+            }
+        }
+
         thread {
             val result = runCatching {
                 val query = buildCourseQuery(course)
-
                 val failures = mutableListOf<String>()
 
                 for (server in OVERPASS_SERVERS) {
                     try {
-                        return@runCatching fetchGeometry(server, query, course)
+                        val fresh = fetchGeometry(server, query, course)
+                        memoryCache[key] = fresh
+                        return@runCatching fresh
                     } catch (e: Exception) {
                         failures.add(e.message ?: "Map-data server failed")
                     }
@@ -61,7 +82,10 @@ object CourseGeometryLoader {
             }
 
             Handler(Looper.getMainLooper()).post {
-                onResult(result)
+                if (result.isSuccess || cached == null) {
+                    onResult(result)
+                }
+                // If refresh failed but cached data exists, keep showing it.
             }
         }
     }
