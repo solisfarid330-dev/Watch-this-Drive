@@ -24,9 +24,16 @@ def _kind(feature):
     return props.get("golf") or _tags(feature).get("golf")
 
 
-def _hole_ref(feature):
+def _hole_ref(feature, *, is_centerline=False):
+    """Return an explicit hole association, not an unrelated feature ref.
+
+    OSM's generic ref is commonly an identifier for the mapped object.
+    It is only a hole number on golf=hole centerlines; other features must use
+    the unambiguous ref:hole or hole tags to claim a hole association.
+    """
     tags = _tags(feature)
-    for key in ("ref:hole", "hole", "ref"):
+    keys = ("ref:hole", "hole", "ref") if is_centerline else ("ref:hole", "hole")
+    for key in keys:
         value = tags.get(key)
         if value is not None and str(value).strip():
             return str(value).strip()
@@ -119,7 +126,7 @@ def associate_features_to_holes(
         ref = _hole_ref(feature)
         ranked = []
         for idx, (source, centerline) in enumerate(zip(hole_inputs, projected_holes)):
-            source_ref = _hole_ref(source[0])
+            source_ref = _hole_ref(source[0], is_centerline=True)
             explicit_match = bool(ref and source_ref and ref == source_ref)
             explicit_conflict = bool(ref and source_ref and ref != source_ref)
             distance = float(centerline.distance(projected))
@@ -177,6 +184,7 @@ def associate_features_to_holes(
     summary = {
         "hole_centerlines": len(holes),
         "hole_outlines_found": len(outline_inputs),
+        "hole_outlines_associated": counts.get("hole_outline", 0),
         "associated_features_by_type": dict(counts),
         "ambiguous_associations": ambiguous_count,
         "unassigned_feature_ids": unassigned,
