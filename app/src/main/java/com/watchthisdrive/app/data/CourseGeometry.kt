@@ -261,7 +261,8 @@ object CourseGeometryLoader {
             [out:json][timeout:$OVERPASS_TIMEOUT_SECONDS];
             (
               nwr["golf"~"^(hole|fairway|green|bunker|tee|water_hazard|rough|driving_range|practice|cartpath)$"]($box);
-              nwr["natural"~"^(water|wood)$"]($box);
+              nwr["natural"~"^(water|wood|scrub)$"]($box);
+              node["natural"="tree"]($box);
               nwr["landuse"~"^(forest|grass|meadow)$"]($box);
               nwr["water"]($box);
               way["highway"~"^(path|track|footway)$"]($box);
@@ -388,6 +389,7 @@ object CourseGeometryLoader {
         ) return golf
         if (golf == "cartpath") return "path"
         if (tags.optString("natural") == "water" || tags.has("water")) return "water"
+        if (tags.optString("natural") == "tree") return "tree"
         if (tags.optString("natural") in setOf("wood", "scrub")) return "woodland"
         if (tags.optString("landuse") in setOf("forest", "grass", "meadow")) {
             return if (tags.optString("landuse") == "grass") "rough" else "woodland"
