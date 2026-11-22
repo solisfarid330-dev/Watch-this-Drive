@@ -258,7 +258,7 @@ private fun RoundHubScreen(
     onLocate: () -> Unit,
     onFindCourse: () -> Unit
 ) {
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 20.dp)) {
+    Column(Modifier.fillMaxSize().padding(bottom = 8.dp)) {
         Text("YOUR ROUND", color = Color(0xFFB8F36B), style = MaterialTheme.typography.labelLarge,
             modifier = Modifier.padding(start = 18.dp, top = 14.dp))
         Text(course.name, color = Color.White, style = MaterialTheme.typography.titleLarge,
@@ -271,7 +271,13 @@ private fun RoundHubScreen(
             }
         }
         GolfMap(location = mapTarget ?: location, course = course, onLocate = onLocate)
-        CaddyScreen(course = course, location = location, onLocate = onLocate, onFindCourse = onFindCourse)
+        CaddyScreen(
+            course = course,
+            location = location,
+            onLocate = onLocate,
+            onFindCourse = onFindCourse,
+            modifier = Modifier.weight(1f)
+        )
     }
 }
 
