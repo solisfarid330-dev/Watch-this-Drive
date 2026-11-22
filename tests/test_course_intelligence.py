@@ -81,7 +81,7 @@ class FullCourseGeometryAssociationTests(unittest.TestCase):
             {"type": "Feature", "id": "way/center", "geometry": {"type": "LineString", "coordinates": list(line.coords)},
              "properties": {"golf": "hole", "tags": {"ref": "7"}}, "_shape": line},
             {"type": "Feature", "id": "way/outline", "geometry": {"type": "Polygon", "coordinates": [list(outline.exterior.coords)]},
-             "properties": {"golf": "hole", "tags": {"ref": "7"}}, "_shape": outline},
+             "properties": {"golf": "hole", "tags": {"ref:hole": "7"}}, "_shape": outline},
         ]
         holes, summary = associate_features_to_holes(features)
         attached = holes[0]["properties"]["associated_features"]
