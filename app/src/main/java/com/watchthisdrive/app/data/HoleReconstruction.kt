@@ -59,6 +59,7 @@ object HoleReconstructor {
         })
         if (greens.isEmpty() || tees.isEmpty()) return emptyList()
 
+        val holeLines = geometry.features.filter { it.featureType.equals("hole", true) && it.points.size >= 2 }
         val pairings = mutableListOf<Pairing>()
         greens.forEachIndexed { greenIndex, green ->
             val greenPoint = center(green.points)
@@ -98,7 +99,6 @@ object HoleReconstructor {
         val fairways = geometry.features.filter {
             it.featureType.equals("fairway", true) && it.points.size >= 3
         }
-        val holeLines = geometry.features.filter { it.featureType.equals("hole", true) && it.points.size >= 2 }
         val hazards = geometry.features.filter {
             it.featureType.equals("bunker", true) ||
                 it.featureType.equals("water", true) ||
@@ -226,13 +226,13 @@ object HoleReconstructor {
         lines: List<CourseFeature>,
         tee: GeoPoint,
         green: GeoPoint,
-        holeNumber: Int
+        holeNumber: Int?
     ): CourseFeature? {
         val eligible = lines.filter { number(it.holeNumber) == null || holeNumber == null ||
             number(it.holeNumber) == holeNumber }
         return eligible.mapNotNull { line ->
             val endpoint = endpointDistance(tee, green, line.points)
-            val explicitBonus = if (number(line.holeNumber) == holeNumber) -35.0 else 0.0
+            val explicitBonus = if (holeNumber != null && number(line.holeNumber) == holeNumber) -35.0 else 0.0
             // A line passing near both points in its middle is not enough:
             // its two ends must plausibly represent this hole's tee and green.
             if (endpoint > 180.0) null else line to (endpoint + explicitBonus)
