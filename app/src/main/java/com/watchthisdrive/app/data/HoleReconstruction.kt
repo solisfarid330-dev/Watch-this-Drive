@@ -166,7 +166,7 @@ object HoleReconstructor {
                 },
                 teeSource = tee.sources.first(),
                 greenSource = greenFeature,
-                lengthMeters = meters(teePoint, greenPoint),
+                lengthMeters = if (route.size >= 2) polylineLength(route) else meters(teePoint, greenPoint),
                 mappedFairways = mapped,
                 mappedCenterline = centerline,
                 rough = nearbyLandscape.filter { it.featureType.equals("rough", true) && it.points.size >= 3 },
@@ -311,6 +311,9 @@ object HoleReconstructor {
         val upperTail = distances[((distances.size - 1) * 0.85).roundToInt()]
         return max(distances.average(), upperTail * 0.72)
     }
+
+    private fun polylineLength(points: List<GeoPoint>): Double =
+        points.zipWithNext().sumOf { (a, b) -> meters(a, b) }
 
     private fun endpointDistance(tee: GeoPoint, green: GeoPoint, line: List<GeoPoint>): Double {
         if (line.size < 2) return Double.POSITIVE_INFINITY
