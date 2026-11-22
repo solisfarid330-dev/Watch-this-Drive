@@ -221,9 +221,7 @@ object CourseGeometryLoader {
                     }
                 } ?: emptyList())
             if (outline.isNotEmpty()) {
-                outline.minOf { point ->
-                    haversineMeters(course.latitude, course.longitude, point.latitude, point.longitude)
-                }
+                outlineDistanceMeters(GeoPoint(course.latitude, course.longitude), outline)
             } else {
                 val center = element.optJSONObject("center")
                 val lat = center?.optDouble("lat", course.latitude) ?: course.latitude
@@ -507,6 +505,48 @@ object CourseGeometryLoader {
             (course.latitude + latPad).coerceAtMost(90.0),
             (course.longitude + lonPad).coerceAtMost(180.0)
         )
+    }
+
+    private fun outlineDistanceMeters(point: GeoPoint, outline: List<GeoPoint>): Double {
+        if (outline.size < 2) return Double.POSITIVE_INFINITY
+        if (outline.size >= 4 && pointInRing(point, outline)) return 0.0
+        val latitudeScale = 111_320.0
+        val longitudeScale = latitudeScale * kotlin.math.cos(Math.toRadians(point.latitude))
+        val px = point.longitude * longitudeScale
+        val py = point.latitude * latitudeScale
+        var best = Double.POSITIVE_INFINITY
+        for (i in 0 until outline.lastIndex) {
+            val a = outline[i]
+            val b = outline[i + 1]
+            val ax = a.longitude * longitudeScale
+            val ay = a.latitude * latitudeScale
+            val bx = b.longitude * longitudeScale
+            val by = b.latitude * latitudeScale
+            val dx = bx - ax
+            val dy = by - ay
+            val denominator = dx * dx + dy * dy
+            val t = if (denominator <= 1e-9) 0.0 else
+                (((px - ax) * dx + (py - ay) * dy) / denominator).coerceIn(0.0, 1.0)
+            best = min(best, kotlin.math.hypot(px - (ax + t * dx), py - (ay + t * dy)))
+        }
+        return best
+    }
+
+    private fun pointInRing(point: GeoPoint, ring: List<GeoPoint>): Boolean {
+        var inside = false
+        var j = ring.lastIndex
+        for (i in ring.indices) {
+            val a = ring[i]
+            val b = ring[j]
+            val crosses = (a.latitude > point.latitude) != (b.latitude > point.latitude) &&
+                point.longitude < (b.longitude - a.longitude) *
+                (point.latitude - a.latitude) /
+                ((b.latitude - a.latitude).takeIf { kotlin.math.abs(it) > 1e-12 } ?: 1e-12) +
+                a.longitude
+            if (crosses) inside = !inside
+            j = i
+        }
+        return inside
     }
 
     private fun haversineMeters(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
