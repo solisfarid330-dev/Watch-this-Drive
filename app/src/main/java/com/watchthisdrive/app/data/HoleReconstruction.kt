@@ -187,16 +187,22 @@ object HoleReconstructor {
         centerline: List<GeoPoint>
     ): List<CourseFeature> {
         if (fairways.isEmpty()) return emptyList()
-        val numbered = fairways.filter { number(it.holeNumber) == holeNumber }
+        // Explicitly numbered fairways for another hole are never candidates,
+        // even when neighboring holes run close together.
+        val compatible = fairways.filter {
+            number(it.holeNumber) == null || number(it.holeNumber) == holeNumber
+        }
+        if (compatible.isEmpty()) return emptyList()
+        val numbered = compatible.filter { number(it.holeNumber) == holeNumber }
         val routeScoped = if (centerline.size >= 2) {
-            fairways.filter { featureDistanceToPolyline(it, centerline) <= 65.0 }
+            compatible.filter { featureDistanceToPolyline(it, centerline) <= 65.0 }
         } else emptyList()
         // When a centerline exists, it is the authoritative corridor. Do not
         // pull in fairways merely because they are close to a straight tee-green chord.
         val pool = (if (centerline.size >= 2) {
             if (numbered.isNotEmpty()) numbered.filter { it in routeScoped }
             else routeScoped
-        } else if (numbered.isNotEmpty()) numbered else fairways).take(160)
+        } else if (numbered.isNotEmpty()) numbered else compatible).take(160)
         val starts = pool.indices.filter { featureDistanceToPoint(tee, pool[it]) <= 115.0 }
         val ends = pool.indices.filter { featureDistanceToPoint(green, pool[it]) <= 115.0 }
         if (starts.isNotEmpty() && ends.isNotEmpty()) {
