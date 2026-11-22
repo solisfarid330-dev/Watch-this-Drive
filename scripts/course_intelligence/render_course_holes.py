@@ -118,7 +118,18 @@ def main() -> None:
                 "candidate_index": index, "hole_label": label,
                 "image": filename,
                 "tee_count": len(tees), "green_count": len(greens),
+                "geometry_sources": {
+                    "hole_centerline": "mapped_osm",
+                    "tees": "mapped_osm" if not inferred or "tee" not in inferred else "inferred_centerline_endpoint",
+                    "greens": "mapped_osm" if not inferred or "green" not in inferred else "inferred_centerline_endpoint",
+                    "fairway": "mapped_osm" if any(item.get("golf_type") == "fairway" for item in associated) else "inferred_centerline_buffer",
+                    "hole_outline": "mapped_osm" if any(item.get("golf_type") == "hole_outline" for item in associated) else "not_available",
+                },
                 "fairway_count": sum(item.get("golf_type") == "fairway" for item in associated),
+                "hole_outline_count": sum(item.get("golf_type") == "hole_outline" for item in associated),
+                "associated_features_by_type": dict(__import__("collections").Counter(
+                    item.get("golf_type", "unknown") for item in associated
+                )),
                 "inferred_features": inferred + (["fairway"] if not any(item.get("golf_type") == "fairway" for item in associated) else []),
                 "ambiguous_association_count": sum(
                     item.get("association_status") == "ambiguous_nearest_centerline"
