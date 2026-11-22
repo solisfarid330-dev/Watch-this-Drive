@@ -55,6 +55,7 @@ private fun WatchThisDriveApp() {
     var showNearbyCourses by remember { mutableStateOf(false) }
     var selectedCourse by remember { mutableStateOf<GolfCourse?>(null) }
     var activeCourse by remember { mutableStateOf<GolfCourse?>(null) }
+    var activeHole by remember(activeCourse?.id) { mutableIntStateOf(1) }
     var location by remember { mutableStateOf<Location?>(null) }
     var mapTarget by remember { mutableStateOf<Location?>(null) }
     var locationMessage by remember { mutableStateOf("Location not checked yet") }
@@ -165,6 +166,7 @@ private fun WatchThisDriveApp() {
                         onBack = { selectedCourse = null },
                         onStartRound = {
                             activeCourse = selectedCourse
+                            activeHole = 1
                             selectedCourse = null
                             showNearbyCourses = false
                             selected = Tab.PLAY
@@ -212,6 +214,8 @@ private fun WatchThisDriveApp() {
                                 course = activeCourse!!,
                                 location = location,
                                 mapTarget = mapTarget,
+                                activeHole = activeHole,
+                                onHoleSelected = { activeHole = it },
                                 onLocate = { mapTarget = null; locate() },
                                 onFindCourse = {
                                     selectedCourse = null
@@ -221,7 +225,7 @@ private fun WatchThisDriveApp() {
                         }
                     }
 
-                    Tab.SCORE -> ScorecardScreen(course = activeCourse)
+                    Tab.SCORE -> ScorecardScreen(course = activeCourse, activeHole = activeHole, onSelectHole = { activeHole = it })
 
                     Tab.SETTINGS -> SettingsScreen(
                         locationMessage = locationMessage,
@@ -249,6 +253,8 @@ private fun RoundHubScreen(
     course: GolfCourse,
     location: Location?,
     mapTarget: Location?,
+    activeHole: Int,
+    onHoleSelected: (Int) -> Unit,
     onLocate: () -> Unit,
     onFindCourse: () -> Unit
 ) {
@@ -257,13 +263,20 @@ private fun RoundHubScreen(
             modifier = Modifier.padding(start = 18.dp, top = 14.dp))
         Text(course.name, color = Color.White, style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 18.dp, vertical = 6.dp))
+        Row(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+            Text("HOLE $activeHole", color = Color.White, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                TextButton(onClick = { onHoleSelected((activeHole - 1).coerceAtLeast(1)) }, enabled = activeHole > 1) { Text("PREVIOUS") }
+                TextButton(onClick = { onHoleSelected((activeHole + 1).coerceAtMost(18)) }, enabled = activeHole < 18) { Text("NEXT") }
+            }
+        }
         GolfMap(location = mapTarget ?: location, course = course, onLocate = onLocate)
         CaddyScreen(course = course, location = location, onLocate = onLocate, onFindCourse = onFindCourse)
     }
 }
 
 @Composable
-private fun ScorecardScreen(course: GolfCourse?) {
+private fun ScorecardScreen(course: GolfCourse?, activeHole: Int, onSelectHole: (Int) -> Unit) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val prefs = remember(course?.id) { context.getSharedPreferences("watch_this_drive_scorecard_${course?.id ?: 0}", android.content.Context.MODE_PRIVATE) }
     var scores by remember(course?.id) { mutableStateOf((1..18).map { hole ->
@@ -272,21 +285,29 @@ private fun ScorecardScreen(course: GolfCourse?) {
     var pars by remember(course?.id) { mutableStateOf((1..18).map { hole ->
         prefs.getInt("par_$hole", if (hole in listOf(1, 4, 7, 10, 13, 16)) 4 else 4)
     }) }
-    val total = scores.sum()
     val played = scores.count { it > 0 }
+    val total = scores.filter { it > 0 }.sum()
+    val playedPar = scores.indices.filter { scores[it] > 0 }.sumOf { pars[it] }
+    val frontStrokes = scores.take(9).filter { it > 0 }.sum()
+    val backStrokes = scores.drop(9).filter { it > 0 }.sum()
     Column(Modifier.fillMaxSize().padding(18.dp)) {
         Text("SCORECARD", color = Color(0xFFB8F36B), style = MaterialTheme.typography.labelLarge)
         Text(course?.name ?: "No active round", color = Color.White, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-        Text(if (played == 0) "Enter your score as you play each hole." else "$played holes · $total strokes · Par ${pars.take(played).sum()}",
+        Text(if (played == 0) "Enter your score as you play each hole." else "$played holes · $total strokes · $playedPar par · ${if (total > playedPar) "+" else ""}${total - playedPar}",
             color = Color(0xFFB6C1B9))
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text("OUT  $frontStrokes", color = Color(0xFFB6C1B9), style = MaterialTheme.typography.labelMedium)
+            Text("IN  $backStrokes", color = Color(0xFFB6C1B9), style = MaterialTheme.typography.labelMedium)
+            Text("TOTAL  $total", color = Color(0xFFB8F36B), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+        }
         if (course == null) Text("Start a round from a selected course to keep its scorecard.", color = Color(0xFFB6C1B9))
         LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.weight(1f)) {
             items((1..18).toList()) { hole ->
                 val index = hole - 1
                 Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF1D2A22))) {
                     Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f)) {
-                            Text("Hole $hole", color = Color.White, fontWeight = FontWeight.Bold)
+                        Column(Modifier.weight(1f).clickable { onSelectHole(hole) }) {
+                            Text(if (hole == activeHole) "Hole $hole · CURRENT" else "Hole $hole", color = if (hole == activeHole) Color(0xFFB8F36B) else Color.White, fontWeight = FontWeight.Bold)
                             Text("Par ${pars[index]}", color = Color(0xFFB6C1B9), style = MaterialTheme.typography.bodySmall)
                         }
                         TextButton(onClick = {
