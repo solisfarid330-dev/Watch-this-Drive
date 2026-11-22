@@ -185,6 +185,41 @@ def main():
         image = Image.new("RGB", (WIDTH, HEIGHT), COLORS["base"])
         draw = ImageDraw.Draw(image)
 
+        # Build subtle vector ground-cover patches from NAIP spectral classes.
+        # These describe broad vegetation/soil texture, not verified golf boundaries.
+        bands = dataset.read([1, 2, 3, 4]).astype(np.float32)
+        red, green, blue, nir = bands
+        ndvi = np.divide(
+            nir - red, nir + red,
+            out=np.zeros_like(red), where=(nir + red) > 2,
+        )
+        brightness = (red + green + blue) / 3
+        valid = (red + green + blue) > 18
+        green_dominant = (green > red * 1.025) & (green > blue * 1.015)
+        ground_classes = [
+            (valid & green_dominant & (ndvi > 0.16) & (ndvi < 0.48) & (brightness > 62), (143, 169, 103), 900),
+            (valid & (ndvi > 0.43) & (brightness >= 105) & (brightness < 190), (160, 187, 119), 1400),
+            (valid & (ndvi < 0.16) & (brightness > 82) & (brightness < 190), (174, 174, 119), 700),
+        ]
+        for class_mask, class_color, minimum_pixels in ground_classes:
+            class_mask = ndimage.binary_opening(class_mask, iterations=1)
+            class_labels, class_count = ndimage.label(class_mask)
+            class_sizes = np.bincount(class_labels.ravel())
+            class_keep = np.zeros_like(class_mask)
+            for component in range(1, class_count + 1):
+                if minimum_pixels <= class_sizes[component] <= 90000:
+                    class_keep[class_labels == component] = True
+            for geometry_mapping, _ in shapes(
+                class_keep.astype(np.uint8), mask=class_keep,
+                transform=dataset.transform, connectivity=8,
+            ):
+                try:
+                    ground_geometry = local_geometry(shape(geometry_mapping))
+                    if ground_geometry.intersects(box(min_x, min_y, max_x, max_y)):
+                        draw_polygon(draw, ground_geometry, class_color)
+                except Exception:
+                    continue
+
         # Approximate tree-canopy footprints from dark, vegetated NAIP regions.
         # These are deliberately contextual, low-confidence features.
         bands = dataset.read([1, 2, 3, 4]).astype(np.float32)
