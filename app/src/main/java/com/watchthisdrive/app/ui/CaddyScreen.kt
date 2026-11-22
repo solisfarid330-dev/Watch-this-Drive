@@ -44,9 +44,10 @@ fun CaddyScreen(
     course: GolfCourse?,
     location: Location?,
     onLocate: () -> Unit,
-    onFindCourse: () -> Unit
+    onFindCourse: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    PlayingCaddyScreen(course, location, onLocate, onFindCourse)
+    PlayingCaddyScreen(course, location, onLocate, onFindCourse, modifier)
 }
 
 @Composable
@@ -54,7 +55,8 @@ private fun PlayingCaddyScreen(
     course: GolfCourse?,
     location: Location?,
     onLocate: () -> Unit,
-    onFindCourse: () -> Unit
+    onFindCourse: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     var geometry by remember(course?.id) { mutableStateOf<CourseGeometry?>(null) }
     var loading by remember(course?.id) { mutableStateOf(false) }
@@ -100,7 +102,7 @@ private fun PlayingCaddyScreen(
     }
 
     LazyColumn(
-        modifier = Modifier.fillMaxSize(),
+        modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(start = 18.dp, top = 8.dp, end = 18.dp, bottom = 28.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
