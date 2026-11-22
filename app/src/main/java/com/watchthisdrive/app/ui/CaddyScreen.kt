@@ -83,7 +83,7 @@ private fun PlayingCaddyScreen(
     }
     val safeLayupYards = approachHazards.minOfOrNull { it.second }
     val loading = course != null && geometry == null && geometryError == null
-    val error: String? = geometryError
+    val error: String? = if (geometry == null) geometryError else null
     val preferences = LocalContext.current.getSharedPreferences("watch_this_drive_caddy", Context.MODE_PRIVATE)
     var clubs by remember(course?.id) {
         mutableStateOf(defaultClubs.map { club ->
