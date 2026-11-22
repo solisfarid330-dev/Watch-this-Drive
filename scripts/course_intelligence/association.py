@@ -133,6 +133,11 @@ def associate_features_to_holes(
             unassigned.append(feature.get("id"))
             continue
 
+        # Never override an explicit reference to a different hole.
+        if ref and any(item[3] for item in ranked) and not any(item[0] == 0 for item in ranked):
+            unassigned.append(feature.get("id"))
+            continue
+
         best_ref_rank, nearest, nearest_idx, _ = ranked[0]
         if best_ref_rank == 1 and nearest > max_distance_m:
             unassigned.append(feature.get("id"))
