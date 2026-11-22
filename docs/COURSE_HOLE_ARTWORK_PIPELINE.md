@@ -12,10 +12,11 @@ The same generated artwork package is consumed by **Illustrated Holes** and **Pl
 - Hole reconstruction prefers explicit hole numbers, uses mapped OSM hole centerlines to retain dogleg routes, and follows connected fairway sections where available. If no mapped route/fairway exists, it draws a clearly identified estimated corridor.
 - Bunkers and water are associated with mapped fairways or centerlines first, then with a direct tee-to-green fallback when mapped route data is absent. This remains a spatial approximation, not survey-grade routing.
 - Reconstruction tests cover explicit tee/green matching, cross-hole mismatch rejection, mapped fairway preservation, and estimated-corridor fallback.
-- Android now includes a vector renderer that creates tee-bottom/green-top PNG illustrations from reconstructed geometry on-device and caches them in app-private storage. The cache key includes source geometry so changed geometry produces a new image.
+- Android includes a detailed on-device renderer that creates tee-bottom/green-top PNG illustrations and caches them in app-private storage. It fits the full tee/green/fairway/hazard/centerline geometry to the artwork viewport, rather than scaling around the tee alone. It adds layered turf, mowing bands, contoured greens, textured bunkers and water, mapped woodland/tree symbols, rough and paths. Decorative texture is visual styling only; mapped geometry remains the source of feature positions. The renderer version and source geometry participate in the cache key.
 - Illustrated Holes and Playing Caddy share the same renderer and local artwork cache. Packaged pilot images remain supported as a backward-compatible first choice; Caddy retains its reconstructed GPS-aware map as fallback.
 - The regular APK workflow no longer runs or packages the Lake Arlington-specific artwork pilot. Lake Arlington remains only a potential test fixture.
-- Python geometry/rendering scripts are prototypes/reference tools, not a production runtime dependency. A universal on-device renderer and local generated-artwork cache are not yet implemented.
+- The artwork viewport uses the full portrait image area in Illustrated Holes and Caddy. Surrounding landscape is clipped to the fitted hole bounds so large woodland polygons do not shrink the playable hole.
+- Python geometry/rendering scripts are prototypes/reference tools, not a production runtime dependency. The Android renderer is functional but still needs visual review across courses with sparse and dense OSM mapping, plus device-level performance and layout checks.
 
 ## Runtime architecture to implement
 
