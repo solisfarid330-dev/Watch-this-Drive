@@ -438,20 +438,39 @@ object CourseGeometryLoader {
      * a member when its nearest endpoint matches the current route end. */
     private fun stitchOpenSegments(segments: List<List<GeoPoint>>): List<GeoPoint> {
         if (segments.isEmpty()) return emptyList()
-        val remaining = segments.toMutableList()
+        val remaining = segments.filter { it.size >= 2 }.toMutableList()
+        if (remaining.isEmpty()) return emptyList()
         val route = remaining.removeAt(0).toMutableList()
+
+        // Relation member order and direction are not guaranteed. Join at either
+        // end of the growing route, reversing members when necessary, instead of
+        // assuming every next member continues from route.last().
         while (remaining.isNotEmpty()) {
-            val end = route.last()
-            val match = remaining.mapIndexedNotNull { index, segment ->
-                val first = haversineMeters(end.latitude, end.longitude,
+            data class Join(val index: Int, val attachToStart: Boolean, val reverse: Boolean, val distance: Double)
+            val joins = remaining.mapIndexedNotNull { index, segment ->
+                val appendFirst = haversineMeters(route.last().latitude, route.last().longitude,
                     segment.first().latitude, segment.first().longitude)
-                val last = haversineMeters(end.latitude, end.longitude,
+                val appendLast = haversineMeters(route.last().latitude, route.last().longitude,
                     segment.last().latitude, segment.last().longitude)
-                val distance = min(first, last)
-                if (distance <= 12.0) Triple(index, first <= last, distance) else null
-            }.minByOrNull { it.third } ?: break
-            val segment = remaining.removeAt(match.first)
-            route.addAll(if (match.second) segment.drop(1) else segment.asReversed().drop(1))
+                val prependFirst = haversineMeters(route.first().latitude, route.first().longitude,
+                    segment.first().latitude, segment.first().longitude)
+                val prependLast = haversineMeters(route.first().latitude, route.first().longitude,
+                    segment.last().latitude, segment.last().longitude)
+                listOf(
+                    Join(index, false, false, appendFirst),
+                    Join(index, false, true, appendLast),
+                    Join(index, true, true, prependFirst),
+                    Join(index, true, false, prependLast)
+                ).filter { it.distance <= 12.0 }.minByOrNull { it.distance }
+            }
+            val join = joins.minByOrNull { it.distance } ?: break
+            val segment = remaining.removeAt(join.index)
+            when {
+                !join.attachToStart && !join.reverse -> route.addAll(segment.drop(1))
+                !join.attachToStart && join.reverse -> route.addAll(segment.asReversed().drop(1))
+                join.attachToStart && join.reverse -> route.addAll(0, segment.asReversed().dropLast(1))
+                else -> route.addAll(0, segment.dropLast(1))
+            }
         }
         return route
     }
