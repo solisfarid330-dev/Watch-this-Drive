@@ -89,6 +89,18 @@ class FullCourseGeometryAssociationTests(unittest.TestCase):
         self.assertEqual(attached[0]["golf_type"], "hole_outline")
         self.assertEqual(attached[0]["association_status"], "explicit_hole_reference")
 
+    def test_generic_feature_ref_is_not_mistaken_for_hole_reference(self):
+        hole_a = {"type": "Feature", "id": "a", "geometry": {"type": "LineString", "coordinates": [[0, 0], [0, .01]]},
+                  "properties": {"golf": "hole", "tags": {"ref": "1"}}, "_shape": LineString([(0, 0), (0, .01)])}
+        hole_b = {"type": "Feature", "id": "b", "geometry": {"type": "LineString", "coordinates": [[.001, 0], [.001, .01]]},
+                  "properties": {"golf": "hole", "tags": {"ref": "2"}}, "_shape": LineString([(.001, 0), (.001, .01)])}
+        green = {"type": "Feature", "id": "g", "geometry": {"type": "Point", "coordinates": [.0001, .005]},
+                 "properties": {"golf": "green", "tags": {"ref": "2"}}, "_shape": Point(.0001, .005)}
+        holes, _ = associate_features_to_holes([hole_a, hole_b, green], max_distance_m=200)
+        # The generic ref belongs to the OSM object, so spatial evidence wins.
+        self.assertEqual(holes[0]["properties"]["associated_feature_count"], 1)
+        self.assertEqual(holes[1]["properties"]["associated_feature_count"], 0)
+
     def test_explicit_hole_reference_beats_nearest_centerline(self):
         hole_a = {"type": "Feature", "id": "a", "geometry": {"type": "LineString", "coordinates": [[0, 0], [0, .01]]},
                   "properties": {"golf": "hole", "tags": {"ref": "1"}}, "_shape": LineString([(0, 0), (0, .01)])}
