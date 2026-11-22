@@ -74,9 +74,12 @@ private fun WatchThisDriveApp() {
         courseGeometry = null
         geometryError = null
         activeCourse?.let { course ->
+            val requestedCourseId = course.id
             CourseGeometryLoader.load(course) { result ->
-                result.onSuccess { courseGeometry = it }
-                    .onFailure { geometryError = it.message ?: "Course mapping unavailable" }
+                if (activeCourse?.id == requestedCourseId) {
+                    result.onSuccess { courseGeometry = it }
+                        .onFailure { geometryError = it.message ?: "Course mapping unavailable" }
+                }
             }
         }
     }
