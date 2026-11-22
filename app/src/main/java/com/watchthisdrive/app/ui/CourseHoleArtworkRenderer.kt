@@ -49,7 +49,6 @@ internal object CourseHoleArtworkRenderer {
             hole.mappedFairways.forEach { addAll(it.points) }
             (hole.bunkers + hole.water).forEach { addAll(it.points) }
             hole.mappedCenterline?.let { addAll(it.points) }
-            (hole.rough + hole.woodland + hole.paths + hole.trees).forEach { addAll(it.points) }
         }.distinct()
         val midLat = Math.toRadians((hole.tee.latitude + hole.green.latitude) / 2.0)
         val lonScale = 111320.0 * cos(midLat)
