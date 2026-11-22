@@ -59,7 +59,7 @@ fun GolfMap(
     }
     var mapReady by remember { mutableStateOf(false) }
     var geometry by remember(course?.id) {
-        mutableStateOf(sharedGeometry ?: course?.let { loadCachedCourseGeometry(context, it) })
+        mutableStateOf(if (useSharedGeometry) sharedGeometry else sharedGeometry ?: course?.let { loadCachedCourseGeometry(context, it) })
     }
     var geometryMessage by remember(course?.id) {
         mutableStateOf(if (geometry != null) "Saved map · checking for updates…" else null)
