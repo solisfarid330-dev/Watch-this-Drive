@@ -266,4 +266,32 @@ class HoleReconstructorTest {
         assertEquals(setOf(3L, 4L), hole.mappedFairways.map { it.id }.toSet())
     }
 
+    @Test
+    fun centerlineFollowingMappedFairwayIsRetained() {
+        val fairway = listOf(
+            GeoPoint(0.0002, -0.0003),
+            GeoPoint(0.0038, -0.0003),
+            GeoPoint(0.0038, 0.0003),
+            GeoPoint(0.0002, 0.0003),
+            GeoPoint(0.0002, -0.0003)
+        )
+        val route = listOf(
+            GeoPoint(0.0, 0.0),
+            GeoPoint(0.001, 0.0),
+            GeoPoint(0.0025, 0.0),
+            GeoPoint(0.004, 0.0)
+        )
+        val geometry = CourseGeometry(99, "Aligned fixture", listOf(
+            feature(1, "tee", 0.0, 0.0),
+            feature(2, "green", 0.004, 0.0),
+            feature(3, "fairway", 0.0, 0.0, points = fairway),
+            feature(4, "hole", 0.0, 0.0, points = route)
+        ))
+
+        val hole = HoleReconstructor.reconstruct(geometry).single()
+
+        assertEquals(route, hole.mappedCenterline?.points)
+        assertTrue(hole.usesMappedFairway)
+    }
+
 }
