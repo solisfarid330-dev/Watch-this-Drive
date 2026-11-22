@@ -304,7 +304,7 @@ private fun RoundHubScreen(
     onLocate: () -> Unit,
     onFindCourse: () -> Unit
 ) {
-    Column(Modifier.fillMaxSize().padding(bottom = 8.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 8.dp)) {
         Text("YOUR ROUND", color = Color(0xFFB8F36B), style = MaterialTheme.typography.labelLarge,
             modifier = Modifier.padding(start = 18.dp, top = 14.dp))
         Text(course.name, color = Color.White, style = MaterialTheme.typography.titleLarge,
@@ -360,7 +360,7 @@ private fun RoundHubScreen(
             onFindCourse = onFindCourse,
             activeHole = activeHole,
             geometry = courseGeometry,
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.height(380.dp)
         )
     }
 }
