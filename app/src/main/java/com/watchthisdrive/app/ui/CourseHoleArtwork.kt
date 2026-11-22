@@ -101,9 +101,10 @@ fun CourseHoleArtworkPanel(course: GolfCourse, geometry: CourseGeometry?) {
         loading = false
     }
     LaunchedEffect(course.elementType, course.id, geometry, artwork) {
-        if (geometry != null && artwork?.holes.isNullOrEmpty()) {
+        val sourceGeometry = geometry
+        if (sourceGeometry != null && artwork?.holes.isNullOrEmpty()) {
             generatedImages = withContext(Dispatchers.Default) {
-                HoleReconstructor.reconstruct(geometry).associate { hole ->
+                HoleReconstructor.reconstruct(sourceGeometry).associate { hole ->
                     hole.number to CourseHoleArtworkRenderer.render(hole, context.cacheDir, course.elementType + "-" + course.id)
                 }
             }
