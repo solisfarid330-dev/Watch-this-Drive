@@ -126,8 +126,13 @@ internal object CourseHoleArtworkRenderer {
         paint.color = 0xFFBFD0C2.toInt()
         canvas.drawText(if (hole.usesMappedFairway) "Mapped fairway geometry" else "Estimated fairway corridor", 64f, HEIGHT - 42f, paint)
 
-        FileOutputStream(output).use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+        val temporary = File(folder, digest + "-" + Thread.currentThread().id + ".tmp")
+        FileOutputStream(temporary).use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
         bitmap.recycle()
+        if (!temporary.renameTo(output)) {
+            if (!output.exists()) temporary.copyTo(output, overwrite = true)
+            temporary.delete()
+        }
         return output
     }
 }
