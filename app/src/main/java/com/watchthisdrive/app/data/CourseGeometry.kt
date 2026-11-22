@@ -554,7 +554,10 @@ object CourseGeometryLoader {
             feature.points.map { it.longitude }.average()
         )
         val contained = feature.points.any { point -> rings.any { pointInRing(point, it) } } ||
-            rings.any { ring -> pointInRing(centroid, ring) }
+            rings.any { ring -> pointInRing(centroid, ring) } ||
+            (feature.points.size >= 4 && rings.any { ring ->
+                ring.any { point -> pointInRing(point, feature.points) }
+            })
         if (contained) return true
 
         // Retain mapped features whose geometry crosses the selected course
