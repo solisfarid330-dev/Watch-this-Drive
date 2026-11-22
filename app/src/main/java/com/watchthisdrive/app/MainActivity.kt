@@ -32,6 +32,7 @@ import com.watchthisdrive.app.data.CourseGeometry
 import com.watchthisdrive.app.data.CourseGeometryLoader
 import com.watchthisdrive.app.data.GolfCourse
 import com.watchthisdrive.app.ui.GolfMap
+import com.watchthisdrive.app.ui.loadCachedCourseGeometry
 import com.watchthisdrive.app.ui.CaddyScreen
 import com.watchthisdrive.app.ui.ClubDistancesSettings
 import com.watchthisdrive.app.ui.CourseHoleArtworkPanel
@@ -62,7 +63,7 @@ private fun WatchThisDriveApp() {
     val scorePrefs = remember(activeCourse?.id) { context.getSharedPreferences("watch_this_drive_scorecard_${activeCourse?.id ?: 0}", android.content.Context.MODE_PRIVATE) }
     var scores by remember(activeCourse?.id) { mutableStateOf((1..18).map { scorePrefs.getInt("strokes_$it", 0) }) }
     var pars by remember(activeCourse?.id) { mutableStateOf((1..18).map { scorePrefs.getInt("par_$it", 4) }) }
-    var courseGeometry by remember(activeCourse?.id) { mutableStateOf<CourseGeometry?>(null) }
+    var courseGeometry by remember(activeCourse?.id) { mutableStateOf(activeCourse?.let { loadCachedCourseGeometry(context, it) }) }
     var geometryError by remember(activeCourse?.id) { mutableStateOf<String?>(null) }
     LaunchedEffect(activeCourse?.id) {
         courseGeometry = null
@@ -339,7 +340,7 @@ private fun RoundHubScreen(
                 Text("Tap + or − to record this hole. Scorecard updates automatically.", color = Color(0xFFB6C1B9), style = MaterialTheme.typography.bodySmall)
             }
         }
-        GolfMap(location = mapTarget ?: location, course = course, onLocate = onLocate, sharedGeometry = courseGeometry)
+        GolfMap(location = mapTarget ?: location, course = course, onLocate = onLocate, sharedGeometry = courseGeometry, useSharedGeometry = true)
         CourseHoleArtworkForHole(
             course = course,
             holeNumber = activeHole,
