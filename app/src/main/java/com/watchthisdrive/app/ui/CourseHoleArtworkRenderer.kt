@@ -2,8 +2,13 @@ package com.watchthisdrive.app.ui
 
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.Path
+import android.graphics.RadialGradient
+import android.graphics.RectF
+import android.graphics.Shader
+import android.graphics.Typeface
 import com.watchthisdrive.app.data.GeoPoint
 import com.watchthisdrive.app.data.ReconstructedHole
 import java.io.File
@@ -11,120 +16,249 @@ import java.io.FileOutputStream
 import java.security.MessageDigest
 import kotlin.math.*
 
-/**
- * Creates a standalone, tee-bottom/green-top hole illustration on the device.
- * Only mapped geometry is drawn as mapped; synthetic fairway corridors are
- * visibly softer and are never presented as surveyed course data.
- */
+/** Rich tee-bottom/green-top artwork, fitted to the complete reconstructed hole. */
 internal object CourseHoleArtworkRenderer {
+    private const val VERSION = 4
     private const val WIDTH = 1200
     private const val HEIGHT = 1800
+    private const val LEFT = 48.0
+    private const val RIGHT = WIDTH - 48.0
+    private const val TOP = 158.0
+    private const val BOTTOM = HEIGHT - 112.0
+    private data class XY(val x: Double, val y: Double)
 
     fun render(hole: ReconstructedHole, cacheDirectory: File, cacheKey: String): File {
         val folder = File(cacheDirectory, "generated-course-holes").apply { mkdirs() }
         val signature = buildString {
-            append(cacheKey).append('|').append(hole.number)
-            append('|').append(hole.tee).append('|').append(hole.green)
-            hole.mappedFairways.forEach { append('|').append(it.elementType).append(':').append(it.id) }
-            hole.bunkers.forEach { append('|').append("b:").append(it.id) }
-            hole.water.forEach { append('|').append("w:").append(it.id).append(it.points) }
-            append('|').append(hole.greenBoundary)
-            append('|').append(hole.fairwayEstimate)
-            hole.mappedFairways.forEach { append('|').append(it.points) }
-            hole.mappedCenterline?.let { append('|').append(it.id).append(it.points) }
+            append("renderer=").append(VERSION).append('|').append(cacheKey).append('|').append(hole.number)
+            append('|').append(hole.tee).append('|').append(hole.green).append('|').append(hole.greenBoundary)
+            append('|').append(hole.fairwayEstimate).append('|').append(hole.lengthMeters)
+            hole.mappedFairways.forEach { append("|f:").append(it.id).append(it.points) }
+            hole.bunkers.forEach { append("|b:").append(it.id).append(it.points) }
+            hole.water.forEach { append("|w:").append(it.id).append(it.points) }
+            hole.mappedCenterline?.let { append("|c:").append(it.id).append(it.points) }
         }
         val digest = MessageDigest.getInstance("SHA-256")
             .digest(signature.toByteArray()).take(12).joinToString("") { "%02x".format(it) }
-        val output = File(folder, "$digest.png")
+        val output = File(folder, digest + ".png")
         if (output.exists() && output.length() > 0L) return output
+
+        val geographic = buildList {
+            add(hole.tee); add(hole.green); addAll(hole.greenBoundary); addAll(hole.fairwayEstimate)
+            hole.mappedFairways.forEach { addAll(it.points) }
+            (hole.bunkers + hole.water).forEach { addAll(it.points) }
+            hole.mappedCenterline?.let { addAll(it.points) }
+        }.distinct()
+        val midLat = Math.toRadians((hole.tee.latitude + hole.green.latitude) / 2.0)
+        val lonScale = 111320.0 * cos(midLat)
+        val latScale = 111320.0
+        val east = (hole.green.longitude - hole.tee.longitude) * lonScale
+        val north = (hole.green.latitude - hole.tee.latitude) * latScale
+        val length = hypot(east, north).coerceAtLeast(1.0)
+        val ux = east / length; val uy = north / length
+        val vx = -uy; val vy = ux
+        fun local(p: GeoPoint): XY {
+            val e = (p.longitude - hole.tee.longitude) * lonScale
+            val n = (p.latitude - hole.tee.latitude) * latScale
+            return XY(e * vx + n * vy, e * ux + n * uy)
+        }
+        val projected = geographic.map(::local)
+        // Use min AND max on both axes; include the tee, green, hazards and dogleg.
+        val minX = min(0.0, projected.minOfOrNull { it.x } ?: 0.0)
+        val maxX = max(0.0, projected.maxOfOrNull { it.x } ?: 0.0)
+        val minY = min(0.0, projected.minOfOrNull { it.y } ?: 0.0)
+        val maxY = max(length, projected.maxOfOrNull { it.y } ?: length)
+        val rangeX = (maxX - minX).coerceAtLeast(30.0)
+        val rangeY = (maxY - minY).coerceAtLeast(50.0)
+        val scale = min((RIGHT - LEFT) / rangeX, (BOTTOM - TOP) / rangeY) * 0.975
+        val ox = (WIDTH - rangeX * scale) / 2.0 - minX * scale
+        val oy = (TOP + BOTTOM - rangeY * scale) / 2.0 + maxY * scale
+        fun xy(p: GeoPoint): Pair<Float, Float> {
+            val q = local(p)
+            return (ox + q.x * scale).toFloat() to (oy - q.y * scale).toFloat()
+        }
 
         val bitmap = Bitmap.createBitmap(WIDTH, HEIGHT, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
-        canvas.drawColor(0xFF173323.toInt())
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+        val full = RectF(0f, 0f, WIDTH.toFloat(), HEIGHT.toFloat())
 
-        val points = buildList {
-            add(hole.tee); add(hole.green); addAll(hole.greenBoundary)
-            addAll(hole.fairwayEstimate)
-            hole.mappedFairways.forEach { addAll(it.points) }
-            (hole.bunkers + hole.water).forEach { addAll(it.points) }
-        }
-        val latScale = 111320.0 * cos(Math.toRadians((hole.tee.latitude + hole.green.latitude) / 2))
-        val lonScale = 111320.0
-        val dx = (hole.green.longitude - hole.tee.longitude) * latScale
-        val dy = (hole.green.latitude - hole.tee.latitude) * lonScale
-        val length = hypot(dx, dy).coerceAtLeast(1.0)
-        val ux = dx / length
-        val uy = dy / length
-        val vx = -uy
-        val vy = ux
-        val projected = points.map { point ->
-            val east = (point.longitude - hole.tee.longitude) * latScale
-            val north = (point.latitude - hole.tee.latitude) * lonScale
-            (east * vx + north * vy) to (east * ux + north * uy)
-        }
-        val maxCross = max(80.0, projected.maxOfOrNull { abs(it.first) } ?: 80.0)
-        val maxAlong = max(100.0, projected.maxOfOrNull { it.second } ?: 100.0)
-        val scale = min((WIDTH - 180.0) / (2.0 * maxCross), (HEIGHT - 260.0) / maxAlong)
-        val centerX = WIDTH / 2.0
-        val bottomY = HEIGHT - 125.0
-        fun xy(point: GeoPoint): Pair<Float, Float> {
-            val east = (point.longitude - hole.tee.longitude) * latScale
-            val north = (point.latitude - hole.tee.latitude) * lonScale
-            val cross = east * vx + north * vy
-            val along = east * ux + north * uy
-            return (centerX + cross * scale).toFloat() to (bottomY - along * scale).toFloat()
-        }
-        fun drawPolygon(poly: List<GeoPoint>, fill: Int, stroke: Int, strokeWidth: Float = 5f) {
-            if (poly.size < 3) return
-            val path = Path()
-            poly.forEachIndexed { index, point ->
-                val (x, y) = xy(point)
-                if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)
+        // Deep green terrain with soft gradients and contour-like decorative texture.
+        paint.shader = LinearGradient(0f, 0f, WIDTH.toFloat(), HEIGHT.toFloat(),
+            intArrayOf(0xFF183B2B.toInt(), 0xFF294D32.toInt(), 0xFF193A2A.toInt()), null, Shader.TileMode.CLAMP)
+        canvas.drawRect(full, paint); paint.shader = null
+        paint.style = Paint.Style.STROKE
+        for (i in 0..18) {
+            val y = 195f + i * 86f
+            paint.color = if (i % 2 == 0) 0x1D78A05D else 0x145F8D50
+            paint.strokeWidth = if (i % 4 == 0) 3f else 1.5f
+            val contour = Path().apply {
+                moveTo(-40f, y)
+                cubicTo(220f, y - 45f, 420f, y + 55f, 650f, y + 8f)
+                cubicTo(870f, y - 42f, 1040f, y + 55f, 1240f, y - 4f)
             }
-            path.close()
-            paint.color = fill; canvas.drawPath(path, paint)
-            paint.color = stroke; paint.style = Paint.Style.STROKE; paint.strokeWidth = strokeWidth
-            canvas.drawPath(path, paint); paint.style = Paint.Style.FILL
+            canvas.drawPath(contour, paint)
         }
-        fun marker(point: GeoPoint, color: Int, radius: Float) {
-            val (x, y) = xy(point)
-            paint.color = color; canvas.drawCircle(x, y, radius, paint)
-            paint.color = 0xFFF6F3E8.toInt(); paint.style = Paint.Style.STROKE
-            paint.strokeWidth = 5f; canvas.drawCircle(x, y, radius, paint)
+        paint.style = Paint.Style.FILL
+        paint.shader = RadialGradient(WIDTH / 2f, HEIGHT / 2f, HEIGHT * .72f,
+            intArrayOf(0x00000000, 0x1A06170F), null, Shader.TileMode.CLAMP)
+        canvas.drawRect(full, paint); paint.shader = null
+
+        fun shape(points: List<GeoPoint>): Path? {
+            if (points.size < 3) return null
+            val p = points.map(::xy)
+            return Path().apply {
+                moveTo((p.first().first + p.last().first) / 2f, (p.first().second + p.last().second) / 2f)
+                for (i in p.indices) {
+                    val a = p[i]; val b = p[(i + 1) % p.size]
+                    quadTo(a.first, a.second, (a.first + b.first) / 2f, (a.second + b.second) / 2f)
+                }
+                close()
+            }
+        }
+        fun polygon(points: List<GeoPoint>, fill: Int, edge: Int, width: Float = 6f): Path? {
+            val path = shape(points) ?: return null
+            paint.setShadowLayer(13f, 0f, 9f, 0x88000000.toInt())
+            paint.color = 0x44301E12
+            canvas.drawPath(path, paint)
+            paint.clearShadowLayer()
+            paint.style = Paint.Style.FILL; paint.color = fill; canvas.drawPath(path, paint)
+            paint.style = Paint.Style.STROKE; paint.color = edge; paint.strokeWidth = width
+            paint.strokeJoin = Paint.Join.ROUND; canvas.drawPath(path, paint)
             paint.style = Paint.Style.FILL
+            return path
         }
-        // Subtle background bands keep the generated illustration readable.
-        paint.color = 0xFF1D3B2B.toInt()
-        for (i in 0..11) canvas.drawRect(0f, i * 155f, WIDTH.toFloat(), i * 155f + 2f, paint)
+        fun drawLine(points: List<GeoPoint>, color: Int, width: Float, dashed: Boolean = false) {
+            if (points.size < 2) return
+            val path = Path()
+            points.forEachIndexed { i, point ->
+                val q = xy(point)
+                if (i == 0) path.moveTo(q.first, q.second) else path.lineTo(q.first, q.second)
+            }
+            paint.style = Paint.Style.STROKE; paint.color = color; paint.strokeWidth = width
+            paint.strokeCap = Paint.Cap.ROUND; paint.strokeJoin = Paint.Join.ROUND
+            if (dashed) paint.pathEffect = android.graphics.DashPathEffect(floatArrayOf(12f, 12f), 0f)
+            canvas.drawPath(path, paint)
+            paint.pathEffect = null; paint.style = Paint.Style.FILL
+        }
+        fun text(value: String, x: Float, y: Float, color: Int, size: Float, align: Paint.Align = Paint.Align.CENTER) {
+            paint.typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
+            paint.textSize = size; paint.textAlign = align
+            paint.color = 0xAA10251A.toInt(); canvas.drawText(value, x + 1.5f, y + 2f, paint)
+            paint.color = color; canvas.drawText(value, x, y, paint)
+            paint.textAlign = Paint.Align.LEFT
+        }
 
-        if (hole.usesMappedFairway) {
-            hole.mappedFairways.forEach { drawPolygon(it.points, 0xFF5D9E50.toInt(), 0xFFB5D99B.toInt(), 7f) }
-        } else {
-            drawPolygon(hole.fairwayEstimate, 0xCC6E9D58.toInt(), 0xFFD0DDB2.toInt(), 5f)
-        }
-        drawPolygon(hole.greenBoundary, 0xFF9BCB59.toInt(), 0xFFE4F2B9.toInt(), 8f)
+        // Water bodies, with soft shore outlines and ripples.
         hole.water.forEach { feature ->
-            if (feature.points.size >= 3) drawPolygon(feature.points, 0xFF287FA7.toInt(), 0xFF9ADCF0.toInt())
-            else feature.points.forEach { marker(it, 0xFF287FA7.toInt(), 18f) }
+            val path = polygon(feature.points, 0xFF247D9E.toInt(), 0xFF91D5DF.toInt(), 8f)
+            if (path != null) {
+                canvas.save(); canvas.clipPath(path)
+                paint.style = Paint.Style.STROKE; paint.strokeWidth = 3f; paint.color = 0x347DE0E8
+                for (i in 0..12) {
+                    val y = 240f + i * 112f
+                    canvas.drawArc(-120f, y, 1320f, y + 90f, 0f, 180f, false, paint)
+                }
+                paint.style = Paint.Style.FILL; canvas.restore()
+            } else feature.points.forEach { point ->
+                val q = xy(point); paint.color = 0xFF247D9E.toInt(); canvas.drawCircle(q.first, q.second, 22f, paint)
+                paint.color = 0xFF91D5DF.toInt(); paint.style = Paint.Style.STROKE
+                paint.strokeWidth = 4f; canvas.drawCircle(q.first, q.second, 22f, paint); paint.style = Paint.Style.FILL
+            }
         }
-        hole.bunkers.forEach { feature ->
-            if (feature.points.size >= 3) drawPolygon(feature.points, 0xFFD6B879.toInt(), 0xFFFFE9B5.toInt())
-            else feature.points.forEach { marker(it, 0xFFD6B879.toInt(), 16f) }
-        }
-        marker(hole.tee, 0xFFF7F4E8.toInt(), 20f)
-        marker(hole.green, 0xFFB8F36B.toInt(), 20f)
 
-        paint.color = 0xFFF4F2E9.toInt()
-        paint.textSize = 46f
-        paint.typeface = android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.BOLD)
-        canvas.drawText("HOLE ${hole.number}", 64f, 82f, paint)
-        paint.textSize = 30f
-        paint.typeface = android.graphics.Typeface.create("sans-serif", android.graphics.Typeface.NORMAL)
-        canvas.drawText("${hole.lengthMeters.roundToInt()} m · tee to green", 64f, 130f, paint)
-        paint.textSize = 26f
-        paint.color = 0xFFBFD0C2.toInt()
-        canvas.drawText(if (hole.usesMappedFairway) "Mapped fairway geometry" else "Estimated fairway corridor", 64f, HEIGHT - 42f, paint)
+        // Mapped fairway polygons retain their exact footprint; inferred corridor is softer.
+        val fairways = if (hole.usesMappedFairway) hole.mappedFairways.map { it.points } else listOf(hole.fairwayEstimate)
+        fairways.forEach { points ->
+            val path = polygon(points, if (hole.usesMappedFairway) 0xFF689C50.toInt() else 0xCC779A60.toInt(),
+                0xFFD7E5B5.toInt(), 10f)
+            if (path != null) {
+                canvas.save(); canvas.clipPath(path)
+                paint.shader = LinearGradient(0f, 0f, WIDTH.toFloat(), 0f,
+                    intArrayOf(0x286BE078, 0x006BE078, 0x286BE078), null, Shader.TileMode.CLAMP)
+                canvas.drawRect(full, paint); paint.shader = null
+                paint.style = Paint.Style.STROKE; paint.strokeWidth = 20f
+                for (i in -2..20) {
+                    paint.color = if (i % 2 == 0) 0x286EA85B else 0x16618E4E
+                    val y = 180f + i * 94f
+                    canvas.drawLine(0f, y, WIDTH.toFloat(), y + 24f, paint)
+                }
+                paint.style = Paint.Style.FILL; canvas.restore()
+                paint.style = Paint.Style.STROKE; paint.color = 0x66F0F4C9
+                paint.strokeWidth = 2f; canvas.drawPath(path, paint); paint.style = Paint.Style.FILL
+            }
+        }
+
+        // Green is distinct from fairway, with subtle contours and a soft highlight.
+        val green = polygon(hole.greenBoundary, 0xFF9DBF65.toInt(), 0xFFF0F4C8.toInt(), 11f)
+        if (green != null) {
+            canvas.save(); canvas.clipPath(green)
+            paint.shader = RadialGradient(WIDTH * .5f, TOP + 130f, 420f,
+                intArrayOf(0x66E1F5A4, 0x229AC65B, 0x009AC65B), null, Shader.TileMode.CLAMP)
+            canvas.drawRect(full, paint); paint.shader = null
+            paint.style = Paint.Style.STROKE; paint.color = 0x32718E3D; paint.strokeWidth = 2f
+            for (i in 1..5) canvas.drawOval(WIDTH * .5f - i * 30f, TOP + 90f - i * 14f,
+                WIDTH * .5f + i * 30f, TOP + 90f + i * 14f, paint)
+            paint.style = Paint.Style.FILL; canvas.restore()
+        }
+
+        // Bunkers: warm sand, sculpted lip and fine rake texture.
+        hole.bunkers.forEach { feature ->
+            val path = polygon(feature.points, 0xFFD9C18E.toInt(), 0xFFFFEAC0.toInt(), 7f)
+            if (path != null) {
+                canvas.save(); canvas.clipPath(path)
+                paint.style = Paint.Style.STROKE; paint.color = 0x397F6941; paint.strokeWidth = 2f
+                for (i in 0..10) {
+                    val y = 220f + i * 96f
+                    canvas.drawLine(0f, y, WIDTH.toFloat(), y + 36f, paint)
+                }
+                paint.style = Paint.Style.FILL; canvas.restore()
+            } else feature.points.forEach { point ->
+                val q = xy(point); paint.color = 0xFFD9C18E.toInt(); canvas.drawCircle(q.first, q.second, 19f, paint)
+                paint.color = 0xFFFFEAC0.toInt(); paint.style = Paint.Style.STROKE; paint.strokeWidth = 4f
+                canvas.drawCircle(q.first, q.second, 19f, paint); paint.style = Paint.Style.FILL
+            }
+        }
+
+        // Centerline is an unobtrusive routing hint, not a mapped fairway edge.
+        hole.mappedCenterline?.let { drawLine(it.points, 0x99F8F0D8.toInt(), 4f, true) }
+
+        // Tee pad and pin flag establish orientation at a glance.
+        val tee = xy(hole.tee)
+        paint.color = 0xFF263B2D.toInt()
+        canvas.drawRoundRect(tee.first - 35f, tee.second - 19f, tee.first + 35f, tee.second + 19f, 9f, 9f, paint)
+        paint.style = Paint.Style.STROKE; paint.color = 0xFFF4F0DA.toInt(); paint.strokeWidth = 4f
+        canvas.drawRoundRect(tee.first - 35f, tee.second - 19f, tee.first + 35f, tee.second + 19f, 9f, 9f, paint)
+        paint.style = Paint.Style.FILL
+        val pin = xy(hole.green)
+        paint.color = 0xFFF7F2E5.toInt(); paint.strokeWidth = 5f
+        canvas.drawLine(pin.first, pin.second + 20f, pin.first, pin.second - 55f, paint)
+        val flag = Path().apply {
+            moveTo(pin.first, pin.second - 54f); lineTo(pin.first + 44f, pin.second - 40f)
+            lineTo(pin.first, pin.second - 26f); close()
+        }
+        paint.color = 0xFFE65E4E.toInt(); canvas.drawPath(flag, paint)
+        paint.color = 0xFFF7F2E5.toInt(); canvas.drawCircle(pin.first, pin.second + 20f, 8f, paint)
+
+        // Header/footer are kept outside the fitted course viewport.
+        paint.shader = LinearGradient(0f, 0f, 0f, 158f, 0xE610251D.toInt(), 0x0010251D, Shader.TileMode.CLAMP)
+        canvas.drawRect(0f, 0f, WIDTH.toFloat(), 160f, paint); paint.shader = null
+        text("HOLE " + hole.number, 56f, 73f, 0xFFF7F4E9.toInt(), 48f, Paint.Align.LEFT)
+        text((hole.lengthMeters * 1.0936133).roundToInt().toString() + " YDS", 56f, 124f, 0xFFD1E3C7.toInt(), 29f, Paint.Align.LEFT)
+        text("TEE  →  GREEN", WIDTH - 56f, 76f, 0xFFB8D4B4.toInt(), 22f, Paint.Align.RIGHT)
+        val scaleMeters = niceScaleMeters(150.0 / scale)
+        val scalePixels = (scaleMeters * scale).toFloat()
+        val sx = WIDTH - 66f; val sy = HEIGHT - 68f
+        paint.color = 0xFFEAF0DF.toInt(); paint.strokeWidth = 5f
+        canvas.drawLine(sx - scalePixels, sy, sx, sy, paint)
+        canvas.drawLine(sx - scalePixels, sy - 9f, sx - scalePixels, sy + 9f, paint)
+        canvas.drawLine(sx, sy - 9f, sx, sy + 9f, paint)
+        text(scaleMeters.roundToInt().toString() + " m", sx - scalePixels / 2f, sy - 16f, 0xFFEAF0DF.toInt(), 20f)
+        paint.shader = LinearGradient(0f, HEIGHT - 110f, 0f, HEIGHT.toFloat(),
+            0x0010251D, 0xE610251D.toInt(), Shader.TileMode.CLAMP)
+        canvas.drawRect(0f, HEIGHT - 112f, WIDTH.toFloat(), HEIGHT.toFloat(), paint); paint.shader = null
+        text(if (hole.usesMappedFairway) "MAPPED FAIRWAY GEOMETRY" else "ESTIMATED FAIRWAY · NOT SURVEYED",
+            56f, HEIGHT - 40f, 0xFFD4E1D0.toInt(), 20f, Paint.Align.LEFT)
 
         val temporary = File(folder, digest + "-" + Thread.currentThread().id + ".tmp")
         FileOutputStream(temporary).use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
@@ -134,5 +268,13 @@ internal object CourseHoleArtworkRenderer {
             temporary.delete()
         }
         return output
+    }
+
+    private fun niceScaleMeters(raw: Double): Double {
+        val safe = raw.coerceAtLeast(1.0)
+        val power = 10.0.pow(floor(log10(safe)))
+        val normalized = safe / power
+        val step = when { normalized < 1.5 -> 1.0; normalized < 3.5 -> 2.0; normalized < 7.5 -> 5.0; else -> 10.0 }
+        return step * power
     }
 }
