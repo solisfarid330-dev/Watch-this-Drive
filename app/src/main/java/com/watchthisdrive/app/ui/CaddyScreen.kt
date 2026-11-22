@@ -45,9 +45,11 @@ fun CaddyScreen(
     location: Location?,
     onLocate: () -> Unit,
     onFindCourse: () -> Unit,
+    activeHole: Int,
+    geometry: CourseGeometry?,
     modifier: Modifier = Modifier
 ) {
-    PlayingCaddyScreen(course, location, onLocate, onFindCourse, modifier)
+    PlayingCaddyScreen(course, location, onLocate, onFindCourse, activeHole, geometry, modifier)
 }
 
 @Composable
@@ -56,31 +58,22 @@ private fun PlayingCaddyScreen(
     location: Location?,
     onLocate: () -> Unit,
     onFindCourse: () -> Unit,
+    activeHole: Int,
+    geometry: CourseGeometry?,
     modifier: Modifier = Modifier
 ) {
-    var geometry by remember(course?.id) { mutableStateOf<CourseGeometry?>(null) }
-    var loading by remember(course?.id) { mutableStateOf(false) }
-    var error by remember(course?.id) { mutableStateOf<String?>(null) }
-    var selectedGreenId by remember(course?.id) { mutableStateOf<Long?>(null) }
-
-    LaunchedEffect(course?.id) {
-        geometry = null
-        error = null
-        if (course != null) {
-            loading = true
-            CourseGeometryLoader.load(course) { result ->
-                result.onSuccess { geometry = it }
-                    .onFailure { error = it.message ?: "Course features could not be loaded." }
-                loading = false
-            }
-        }
-    }
-
+    var selectedGreenId by remember(course?.id, activeHole) { mutableStateOf<Long?>(null) }
     val greens = geometry?.features.orEmpty()
         .filter { it.featureType.equals("green", ignoreCase = true) }
         .sortedWith(compareBy<CourseFeature> { it.holeNumber?.toIntOrNull() ?: Int.MAX_VALUE }.thenBy { it.id })
-    val selectedGreen = greens.firstOrNull { it.id == selectedGreenId } ?: greens.firstOrNull()
+    val numberedGreens = greens.filter { it.holeNumber?.trim()?.toIntOrNull() == activeHole }
+    val selectedGreen = numberedGreens.firstOrNull { it.id == selectedGreenId }
+        ?: numberedGreens.firstOrNull()
+        ?: greens.firstOrNull { it.id == selectedGreenId }
+        ?: greens.firstOrNull()
     val target = selectedGreen?.let { greenCenter(it) }
+    val loading = course != null && geometry == null
+    val error: String? = null
     val preferences = LocalContext.current.getSharedPreferences("watch_this_drive_caddy", Context.MODE_PRIVATE)
     val clubs = remember {
         defaultClubs.map { club ->
@@ -156,8 +149,8 @@ private fun PlayingCaddyScreen(
                                     }
                                 }
                                 Text(
-                                    if (greens.any { !it.holeNumber.isNullOrBlank() }) "Select the green for the hole you're playing."
-                                    else "Hole numbers aren't mapped, so choose the correct green from the list.",
+                                    if (numberedGreens.isNotEmpty()) "Automatically selected from the mapped hole number."
+                                    else "No green is tagged for hole $activeHole; select the correct mapped green.",
                                     color = caddyMuted,
                                     style = MaterialTheme.typography.bodySmall
                                 )
