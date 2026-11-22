@@ -17,6 +17,8 @@ from pathlib import Path
 
 from shapely.geometry import shape, Point
 
+from scripts.course_intelligence.reconstruction import propose_hole_routes_from_features
+
 
 def safe_name(value: str) -> str:
     value = re.sub(r"[^A-Za-z0-9_-]+", "-", str(value)).strip("-")
@@ -33,6 +35,67 @@ def main() -> None:
     args = parser.parse_args()
 
     draft = json.loads(Path(args.draft).read_text(encoding="utf-8"))
+    context = json.loads(Path(args.context).read_text(encoding="utf-8"))
+    draft_features = draft.get("features", [])
+    if not any(
+        (feature.get("properties") or {}).get("geometry_role") == "osm_hole_centerline"
+        for feature in draft_features
+    ):
+        # Generic fallback for courses where OSM has tees/greens but no
+        # golf=hole centerlines. Preserve competing route hypotheses for review.
+        route_inputs = []
+        for feature in context.get("features", []):
+            geometry = feature.get("geometry")
+            if not geometry:
+                continue
+            props = dict(feature.get("properties") or {})
+            tags = props.get("tags") or {}
+            kind = props.get("golf_type") or props.get("feature_class") or props.get("golf") or tags.get("golf")
+            if kind not in {"tee", "tee_area", "green", "green_area", "fairway", "bunker", "water_hazard", "lateral_water_hazard", "path", "rough", "tree"}:
+                continue
+            try:
+                geom = shape(geometry)
+            except Exception:
+                continue
+            props["feature_class"] = kind
+            route_inputs.append({**feature, "properties": props, "_shape": geom})
+        routes, route_summary = propose_hole_routes_from_features(route_inputs)
+        by_id = {
+            str(feature.get("id", (feature.get("properties") or {}).get("candidate_id", ""))): feature
+            for feature in route_inputs
+        }
+        for index, route in enumerate(routes, start=1):
+            props = route.get("properties") or {}
+            associated = []
+            for source_id, expected in (
+                (props.get("tee_candidate_id"), {"tee", "tee_area"}),
+                (props.get("green_candidate_id"), {"green", "green_area"}),
+            ):
+                source = by_id.get(str(source_id))
+                if source and (source.get("properties") or {}).get("feature_class") in expected:
+                    source_props = source.get("properties") or {}
+                    kind = source_props.get("feature_class")
+                    associated.append({
+                        "geometry": source.get("geometry"), "golf_type": "tee" if kind in {"tee", "tee_area"} else "green",
+                        "association_status": "provisional_route_pair", "source_feature_id": source.get("id"),
+                        "source_tags": source_props.get("tags", {}),
+                    })
+            for source in route_inputs:
+                source_props = source.get("properties") or {}
+                kind = source_props.get("feature_class")
+                if kind in {"fairway", "bunker", "water_hazard", "lateral_water_hazard", "path", "rough", "tree"}:
+                    associated.append({
+                        "geometry": source.get("geometry"), "golf_type": kind,
+                        "association_status": "course_context", "source_feature_id": source.get("id"),
+                        "source_tags": source_props.get("tags", {}),
+                    })
+            route["properties"] = {
+                **props, "hole_label": str(index), "geometry_role": "provisional_tee_to_green_route_hypothesis",
+                "associated_features": associated,
+            }
+        draft_features = routes
+        draft["route_reconstruction_summary"] = route_summary
+    draft["features"] = draft_features
     output_dir = Path(args.out_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     manifest = {
@@ -46,7 +109,7 @@ def main() -> None:
 
     with tempfile.TemporaryDirectory(prefix="hole-render-batch-") as temporary:
         temp = Path(temporary)
-        for index, hole in enumerate(draft.get("features", []), start=1):
+        for index, hole in enumerate(draft_features, start=1):
             props = hole.get("properties") or {}
             label = str(props.get("hole_label") or f"candidate-{index:02d}")
             associated = props.get("associated_features") or []
@@ -77,7 +140,7 @@ def main() -> None:
                 greens = [{"geometry": {"type": "Point", "coordinates": [b.x, b.y]}, "golf_type": "green", "association_status": "inferred_centerline_endpoint"}]
                 inferred.extend(["tee", "green"])
 
-            features = [{"type": "Feature", "id": hole.get("id"), "geometry": hole["geometry"], "properties": {"role": "osm_hole_centerline", "hole_label": label, "source_tags": props.get("source_tags", {})}}]
+            features = [{"type": "Feature", "id": hole.get("id"), "geometry": hole["geometry"], "properties": {"role": "provisional_tee_to_green_route_hypothesis" if props.get("geometry_role") == "provisional_tee_to_green_route_hypothesis" else "osm_hole_centerline", "hole_label": label, "source_tags": props.get("source_tags", {})}}]
             # Preserve the actual OSM hole outline as a first-class geometry.
             # It constrains inferred fairway geometry; it is not a fairway itself.
             synthetic = [item for item in tees + greens if item.get("association_status") == "inferred_centerline_endpoint"]
