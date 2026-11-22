@@ -45,6 +45,7 @@ import org.maplibre.android.style.sources.GeoJsonSource
 fun GolfMap(
     location: Location?,
     course: GolfCourse?,
+    cameraTarget: Location? = null,
     onLocate: () -> Unit,
     sharedGeometry: CourseGeometry? = null,
     sharedGeometryError: String? = null,
@@ -127,15 +128,18 @@ fun GolfMap(
         }
     }
 
-    LaunchedEffect(location, mapReady) {
-        if (location != null && mapReady) {
-            mapView.getMapAsync { map ->
-                map.animateCamera(
-                    org.maplibre.android.camera.CameraUpdateFactory.newLatLngZoom(
-                        LatLng(location.latitude, location.longitude), 16.0
+    LaunchedEffect(location, cameraTarget, mapReady) {
+        if (mapReady) {
+            val focus = cameraTarget ?: location
+            if (focus != null) {
+                mapView.getMapAsync { map ->
+                    map.animateCamera(
+                        org.maplibre.android.camera.CameraUpdateFactory.newLatLngZoom(
+                            LatLng(focus.latitude, focus.longitude), 16.0
+                        )
                     )
-                )
-                map.style?.let { renderPlayerLocation(it, location) }
+                    location?.let { player -> map.style?.let { renderPlayerLocation(it, player) } }
+                }
             }
         }
     }
