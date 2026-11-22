@@ -18,7 +18,8 @@ data class ReconstructedHole(
     val teeSource: CourseFeature,
     val greenSource: CourseFeature,
     val lengthMeters: Double,
-    val mappedFairways: List<CourseFeature> = emptyList()
+    val mappedFairways: List<CourseFeature> = emptyList(),
+    val mappedCenterline: CourseFeature? = null
 ) {
     val usesMappedFairway: Boolean get() = mappedFairways.isNotEmpty()
 }
@@ -87,6 +88,7 @@ object HoleReconstructor {
         val fairways = geometry.features.filter {
             it.featureType.equals("fairway", true) && it.points.size >= 3
         }
+        val holeLines = geometry.features.filter { it.featureType.equals("hole", true) && it.points.size >= 2 }
         val hazards = geometry.features.filter {
             it.featureType.equals("bunker", true) ||
                 it.featureType.equals("water", true) ||
@@ -100,14 +102,19 @@ object HoleReconstructor {
             val teePoint = tee.point
             val holeNumber = number(greenFeature.holeNumber) ?: tee.holeNumber ?: (fallbackIndex + 1)
 
-            // Follow connected mapped fairway sections, allowing doglegs to
-            // bend away from the direct tee-to-green axis.
-            val mapped = fairwaysForHole(fairways, teePoint, greenPoint, holeNumber)
+            // OSM golf=hole centerlines can preserve doglegs even where
+            // fairway polygons are absent or fragmented.
+            val centerline = selectCenterline(holeLines, teePoint, greenPoint, holeNumber)
+            val route = centerline?.points.orEmpty()
+            val mapped = fairwaysForHole(fairways, teePoint, greenPoint, holeNumber, route)
 
             val relevantHazards = hazards.filter { hazard ->
                 val mappedDistance = mapped.minOfOrNull { fairway -> featureDistance(hazard, fairway) }
-                if (mapped.isNotEmpty()) mappedDistance != null && mappedDistance <= 95.0
-                else featureDistanceToSegment(hazard, teePoint, greenPoint) <= 90.0
+                when {
+                    mapped.isNotEmpty() -> mappedDistance != null && mappedDistance <= 95.0
+                    route.size >= 2 -> featureDistanceToPolyline(hazard, route) <= 90.0
+                    else -> featureDistanceToSegment(hazard, teePoint, greenPoint) <= 90.0
+                }
             }
 
             ReconstructedHole(
@@ -125,7 +132,8 @@ object HoleReconstructor {
                 teeSource = tee.sources.first(),
                 greenSource = greenFeature,
                 lengthMeters = meters(teePoint, greenPoint),
-                mappedFairways = mapped
+                mappedFairways = mapped,
+                mappedCenterline = centerline
             )
         }.distinctBy { it.number }.sortedBy { it.number }
     }
@@ -134,7 +142,8 @@ object HoleReconstructor {
         fairways: List<CourseFeature>,
         tee: GeoPoint,
         green: GeoPoint,
-        holeNumber: Int
+        holeNumber: Int,
+        centerline: List<GeoPoint>
     ): List<CourseFeature> {
         if (fairways.isEmpty()) return emptyList()
         val numbered = fairways.filter { number(it.holeNumber) == holeNumber }
@@ -170,11 +179,32 @@ object HoleReconstructor {
         // Disconnected or incomplete mapping: keep only nearby fairways,
         // never invent a connecting mapped segment.
         return pool.mapNotNull { feature ->
-            val distance = featureDistanceToSegment(feature, tee, green)
+            val distance = if (centerline.size >= 2) featureDistanceToPolyline(feature, centerline)
+                else featureDistanceToSegment(feature, tee, green)
             if (distance <= 150.0) feature to distance else null
         }.sortedBy { it.second }.take(3).map { it.first }
     }
 
+    private fun selectCenterline(
+        lines: List<CourseFeature>,
+        tee: GeoPoint,
+        green: GeoPoint,
+        holeNumber: Int
+    ): CourseFeature? {
+        val eligible = lines.filter { number(it.holeNumber) == null || number(it.holeNumber) == holeNumber }
+        return eligible.minByOrNull { line ->
+            val explicitBonus = if (number(line.holeNumber) == holeNumber) -250.0 else 0.0
+            featureDistanceToPoint(tee, line) + featureDistanceToPoint(green, line) + explicitBonus
+        }?.takeIf { line ->
+            featureDistanceToPoint(tee, line) + featureDistanceToPoint(green, line) <= 260.0
+        }
+    }
+
+    private fun featureDistanceToPolyline(feature: CourseFeature, line: List<GeoPoint>): Double =
+        feature.points.minOfOrNull { point ->
+            line.zipWithNext().minOfOrNull { (a, b) -> distanceToSegment(point, a, b) }
+                ?: meters(point, line.first())
+        } ?: Double.POSITIVE_INFINITY
     private fun featureDistanceToPoint(point: GeoPoint, feature: CourseFeature): Double {
         if (feature.points.size >= 4 && pointInPolygon(point, feature.points)) return 0.0
         return feature.points.zipWithNext().minOfOrNull { (a, b) -> distanceToSegment(point, a, b) }
