@@ -18,7 +18,7 @@ import kotlin.math.*
 
 /** Rich tee-bottom/green-top artwork, fitted to the complete reconstructed hole. */
 internal object CourseHoleArtworkRenderer {
-    private const val VERSION = 9
+    private const val VERSION = 10
     private const val WIDTH = 1200
     private const val HEIGHT = 1800
     private const val LEFT = 48.0
@@ -100,12 +100,12 @@ internal object CourseHoleArtworkRenderer {
 
         // Deep green terrain with soft gradients and contour-like decorative texture.
         paint.shader = LinearGradient(0f, 0f, WIDTH.toFloat(), HEIGHT.toFloat(),
-            intArrayOf(0xFF183B2B.toInt(), 0xFF294D32.toInt(), 0xFF193A2A.toInt()), null, Shader.TileMode.CLAMP)
+            intArrayOf(0xFFE4E8D2.toInt(), 0xFFD5DFC0.toInt(), 0xFFE9E7D2.toInt()), null, Shader.TileMode.CLAMP)
         canvas.drawRect(full, paint); paint.shader = null
         paint.style = Paint.Style.STROKE
         for (i in 0..18) {
             val y = 195f + i * 86f
-            paint.color = if (i % 2 == 0) 0x1D78A05D else 0x145F8D50
+            paint.color = if (i % 2 == 0) 0x405C7548 else 0x305F794E
             paint.strokeWidth = if (i % 4 == 0) 3f else 1.5f
             val contour = Path().apply {
                 moveTo(-40f, y)
@@ -159,30 +159,30 @@ internal object CourseHoleArtworkRenderer {
         fun text(value: String, x: Float, y: Float, color: Int, size: Float, align: Paint.Align = Paint.Align.CENTER) {
             paint.typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
             paint.textSize = size; paint.textAlign = align
-            paint.color = 0xAA10251A.toInt(); canvas.drawText(value, x + 1.5f, y + 2f, paint)
+            paint.color = 0x663B4B37.toInt(); canvas.drawText(value, x + 1.5f, y + 2f, paint)
             paint.color = color; canvas.drawText(value, x, y, paint)
             paint.textAlign = Paint.Align.LEFT
         }
 
         // Mapped woodland and rough establish the surrounding course landscape.
         hole.woodland.forEach { feature ->
-            val path = polygon(feature.points, 0xFF24432D.toInt(), 0xFF587A48.toInt(), 5f)
+            val path = polygon(feature.points, 0xFF526C46.toInt(), 0xFF7F9464.toInt(), 5f)
             if (path != null) {
                 canvas.save(); canvas.clipPath(path)
                 for (row in 0..12) for (col in 0..8) {
                     val seed = (feature.id % 97L).toInt()
                     val x = 42f + col * 145f + (row % 2) * 48f + ((seed * 13 + row * 7 + col * 3) % 31)
                     val y = 190f + row * 126f + ((seed * 5 + col * 11) % 37)
-                    paint.color = if ((row + col + seed) % 3 == 0) 0x447FA15A else 0x33617F48
+                    paint.color = if ((row + col + seed) % 3 == 0) 0x668EA56A else 0x55758C58
                     canvas.drawCircle(x, y, 19f + ((row * 7 + col * 3 + seed) % 11), paint)
-                    paint.color = 0x226F9856
+                    paint.color = 0x447F9B5E
                     canvas.drawCircle(x - 5f, y - 6f, 9f, paint)
                 }
                 canvas.restore()
             }
         }
         hole.rough.forEach { feature ->
-            val path = polygon(feature.points, 0xFF4E7843.toInt(), 0x887FA36A.toInt(), 3f)
+            val path = polygon(feature.points, 0xFF9BAE78.toInt(), 0x99758C5C.toInt(), 3f)
             if (path != null) {
                 canvas.save(); canvas.clipPath(path)
                 val seed = (feature.id % 113L).toInt()
@@ -190,7 +190,7 @@ internal object CourseHoleArtworkRenderer {
                 for (row in 0..25) for (col in 0..17) {
                     val x = (seed * 17 + col * 71 + row * 29) % WIDTH
                     val y = (seed * 11 + row * 67 + col * 19) % HEIGHT
-                    paint.color = if ((row + col + seed) % 2 == 0) 0x557FA35A else 0x44658A48
+                    paint.color = if ((row + col + seed) % 2 == 0) 0x66849A5B else 0x55728B50
                     canvas.drawLine(x.toFloat(), y.toFloat(), x + 5f, y - 8f, paint)
                 }
                 paint.style = Paint.Style.FILL; canvas.restore()
@@ -204,9 +204,9 @@ internal object CourseHoleArtworkRenderer {
                 val radius = 11f + (index % 4) * 2.5f
                 paint.color = 0x55301D13
                 canvas.drawCircle(q.first + 4f, q.second + 6f, radius + 2f, paint)
-                paint.color = 0xFF183A29.toInt()
+                paint.color = 0xFF294D34.toInt()
                 canvas.drawCircle(q.first, q.second, radius, paint)
-                paint.color = 0xFF315C39.toInt()
+                paint.color = 0xFF78965A.toInt()
                 canvas.drawCircle(q.first - radius * .22f, q.second - radius * .28f, radius * .67f, paint)
                 paint.color = 0xFF527A46.toInt()
                 canvas.drawCircle(q.first - radius * .32f, q.second - radius * .42f, radius * .31f, paint)
@@ -216,12 +216,12 @@ internal object CourseHoleArtworkRenderer {
         // Mapped fairway polygons retain their exact footprint; inferred corridor is softer.
         val fairways = if (hole.usesMappedFairway) hole.mappedFairways.map { it.points } else listOf(hole.fairwayEstimate)
         fairways.forEach { points ->
-            val path = polygon(points, if (hole.usesMappedFairway) 0xFF689C50.toInt() else 0xCC779A60.toInt(),
-                0xFFD7E5B5.toInt(), 10f)
+            val path = polygon(points, if (hole.usesMappedFairway) 0xFF4F8950.toInt() else 0xCC779A60.toInt(),
+                0xFFEAF0D1.toInt(), 10f)
             if (path != null) {
                 canvas.save(); canvas.clipPath(path)
                 paint.shader = LinearGradient(0f, 0f, WIDTH.toFloat(), 0f,
-                    intArrayOf(0x286BE078, 0x006BE078, 0x286BE078), null, Shader.TileMode.CLAMP)
+                    intArrayOf(0x2860B66A, 0x0060B66A, 0x2860B66A), null, Shader.TileMode.CLAMP)
                 canvas.drawRect(full, paint); paint.shader = null
                 // Alternating fine mowing bands add a maintained-course look
                 // while remaining clipped to the actual fairway footprint.
@@ -248,7 +248,7 @@ internal object CourseHoleArtworkRenderer {
 
         // Water bodies, with soft shore outlines and ripples.
         hole.water.forEach { feature ->
-            val path = polygon(feature.points, 0xFF247D9E.toInt(), 0xFF91D5DF.toInt(), 8f)
+            val path = polygon(feature.points, 0xFF438F9F.toInt(), 0xFFB9D9D5.toInt(), 8f)
             if (path != null) {
                 canvas.save(); canvas.clipPath(path)
                 paint.style = Paint.Style.STROKE; paint.strokeWidth = 3f; paint.color = 0x347DE0E8
@@ -270,7 +270,7 @@ internal object CourseHoleArtworkRenderer {
         if (green != null) {
             canvas.save(); canvas.clipPath(green)
             paint.shader = RadialGradient(greenCenter.first, greenCenter.second, 420f,
-                intArrayOf(0x66E1F5A4, 0x229AC65B, 0x009AC65B), null, Shader.TileMode.CLAMP)
+                intArrayOf(0x66F0F7B4, 0x229AC65B, 0x009AC65B), null, Shader.TileMode.CLAMP)
             canvas.drawRect(full, paint); paint.shader = null
             // Subtle concentric contours suggest green undulation without
             // inventing a slope direction or moving the mapped green boundary.
@@ -284,7 +284,7 @@ internal object CourseHoleArtworkRenderer {
 
         // Bunkers: warm sand, sculpted lip and fine rake texture.
         hole.bunkers.forEach { feature ->
-            val path = polygon(feature.points, 0xFFD9C18E.toInt(), 0xFFFFEAC0.toInt(), 7f)
+            val path = polygon(feature.points, 0xFFE8D5AA.toInt(), 0xFFFFF0D0.toInt(), 7f)
             if (path != null) {
                 canvas.save(); canvas.clipPath(path)
                 paint.style = Paint.Style.STROKE; paint.color = 0x397F6941; paint.strokeWidth = 2f
@@ -303,7 +303,7 @@ internal object CourseHoleArtworkRenderer {
         // Cart and walking paths use a pale edge with a warm center.
         hole.paths.forEach { feature ->
             drawLine(feature.points, 0xBFE6DCC2.toInt(), 10f)
-            drawLine(feature.points, 0xFFE0D3AE.toInt(), 5f)
+            drawLine(feature.points, 0xFFB8A984.toInt(), 5f)
         }
 
         // Centerline is an unobtrusive routing hint, not a mapped fairway edge.
@@ -311,20 +311,20 @@ internal object CourseHoleArtworkRenderer {
 
         // Tee pad and pin flag establish orientation at a glance.
         val tee = xy(hole.tee)
-        paint.color = 0xFF263B2D.toInt()
+        paint.color = 0xFF354C36.toInt()
         canvas.drawRoundRect(tee.first - 35f, tee.second - 19f, tee.first + 35f, tee.second + 19f, 9f, 9f, paint)
         paint.style = Paint.Style.STROKE; paint.color = 0xFFF4F0DA.toInt(); paint.strokeWidth = 4f
         canvas.drawRoundRect(tee.first - 35f, tee.second - 19f, tee.first + 35f, tee.second + 19f, 9f, 9f, paint)
         paint.style = Paint.Style.FILL
         val pin = xy(hole.green)
-        paint.color = 0xFFF7F2E5.toInt(); paint.strokeWidth = 5f
+        paint.color = 0xFF344B35.toInt(); paint.strokeWidth = 5f
         canvas.drawLine(pin.first, pin.second + 20f, pin.first, pin.second - 55f, paint)
         val flag = Path().apply {
             moveTo(pin.first, pin.second - 54f); lineTo(pin.first + 44f, pin.second - 40f)
             lineTo(pin.first, pin.second - 26f); close()
         }
         paint.color = 0xFFE65E4E.toInt(); canvas.drawPath(flag, paint)
-        paint.color = 0xFFF7F2E5.toInt(); canvas.drawCircle(pin.first, pin.second + 20f, 8f, paint)
+        paint.color = 0xFF344B35.toInt(); canvas.drawCircle(pin.first, pin.second + 20f, 8f, paint)
 
         // Header/footer are kept outside the fitted course viewport.
         paint.shader = LinearGradient(0f, 0f, 0f, 158f, 0xE610251D.toInt(), 0x0010251D, Shader.TileMode.CLAMP)
