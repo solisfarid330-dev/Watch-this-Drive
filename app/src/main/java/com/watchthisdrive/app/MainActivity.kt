@@ -476,11 +476,11 @@ private fun ScorecardScreen(
                             Text("Par ${pars[index]}", color = Color(0xFFB6C1B9), style = MaterialTheme.typography.bodySmall)
                         }
                         TextButton(onClick = {
-                            onParChanged(hole, (pars[index] - 1).coerceIn(3, 5))
+                            onParChanged(hole, (pars[index] - 1).coerceIn(3, 6))
                         }) { Text("−") }
                         Text("${pars[index]}", color = Color.White)
                         TextButton(onClick = {
-                            onParChanged(hole, (pars[index] + 1).coerceIn(3, 5))
+                            onParChanged(hole, (pars[index] + 1).coerceIn(3, 6))
                         }) { Text("+") }
                         TextButton(onClick = {
                             onScoreChanged(hole, (scores[index] - 1).coerceAtLeast(0))
