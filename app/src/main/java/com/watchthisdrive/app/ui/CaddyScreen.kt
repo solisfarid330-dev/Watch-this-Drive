@@ -21,6 +21,7 @@ import com.watchthisdrive.app.data.CourseGeometryLoader
 import com.watchthisdrive.app.data.GolfCourse
 import com.watchthisdrive.app.data.HoleReconstructor
 import java.util.Locale
+import kotlin.math.roundToInt
 
 private data class ClubDistance(val name: String, val carryYards: String)
 
