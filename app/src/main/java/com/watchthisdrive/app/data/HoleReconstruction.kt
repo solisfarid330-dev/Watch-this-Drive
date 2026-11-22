@@ -255,8 +255,9 @@ object HoleReconstructor {
             }
             val nearbyFairways = if (numberedFairways.isNotEmpty()) numberedFairways else {
                 fairways.filter { feature ->
-                    featureDistanceToPolyline(feature, line.points) <= 200.0 ||
-                        featureDistanceToSegment(feature, tee, green) <= 180.0
+                    number(feature.holeNumber) == null &&
+                        (featureDistanceToPolyline(feature, line.points) <= 200.0 ||
+                            featureDistanceToSegment(feature, tee, green) <= 180.0)
                 }
             }
             val alignment = fairwayAlignmentMeters(line.points, nearbyFairways)
