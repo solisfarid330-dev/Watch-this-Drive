@@ -443,14 +443,12 @@ object CourseGeometryLoader {
         rings: List<List<GeoPoint>>
     ): Boolean {
         if (feature.points.isEmpty()) return false
+        val centroid = GeoPoint(
+            feature.points.map { it.latitude }.average(),
+            feature.points.map { it.longitude }.average()
+        )
         return feature.points.any { point -> rings.any { pointInRing(point, it) } } ||
-            pointInRing(
-                GeoPoint(
-                    feature.points.map { it.latitude }.average(),
-                    feature.points.map { it.longitude }.average()
-                ),
-                rings.firstOrNull() ?: return false
-            )
+            rings.any { ring -> pointInRing(centroid, ring) }
     }
 
     private fun pointInRing(point: GeoPoint, ring: List<GeoPoint>): Boolean {
