@@ -247,11 +247,20 @@ object HoleReconstructor {
             val endpoint = endpointDistance(tee, green, line.points)
             if (endpoint > 180.0) return@mapNotNull null
 
-            // Endpoint proximity alone can select a neighboring or badly drawn
-            // route. When mapped fairways exist, sample the interior of the line
-            // and measure how closely it follows the actual playable polygons.
-            val alignment = fairwayAlignmentMeters(line.points, fairways)
-            if (fairways.isNotEmpty() && alignment != null && alignment > 58.0) {
+            // Do not let a neighboring hole's fairway validate this route.
+            // Prefer explicitly numbered fairways; otherwise scope candidates
+            // to the route or tee-green vicinity before measuring alignment.
+            val numberedFairways = fairways.filter {
+                holeNumber != null && number(it.holeNumber) == holeNumber
+            }
+            val nearbyFairways = if (numberedFairways.isNotEmpty()) numberedFairways else {
+                fairways.filter { feature ->
+                    featureDistanceToPolyline(feature, line.points) <= 200.0 ||
+                        featureDistanceToSegment(feature, tee, green) <= 180.0
+                }
+            }
+            val alignment = fairwayAlignmentMeters(line.points, nearbyFairways)
+            if (nearbyFairways.isNotEmpty() && alignment != null && alignment > 58.0) {
                 return@mapNotNull null
             }
             val explicitBonus = if (holeNumber != null && number(line.holeNumber) == holeNumber) -35.0 else 0.0
@@ -435,13 +444,26 @@ object HoleReconstructor {
         ?: Double.POSITIVE_INFINITY
 
     private fun featureDistance(first: CourseFeature, second: CourseFeature): Double {
-        if (first.points.any { point -> isClosedPolygon(second.points) && pointInPolygon(point, second.points) }) {
+        if (first.points.isEmpty() || second.points.isEmpty()) return Double.POSITIVE_INFINITY
+        val firstPolygon = isClosedPolygon(first.points)
+        val secondPolygon = isClosedPolygon(second.points)
+        if (firstPolygon && second.points.any { pointInPolygon(it, first.points) }) return 0.0
+        if (secondPolygon && first.points.any { pointInPolygon(it, second.points) }) return 0.0
+
+        val firstEdges = first.points.zipWithNext()
+        val secondEdges = second.points.zipWithNext()
+        if (firstEdges.any { (a, b) -> secondEdges.any { (c, d) -> segmentsIntersect(a, b, c, d) } }) {
             return 0.0
         }
-        return first.points.minOfOrNull { a ->
-            second.points.zipWithNext().minOfOrNull { (b, c) -> distanceToSegment(a, b, c) }
-                ?: meters(a, center(second.points))
+        val firstToSecond = first.points.minOfOrNull { point ->
+            secondEdges.minOfOrNull { (a, b) -> distanceToSegment(point, a, b) }
+                ?: meters(point, second.points.first())
         } ?: Double.POSITIVE_INFINITY
+        val secondToFirst = second.points.minOfOrNull { point ->
+            firstEdges.minOfOrNull { (a, b) -> distanceToSegment(point, a, b) }
+                ?: meters(point, first.points.first())
+        } ?: Double.POSITIVE_INFINITY
+        return min(firstToSecond, secondToFirst)
     }
 
     private fun distanceToSegment(point: GeoPoint, start: GeoPoint, end: GeoPoint): Double {
