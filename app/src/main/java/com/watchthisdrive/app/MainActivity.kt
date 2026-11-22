@@ -453,6 +453,10 @@ private fun ScorecardScreen(
     Column(Modifier.fillMaxSize().padding(18.dp)) {
         Text("SCORECARD", color = Color(0xFFB8F36B), style = MaterialTheme.typography.labelLarge)
         Text(course?.name ?: "No active round", color = Color.White, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        course?.let {
+            Text("COURSE LOCATION  ·  ${"%.5f".format(Locale.US, it.latitude)}, ${"%.5f".format(Locale.US, it.longitude)}",
+                color = Color(0xFFB6C1B9), style = MaterialTheme.typography.bodySmall)
+        }
         Text(if (played == 0) "Enter your score as you play each hole." else "$played holes · $total strokes · $playedPar par · ${if (total > playedPar) "+" else ""}${total - playedPar}",
             color = Color(0xFFB6C1B9))
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
