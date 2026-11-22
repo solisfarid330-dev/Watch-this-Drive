@@ -257,7 +257,9 @@ internal fun loadCachedCourseGeometry(context: android.content.Context, course: 
                 featureType = item.getString("featureType"),
                 holeNumber = item.optString("holeNumber").takeIf { it.isNotBlank() },
                 name = item.optString("name").takeIf { it.isNotBlank() },
-                points = points
+                points = points,
+                par = item.optInt("par", Int.MIN_VALUE).takeIf { it != Int.MIN_VALUE },
+                handicap = item.optInt("handicap", Int.MIN_VALUE).takeIf { it != Int.MIN_VALUE }
             ))
         }
         CourseGeometry(course.id, course.name, features)
@@ -277,7 +279,10 @@ private fun saveCachedGeometry(context: android.content.Context, geometry: Cours
                 .put("featureType", feature.featureType)
                 .put("holeNumber", feature.holeNumber ?: "")
                 .put("name", feature.name ?: "")
-                .put("points", points))
+                .put("points", points).apply {
+                    feature.par?.let { put("par", it) }
+                    feature.handicap?.let { put("handicap", it) }
+                })
         }
         val root = JSONObject()
             .put("courseId", geometry.courseId)
