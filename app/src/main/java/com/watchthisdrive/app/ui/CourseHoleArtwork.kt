@@ -135,6 +135,14 @@ fun CourseHoleArtworkPanel(course: GolfCourse, geometry: CourseGeometry?) {
                                 label = { Text("Hole " + label) })
                         }
                     }
+                    val selectedHole = geometry?.let { source ->
+                        HoleReconstructor.reconstruct(source).firstOrNull { it.number == selected }
+                    }
+                    Text(
+                        "HOLE ${selected ?: "—"} · ${selectedHole?.par?.let { "PAR $it" } ?: "PAR UNKNOWN"}" +
+                            (selectedHole?.handicap?.let { " · HCP $it" } ?: ""),
+                        color = Color.White, style = MaterialTheme.typography.titleMedium
+                    )
                     if (image != null) {
                         Image(bitmap = image!!.asImageBitmap(),
                             contentDescription = "Illustrated view of hole " + selected,
@@ -195,6 +203,11 @@ fun CourseHoleArtworkForHole(
                 "GENERATED HOLE ARTWORK",
                 color = Color(0xFFB8F36B),
                 style = MaterialTheme.typography.labelMedium
+            )
+            Text(
+                "HOLE $holeNumber · ${reconstructedHole?.par?.let { "PAR $it" } ?: "PAR UNKNOWN"}" +
+                    (reconstructedHole?.handicap?.let { " · HCP $it" } ?: ""),
+                color = Color.White, style = MaterialTheme.typography.titleMedium
             )
             Image(
                 bitmap = bitmap!!.asImageBitmap(),
