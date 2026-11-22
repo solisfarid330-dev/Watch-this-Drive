@@ -1,0 +1,415 @@
+# Hybrid Course Intelligence Architecture
+
+## Goal
+
+Build one reusable course model that combines independently sourced geographic data with appropriately licensed aerial imagery. The model will power the satellite overlays, illustrated Hole View, GPS distances, and virtual caddy.
+
+The system must not assume that OpenStreetMap (OSM) is complete, that imagery interpretation is always correct, or that a high feature count means a course is accurately mapped.
+
+## First validation course
+
+Lake Arlington Golf Course, Arlington, Texas.
+
+The first milestone is a reviewed, geographically aligned representation of its holes. This is a test fixture, not a hardcoded production course.
+
+## Source strategy
+
+### OpenStreetMap
+
+Use OSM as a discovery and geographic-reference source. It may provide:
+- Course name and candidate boundary geometry.
+- Hole references and hole relations, where mapped.
+- Tees, greens, fairways, bunkers, and water features, where mapped.
+- Stable OSM element type and ID for provenance and refresh.
+
+OSM records are observations, not unquestioned truth. Preserve candidate boundaries and source metadata. Do not silently discard competing candidates.
+
+### Aerial imagery
+
+The imagery used for automated feature extraction must have explicit terms that permit the intended analysis, storage of derived geometry, and commercial product use.
+
+The currently configured MapTiler satellite style is for map display only unless a suitable written license says otherwise. Do not use MapTiler imagery as input to automated extraction under the currently published restrictions.
+
+Google Maps imagery must not be used to trace, digitize, train, test, or validate extracted course geometry under the currently published restrictions.
+
+For an initial United States pilot, evaluate USDA NAIP imagery distributed through USGS/The National Map. NAIP is public-domain imagery with requested attribution; resolution, acquisition date, geographic coverage, and service access must be checked per course. Do not assume imagery is current or uniformly available. For courses outside the United States, add separately reviewed providers.
+
+USGS exposes a NAIP imagery index with per-image fields for state, year, acquisition date, resolution, band count, and download URL. USDA also publishes state-based image-date polygons; a 2024 Texas acquisition-date index is available. These indexes make per-course freshness checks possible, but the exact exposure date and resolution covering Lake Arlington still need to be queried and confirmed before selecting a pilot image. Do not infer the course's image date from the statewide collection year alone. Modern NAIP products may be 0.6 m or 0.3 m ground-sample distance, while older or generalized USGS descriptions may state 1 m; record the actual tile's metadata rather than hardcoding one resolution.
+
+Before implementing automated retrieval, record each provider's license, attribution, permitted processing, retention rules, resolution, acquisition date, and geographic coverage.
+
+#
+
+## Lake Arlington imagery pilot — source verification notes
+
+### Preferred discovery service
+
+Use the USGS NAIP Plus ImageServer as the first imagery catalog to query for the selected Lake Arlington boundary:
+
+- Service: https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPPlus/ImageServer
+- Its image catalog exposes per-raster fields including state, collection year, raster name, download URL, acquisition date, resolution value/units, band count, sensor type, and projection metadata.
+- Query the catalog spatially against the selected course boundary; do not select a tile based only on a statewide year label.
+- Record the returned raster identifier, acquisition date, ground sample distance, band count, download URL, and spatial reference in the pilot manifest.
+
+USDA's 2024 Texas image-date index is a useful independent date cross-check. It records image exposure polygons and attributes including acquisition date, color type, camera information, and spectral band ranges. The presence of a Texas 2024 index does not prove that the Lake Arlington course footprint was captured in 2024; the course polygon must intersect a specific exposure polygon.
+
+### Pilot acceptance gate
+
+Do not begin feature labeling or model work until a real raster covering the selected course boundary has been retrieved and its metadata recorded. Verify that:
+- The raster footprint covers the complete course area, including all holes.
+- The image is usable for visual interpretation (no major cloud, haze, shadow, or seasonal obstruction).
+- The spatial resolution and bands are recorded from the actual raster metadata.
+- The imagery's applicable USGS/USDA terms and attribution are retained with the asset.
+- The image is georeferenced and can be aligned with the existing OSM boundary candidates.
+
+If no suitable current NAIP raster is available, compare earlier NAIP vintages before considering another imagery provider. Do not substitute restricted Texas state imagery or map-display tiles without a separate license review.
+
+### Current verification status
+
+The official USGS NAIP Plus catalog and the USDA 2024 Texas acquisition-date index have been identified. The exact raster footprint, acquisition date, and resolution at Lake Arlington have **not yet been confirmed**, and no pilot image asset has been accepted. This is an explicit hold point, not a successful coverage claim.
+
+## Licensing and provenance
+
+Keep source observations separate and traceable. Every derived feature must record its source(s), source identifiers or imagery item identifier, imagery acquisition date where available, processing/model version, and review status.
+
+OSM data is under the ODbL. Assess attribution and share-alike obligations before distributing a database that combines OSM data with other sources. Do not assume that storing data in one application removes those obligations. Obtain legal review before commercial distribution if the combined database structure raises uncertainty.
+
+## Course model
+
+Represent the course as a collection of holes and independently sourced feature observations.
+
+Each hole should support:
+- Stable internal ID and optional displayed hole number.
+- Tee areas / tee points.
+- Fairway polygons or centerline/landing-area geometry.
+- Green polygon.
+- Bunkers and water hazards.
+- Optional out-of-bounds, paths, trees, and other future features.
+- Geographic geometry in a consistent coordinate reference system.
+- Per-feature confidence, provenance, and validation state.
+
+Do not force every feature into a hole if its relationship is uncertain. Keep it as an unassigned course feature until evidence supports an association.
+
+### Provenance and confidence
+
+Each feature should retain:
+- Geometry and feature class.
+- Source: OSM, imagery analysis, human correction, or a combination.
+- Source record / imagery identifiers.
+- Confidence score and model version, if machine-generated.
+- Validation status: unreviewed, accepted, corrected, rejected, or stale.
+- Last analyzed / reviewed timestamps.
+
+Confidence must not be presented as accuracy unless calibrated against reviewed examples.
+
+## Automated reconstruction pipeline
+
+1. Discover the course and retain plausible OSM boundary candidates.
+2. Select or infer a course boundary; keep the selected source and alternatives.
+3. Find eligible aerial imagery covering the boundary and record its metadata.
+4. Align imagery and vector sources geographically.
+5. Detect candidate golf features using a model trained and evaluated on imagery that is licensed for that purpose.
+6. Associate tees, fairways, greens, and hazards with holes using OSM references plus spatial and visual relationships.
+7. Run geometry and consistency checks (valid polygons, plausible sizes, course containment, hole connectivity/order, and duplicate/conflicting features).
+8. Compare source observations. Disagreements and low-confidence detections require review; never silently choose one.
+9. Save a versioned course geometry package for app display and downstream calculations.
+
+## User-facing behavior
+
+Hide raw OSM IDs, raw feature counts, and technical diagnostics from ordinary golfers.
+
+The golfer-facing product should show useful hole layouts and distances. Incomplete or uncertain geometry must be clearly marked internally and must not drive confident hazard or club recommendations.
+
+Developer diagnostics may show source coverage, feature counts, confidence, imagery date, and unresolved review items.
+
+## Map and product integration
+
+All downstream features consume the same validated course model:
+- Satellite map overlays.
+- Illustrated top-down Hole View.
+- Front / center / back green distances and hazard carry distances.
+- GPS shot position and landing-area calculations.
+- Virtual caddy recommendations using the golfer's learned carry distances.
+
+The satellite basemap renderer is separate from the imagery-analysis provider. A map provider's display license must never be assumed to grant rights to extract geometry from its imagery.
+
+## Delivery milestones
+
+### Milestone 1 — Data contract and source feasibility
+- Define the versioned course / hole / feature data contract.
+- Verify an eligible aerial imagery source and metadata for Lake Arlington.
+- Establish provenance, licensing, and QA requirements.
+- Preserve the existing OSM candidate workflow.
+
+### Milestone 2 — Lake Arlington imagery pilot
+- Retrieve an eligible image for the selected course boundary.
+- Produce a georeferenced imagery test asset and metadata record.
+- Manually label a small validation set for tees, fairways, greens, bunkers, and water.
+- Compare image interpretation with OSM observations.
+
+### Milestone 3 — Automated feature detection
+- Select an appropriate segmentation / detection approach based on the pilot data.
+- Measure performance against reviewed labels.
+- Produce candidate geometries with confidence and provenance.
+
+### Milestone 4 — Hole reconstruction and review
+- Associate features with individual holes.
+- Add geometry validation and a review/correction workflow.
+- Generate the reusable course geometry package.
+
+### Milestone 5 — App overlays
+- Render validated course geometry over the satellite map.
+- Generate the illustrated Hole View from the same data.
+- Integrate reliable geometry with GPS and caddy calculations.
+
+## Explicit non-goals for the first milestone
+
+- Do not train a model on MapTiler or Google satellite imagery.
+- Do not assume OSM has all holes or all features.
+- Do not claim a course is fully mapped based on raw feature counts.
+- Do not automatically publish or treat unreviewed detections as ground truth.
+- Do not hardcode Lake Arlington into production logic.
+
+
+### Alternate imagery discovery route — historical NAIP
+
+A browser-based NAIP explorer from All Things Spatial provides an alternate way to enumerate imagery over a searched area:
+
+- Viewer: https://naip.allthingsspatial.io/
+- It searches NAIP vintages from 2010–2023 through Microsoft Planetary Computer and reports the years found, pixel size, flight dates, tile count, and downloadable GeoTIFF tiles for the searched area.
+- It also describes a USGS analysis layer for pixel inspection and tile footprints, but that layer is a separate, potentially older snapshot and must not be confused with the newest available vintage.
+- The viewer states that its 2010–2023 historical catalog is sourced from Microsoft Planetary Computer; verify the specific tile's metadata and applicable distribution terms before accepting it into the pilot.
+
+This is a useful fallback if the direct USGS catalog spatial query is unavailable. It does not establish which vintage covers Lake Arlington until a search is actually run for the course footprint and the resulting tile metadata is inspected. The viewer's stated coverage stops at 2023, so it cannot by itself establish 2024 or 2025 coverage.
+
+### Research limitation
+
+The research interface can read the viewer's documentation but cannot operate its interactive map/search controls. Therefore no Lake Arlington-specific vintage, flight date, tile footprint, pixel size, or image download has been verified through this route yet. Keep the pilot acceptance gate closed until those course-specific results are obtained.
+
+
+### Reproducible NAIP catalog query
+
+A metadata-only discovery script and GitHub Actions workflow have been added:
+
+- Script: `scripts/discover_lake_arlington_naip.py`
+- Workflow: `.github/workflows/discover-naip.yml`
+- The script retrieves the currently selected OSM boundary (way 412547642), queries the Microsoft Planetary Computer public STAC API for intersecting `naip` items, and records item dates, GSD where supplied, projection, footprint bounds, asset references, provider metadata, and collection-level license/provider metadata.
+- The workflow runs on changes to the discovery script/workflow on this feature branch or by manual dispatch, then uploads `lake-arlington-naip-candidates` as a 14-day artifact.
+- The STAC API is publicly accessible without an account, although Microsoft documents throttling for anonymous data access. The current task only queries catalog metadata; it does not download imagery.
+
+Important: do not equate a catalog response with permission to use an asset. Review the returned collection and item license/provider links and the underlying USDA terms before any download, derivative production, or commercial use. If the catalog metadata is ambiguous or inconsistent, stop and resolve it rather than assuming public-domain status from the NAIP name alone.
+
+The first automated run is the next verification gate. It must confirm that the OSM boundary is still retrievable and that the catalog returns actual intersecting items. A candidate item must then be checked for complete course coverage and image quality before it can be accepted as the pilot asset.
+
+
+### Lake Arlington NAIP catalog results — 2026-11-21
+
+The automated GitHub Actions discovery job successfully queried the Microsoft Planetary Computer STAC catalog using the current OSM boundary (way 412547642).
+
+- 12 intersecting NAIP items were returned across six vintages: 2012, 2014, 2016, 2018, 2020, and 2022.
+- The newest matching vintage is 2022-07-13.
+- The 2022 vintage consists of two neighboring items: `tx_m_3209723_nw_14_060_20220713` and `tx_m_3209723_ne_14_060_20220713`.
+- Both report 0.6 m ground sample distance and EPSG:26914.
+- Their actual STAC item geometries, unioned together, cover 100% of the selected OSM course-boundary polygon. The same footprint check reports complete coverage for each older vintage as well.
+- Low-resolution rendered previews for both 2022 tiles were downloaded to the workflow artifact. Visual inspection confirms that the course area is present in the imagery. The previews are for triage only and are not accepted as the analysis raster.
+
+Artifact: `lake-arlington-naip-candidates` from GitHub Actions run 44939807097 (commit `2382b081064d73808e41d60e50989aa5ca94826f`). The workflow completed successfully.
+
+#### License metadata discrepancy — unresolved gate
+
+The STAC collection response currently reports `license: proprietary`, while its collection license link is titled `Public Domain` and points to USDA FSA policies. The official Data.gov NAIP dataset record identifies the dataset license as public domain, and USDA/USGS sources describe NAIP as public-domain imagery. This is strong supporting evidence, but the inconsistent STAC collection field must be documented and reconciled against the actual source tile's terms before accepting it for commercial processing or distribution. Do not silently overwrite the catalog's license field.
+
+#### Current pilot status
+
+**Coverage and imagery date/resolution are now confirmed from the STAC metadata.** The visual previews confirm that the course is represented. The full-resolution GeoTIFFs have not yet been downloaded or quality-checked, and the catalog-license discrepancy remains open. The imagery-analysis acceptance gate therefore remains closed until those two checks are complete.
+
+
+Official source-rights cross-check: the USDA-published NAIP dataset record on Data.gov identifies the dataset license as the USA.gov Public Domain License and describes NAIP acquisition/resolution standards. The USDA FSA Digital Rights page says most FSA web information is public domain and requests appropriate attribution; USGS identifies NAIP as public-domain imagery. The STAC collection's `license: proprietary` field therefore conflicts with its own Public Domain license link and the official dataset-level record. Retain this discrepancy in provenance, use the underlying USDA NAIP source citation, and re-check any tile-specific metadata/contract note before distribution. Attribution should credit USDA Farm Production and Conservation Business Center, Geospatial Enterprise Operations (FPAC-BC-GEO), and USDA Farm Service Agency as appropriate.
+
+
+### First georeferenced imagery crop generated
+
+The expanded GitHub Actions workflow successfully read the two 2022 cloud-optimized GeoTIFF source tiles and generated a course-boundary crop:
+
+- Output: `lake_arlington_naip_2022_course_clip.tif`
+- Visual QA image: `lake_arlington_naip_2022_course_preview.png`
+- Manifest: `lake_arlington_naip_2022_course_manifest.json`
+- Source acquisition: 2022-07-13
+- Ground sample distance: 0.6 m/pixel
+- Output: 2,448 × 2,055 pixels, four bands (Red, Green, Blue, Near Infrared)
+- Coordinate reference system: EPSG:26914
+- Source tiles: the northwest and northeast 2022 NAIP items listed above
+- The preview draws the selected OSM boundary in yellow and masks pixels outside that boundary.
+
+The crop was visually inspected. The course is clearly represented and the image is suitable to begin manual feature labeling. This is now a real georeferenced pilot image asset, not just a catalog match or low-resolution preview. It is still not a validated hole/feature map: fairways, greens, bunkers, water, and hole associations must be digitized/checked against the image and OSM.
+
+Workflow run 44939990644 completed successfully and uploaded the GeoTIFF, PNG preview, manifest, candidate metadata, and tile previews as the `lake-arlington-naip-candidates` artifact (14-day retention).
+
+The image remains attributable to USDA NAIP. Keep the STAC `proprietary` versus USDA Public Domain metadata discrepancy in the manifest and source register; the official USDA Data.gov dataset record and USGS source information support public-domain use with attribution.
+
+
+### First OSM-versus-imagery comparison
+
+The automated Overpass query returned 145 golf-tagged OSM elements inside the selected course boundary. The workflow converted their geometries to GeoJSON and rendered them over the georeferenced NAIP crop.
+
+Observed OSM tag counts:
+- 47 tees
+- 21 greens
+- 19 fairways
+- 18 hole features
+- 18 pins
+- 16 cartpaths
+- 5 water hazards
+- 1 lateral water hazard
+- **0 bunker-tagged features**
+
+Visual inspection of the overlay shows that many mapped hole/fairway/green geometries line up with the visible course layout. The imagery also contains multiple light sand-colored areas around playing surfaces that may be bunkers, while OSM returned no `golf=bunker` features. These are candidate omissions for manual review, not an automatically confirmed bunker inventory.
+
+The overlay also makes source limitations visible: OSM contains useful geometry, but it does not yet provide a complete feature inventory for this course. Imagery should therefore be used as an independent observation source, with human review to classify ambiguous areas and resolve geometry disagreements.
+
+Workflow run 44940085537 completed successfully. Its artifact includes the full-resolution four-band course crop, OSM raw response, OSM GeoJSON, comparison summary, and overlay preview. The GeoJSON and raw OSM response preserve the original OSM element type/ID and tags for provenance.
+
+
+
+### First bare-ground candidate pass — 2026-11-21
+
+The experimental NAIP spectral heuristic completed successfully against the 2022 four-band course crop.
+
+- It generated 78 low-confidence bare-ground candidates.
+- Candidate search was deliberately limited to 25 m buffers around OSM-mapped greens; it is not a whole-course bunker detector.
+- Candidate areas range from 4 to 250 m².
+- The heuristic uses low NDVI, brightness, and broad color thresholds. It can also select exposed soil, cartpath edges, shadows, or other non-bunker surfaces.
+- Every feature is explicitly tagged `bare_ground_candidate`, `confidence=low`, and `validation_status=unreviewed`. No candidate is ground truth and none may drive golfer-facing hazard advice.
+
+The full-course overlay is useful for seeing spatial distribution but is too dense for reliable individual classification. The next workflow step therefore generates numbered close-up review pages, candidate IDs, approximate areas, and a page index. Manual review must classify each candidate as confirmed bunker, other bare ground, or reject/uncertain before it can enter the canonical course model.
+
+The 78-candidate count is a count of heuristic regions, not a bunker count or a model-accuracy result.
+
+
+### Provisional hole reconstruction data pass
+
+A conservative first-pass script now creates a draft package from existing OSM `golf=hole` centerlines. It preserves each centerline's source identity and tags, then associates nearby mapped tees, fairways, greens, bunkers, and water features using nearest-centerline distance in UTM zone 14N.
+
+This is an association aid, not a completed hole reconstruction:
+- The association radius is capped at 110 m and can still confuse neighboring holes.
+- Every association is marked provisional and each hole requires visual review.
+- The script does not infer missing geometry from imagery and does not invent missing holes.
+- Imagery is not yet used to generate fairway, green, bunker, or hazard polygons.
+- Draft geometry must not drive golfer-facing caddy or hazard advice.
+
+The output is `lake_arlington_hole_reconstruction_draft.geojson`, included in the pilot workflow artifact. The next validation step is comparing each provisional grouping against the NAIP imagery, then replacing ambiguous nearest-line assignments with reviewed hole-level geometry.
+
+
+### Visual inspection notes from the first review atlas
+
+A first generated atlas page was inspected visually. It confirms why the candidates must remain unreviewed: several outlines are tiny isolated patches, some sit near strong tree shadows or course-edge masking, and a few are larger elongated areas. This visual diversity is consistent with a mixed bare-ground candidate set, not a reliable bunker inventory.
+
+The atlas typography was adjusted to separate candidate ID/area, review status, non-confirmation warning, outline key, and approximate crop width. Black regions in some close-ups are no-data outside the course-masked pilot crop; they are not terrain classifications.
+
+No candidate has been promoted to bunker status from this visual pass. Manual confirmation against the unmasked source imagery and surrounding hole context is still required.
+
+
+## Genericity contract — pilot versus production
+
+The Lake Arlington scripts and assets are pilot fixtures only. They are intentionally course-named so the first end-to-end experiment is reproducible; they must not be imported as the production course-processing implementation.
+
+The production Course Intelligence Engine must accept a course-independent input package containing at least:
+- A selected course boundary and retained alternative boundary candidates.
+- Course identity and geographic extent, without requiring a known course ID.
+- Available OSM observations and their source metadata.
+- Eligible imagery sources, provider terms, acquisition dates, resolution, bands, and spatial reference.
+- Runtime configuration for feature extraction, coordinate transforms, and quality thresholds.
+
+Genericity requirements before production integration:
+1. No Lake Arlington names, coordinates, OSM IDs, tile IDs, or file paths in production processing logic.
+2. No fixed UTM zone or other course-specific projection. Select an appropriate metric CRS from the course extent, or use a robust geodesic strategy.
+3. Do not assume every course is in the United States or has NAIP coverage. Resolve imagery providers and licensing by region; if no eligible imagery exists, report the limitation rather than silently substituting a restricted basemap.
+4. Treat spectral thresholds as provider/resolution-dependent candidate-generation settings, not universal golf-feature definitions. Calibrate and validate against reviewed examples across different courses, seasons, and imagery conditions.
+5. Keep missing or ambiguous OSM features eligible for imagery analysis and human correction; never require OSM to contain hole centerlines, greens, fairways, or hazards.
+6. Produce the same versioned course / hole / feature schema regardless of source provider or course.
+7. Run acceptance tests on multiple geographically distinct courses before calling the engine course-general. Lake Arlington alone validates only the pilot workflow.
+
+The intended reusable path is: course discovery → boundary selection → region-aware imagery/source selection → independent feature observations → cross-source alignment → hole reconstruction → QA/review → canonical course package. The Android app consumes that canonical package and does not contain per-course drawing rules.
+
+
+### Reusable geometry engine — first generic implementation
+
+The provisional hole-association algorithm has been extracted from the Lake Arlington fixture runner into `scripts/course_intelligence`. The shared module accepts WGS84 geometries and has no course names, IDs, file paths, or fixed UTM zone.
+
+- A local azimuthal-equidistant metric projection is derived from the supplied course geometry bounds, including southern-hemisphere courses.
+- Hole association is reusable and configurable by distance threshold and supported feature types.
+- Close runner-up centerlines remain explicit ambiguity metadata; associations remain provisional.
+- The Lake Arlington script is now a thin fixture adapter that loads the pilot GeoJSON, calls the shared module, and writes the pilot draft output.
+- A separate GitHub Actions test workflow exercises projection in Texas and Australia and tests ambiguous feature association.
+
+This is a first reusable geometry primitive, not yet the complete production engine. It still expects usable OSM hole centerlines for hole grouping; courses without those lines will need the independent imagery-based hole reconstruction path. Broader geographic and source-provider acceptance tests remain required.
+
+
+### First OSM-centerline-independent reconstruction primitive
+
+A reusable route-hypothesis stage has been added in `scripts/course_intelligence/reconstruction.py`. It consumes independently sourced tee, green, and optional fairway candidate geometries and proposes possible straight tee-to-green links. It does not query or require `golf=hole` centerlines.
+
+- Candidate inputs can come from imagery segmentation, reviewed human digitization, or another eligible source; this module does not itself classify image pixels.
+- A local metric projection is derived from the supplied candidate geometries.
+- Straight-line length and optional fairway-corridor overlap provide a coarse ranking signal.
+- Competing routes sharing a tee or green are retained and marked ambiguous when their scores are close.
+- Every route remains `confidence=unassessed` and `validation_status=requires_visual_review`.
+
+This deliberately small step proves only that candidate tee/green geometry can produce course-independent route hypotheses without OSM hole lines. It does **not** solve doglegs, hole order, crossing/parallel holes, multiple tee boxes, multiple greens, or image feature detection. A straight link is not a playable hole centerline. The next validation work must compare hypotheses against reviewed Lake Arlington geometry and add route topology / fairway-shape reasoning before any app or caddy integration.
+
+
+### Fairway-shape route hypotheses (experimental)
+
+The centerline-independent reconstruction stage now attempts a coarse grid-based path through supplied fairway candidate polygons. When a fairway corridor is available, it snaps tee/green endpoints to the fairway geometry and searches an 8-neighbor metric grid for a route that follows the corridor's shape. This can produce a bent route hypothesis for a dogleg-like polygon rather than always drawing a straight tee-to-green chord.
+
+- Grid spacing is configurable; the default is 6 metres.
+- If the fairway geometry is missing, too large for the bounded grid, disconnected, or otherwise unusable, the stage falls back to a straight-line hypothesis.
+- A length guard rejects extreme detours, such as paths created by accidentally merged neighboring fairways.
+- The output records whether it used `fairway_grid_path` or `straight_line_fallback`, and stores both straight-line and provisional route lengths.
+
+This remains experimental geometry reasoning, not computer vision or course truth. It depends on fairway polygons already being supplied, can follow incorrect/merged candidate polygons, and does not determine intended hole order or distinguish adjacent holes. Every output remains unassessed and requires visual review. A synthetic bent-fairway test now exercises this behavior.
+
+
+### Generic multispectral candidate extraction (experimental)
+
+Added `scripts/course_intelligence/imagery_candidates.py` as a course-agnostic first raster-analysis primitive. It accepts a four-band Red/Green/Blue/NIR raster, georeferencing transform, and optional course-boundary mask. It emits broad:
+- `vegetated_turf_candidate` polygons using a configurable NDVI threshold.
+- `bare_ground_candidate` polygons using low NDVI and brightness thresholds.
+
+The output deliberately does not label these as tees, greens, fairways, bunkers, or hazards. It records spectral signal, area, source, low confidence, and unreviewed status. The course mask prevents candidate extraction outside the supplied course extent. Synthetic tests cover both candidate classes, mask behavior, invalid band counts, and mask dimensions.
+
+This is not a trained classifier. High-NDVI regions may be trees or rough rather than playable turf; bright low-NDVI regions may be sand, paths, exposed soil, or roofs. The next step is to validate spectral thresholds and morphology against the Lake Arlington NAIP crop and reviewed examples, then add shape/context features. Semantic golf-feature classification remains out of scope until evidence supports it.
+
+
+### Lake Arlington real-imagery extraction checkpoint
+
+The generic four-band candidate extractor was run against the real 2022-07-13 Lake Arlington NAIP course crop (2,448 × 2,055 pixels; 0.6 m pixels; EPSG:26914). The first thresholds produced:
+- 362 `vegetated_turf_candidate` polygons
+- 100 `bare_ground_candidate` polygons
+- 462 candidates total, all low-confidence and unreviewed
+
+Visual inspection of the overlay shows that the vegetation mask is fragmented and captures many tree crowns / scattered vegetation patches. It does not yet delineate clean fairway corridors. This is an important negative result: high NDVI alone is not a reliable fairway detector.
+
+Added `scripts/evaluate_lake_arlington_imagery_candidates.py` to quantify candidate overlap with available OSM fairway, green, tee, cartpath, and water geometries. The report is explicitly an exploratory spatial comparison, not ground-truth precision/recall, because OSM is incomplete. The workflow now runs that comparison after extracting the OSM reference features.
+
+The pilot workflow also exposed and fixed an existing `PYTHONPATH` issue in the hole-reconstruction adapter. The generic test workflow's pull-request path filter now includes every `tests/test_*.py` suite, not just the original geometry tests.
+
+Next work should improve separation of playable turf from trees/rough using spatial context, texture, shape, and course layout—not simply lower the NDVI threshold. No spectral candidate is promoted to a confirmed golf feature.
+
+
+### First quantitative pilot comparison
+
+The first Lake Arlington spatial comparison produced 362 vegetation candidates covering about 133,021 m² and 100 bare-ground candidates covering about 17,883 m². When compared with the currently mapped OSM polygons, only about 0.77% of mapped fairway area intersected the vegetation candidates; vegetation candidates covered about 0.61% of their own union area inside mapped fairways. This confirms the visual finding that the initial high-NDVI mask is dominated by general vegetation and is not delineating fairways.
+
+These percentages are screening diagnostics only: OSM is incomplete, and the geometry comparison is not a labeled accuracy benchmark. The evaluation now also measures NDVI and brightness distributions inside mapped fairways, greens, tees, paths, and water features. That should help determine whether fairways are spectrally distinct in this image at all, before selecting a better feature representation or classifier.
+
+
+### Candidate descriptors for separating playable turf from background vegetation
+
+The shared candidate extractor now records generic per-component descriptors in addition to its spectral class:
+- Shape: area, perimeter, compactness, convex-hull solidity, and oriented-bounding-box elongation.
+- Spectral: mean and standard deviation of NDVI and brightness, mean RGB/NIR values, and pixel count.
+
+These are evidence features for later classification, not semantic labels. The next classifier can combine them with neighborhood context, course topology, and imagery texture rather than treating NDVI as a decision by itself. No universal elongation/compactness threshold is being applied yet; fairways vary widely and trees/rough can have similar signatures.
+
+The follow-up full pilot run at commit `4a21136` successfully rebuilt the NAIP crop and candidate overlay, but the OSM comparison step failed before the spectral evaluation stage. The run therefore did not produce the new evaluation JSON; later dependent steps were skipped. This is recorded as an incomplete external-data run, not a successful validation. The pipeline now reruns when shared `scripts/course_intelligence/**` code changes.

@@ -1,0 +1,33 @@
+name: Course intelligence generic tests
+
+on:
+  push:
+    branches:
+      - feature/hybrid-course-intelligence-foundation
+    paths:
+      - "scripts/course_intelligence/**"
+      - "tests/test_*.py"
+      - ".github/workflows/course-intelligence-tests.yml"
+  pull_request:
+    branches: [ main ]
+    paths:
+      - "scripts/course_intelligence/**"
+      - "tests/test_*.py"
+      - ".github/workflows/course-intelligence-tests.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install geometry dependencies
+        run: python -m pip install --disable-pip-version-check numpy scipy shapely pyproj rasterio
+      - name: Run course-independent tests
+        run: PYTHONPATH=. python -m unittest discover -s tests -v

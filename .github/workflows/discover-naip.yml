@@ -1,0 +1,78 @@
+name: Discover Lake Arlington NAIP imagery
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/hybrid-course-intelligence-foundation
+    paths:
+      - "scripts/discover_lake_arlington_naip.py"
+      - "scripts/build_lake_arlington_naip_crop.py"
+      - "scripts/run_lake_arlington_imagery_candidates.py"
+      - "scripts/evaluate_lake_arlington_imagery_candidates.py"
+      - "scripts/course_intelligence/**"
+      - "scripts/compare_lake_arlington_osm_to_imagery.py"
+      - "scripts/detect_lake_arlington_bare_ground_candidates.py"
+      - "scripts/build_lake_arlington_candidate_review_atlas.py"
+      - "scripts/build_lake_arlington_hole_visual_review_atlas.py"
+      - "scripts/build_lake_arlington_hole_reconstruction_draft.py"
+      - "scripts/build_lake_arlington_centerline_hole_review.py"
+      - ".github/workflows/discover-naip.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: python -m pip install --disable-pip-version-check requests shapely rasterio pillow numpy scipy pyproj
+
+      - name: Query NAIP catalog for Lake Arlington
+        run: python scripts/discover_lake_arlington_naip.py
+
+      - name: Build georeferenced course crop from newest NAIP tiles
+        run: python scripts/build_lake_arlington_naip_crop.py
+
+      - name: Run generic imagery candidate extraction
+        run: PYTHONPATH=. python scripts/run_lake_arlington_imagery_candidates.py
+
+      - name: Compare OSM golf features with imagery
+        run: python scripts/compare_lake_arlington_osm_to_imagery.py
+
+      - name: Evaluate imagery candidates against mapped golf features
+        run: PYTHONPATH=. python scripts/evaluate_lake_arlington_imagery_candidates.py
+
+      - name: Generate unreviewed bare-ground candidates
+        run: python scripts/detect_lake_arlington_bare_ground_candidates.py
+
+      - name: Build provisional hole reconstruction draft
+        run: PYTHONPATH=. python scripts/build_lake_arlington_hole_reconstruction_draft.py
+
+      - name: Build numbered candidate review atlas
+        run: python scripts/build_lake_arlington_candidate_review_atlas.py
+
+      - name: Build tee-to-green hole visual review atlas
+        run: python scripts/build_lake_arlington_hole_visual_review_atlas.py
+
+      - name: Build centerline-led single-hole imagery review
+        run: PYTHONPATH=. python scripts/build_lake_arlington_centerline_hole_review.py
+
+      - name: Upload imagery candidate metadata
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lake-arlington-naip-candidates
+          path: artifacts/
+          if-no-files-found: warn
+          retention-days: 14
