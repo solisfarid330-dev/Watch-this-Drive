@@ -71,9 +71,14 @@ object HoleReconstructor {
                     return@forEachIndexed
                 }
                 // Explicit matching is a strong preference, not a small tie-break.
+                val line = selectCenterline(holeLines, tee.point, greenPoint, greenNumber ?: teeNumber)
+                // A centerline whose two endpoints actually meet this tee/green
+                // is strong evidence of the intended pairing.
+                val routeBonus = if (line != null) -min(500.0,
+                    endpointDistance(tee.point, greenPoint, line.points) * 4.0) else 0.0
                 val numberPenalty = if (greenNumber != null && teeNumber == greenNumber) -10000.0
-                    else if (greenNumber != null || teeNumber != null) 0.0 else 0.0
-                pairings += Pairing(greenIndex, teeIndex, distance + numberPenalty)
+                    else 0.0
+                pairings += Pairing(greenIndex, teeIndex, distance + numberPenalty + routeBonus)
             }
         }
 
@@ -141,7 +146,9 @@ object HoleReconstructor {
                 green = greenPoint,
                 greenBoundary = greenFeature.points,
                 // The estimate is deliberately absent when real fairway data exists.
-                fairwayEstimate = if (mapped.isEmpty()) corridor(teePoint, greenPoint) else emptyList(),
+                fairwayEstimate = if (mapped.isEmpty()) {
+                    if (route.size >= 2) corridor(route) else corridor(listOf(teePoint, greenPoint))
+                } else emptyList(),
                 bunkers = relevantHazards.filter { it.featureType.equals("bunker", true) },
                 water = relevantHazards.filter {
                     it.featureType.equals("water", true) ||
@@ -172,7 +179,12 @@ object HoleReconstructor {
         val routeScoped = if (centerline.size >= 2) {
             fairways.filter { featureDistanceToPolyline(it, centerline) <= 140.0 }
         } else emptyList()
-        val pool = (if (numbered.isNotEmpty()) numbered else if (routeScoped.isNotEmpty()) routeScoped else fairways).take(80)
+        // When a centerline exists, it is the authoritative corridor. Do not
+        // pull in fairways merely because they are close to a straight tee-green chord.
+        val pool = (if (centerline.size >= 2) {
+            if (numbered.isNotEmpty()) numbered.filter { it in routeScoped }
+            else routeScoped
+        } else if (numbered.isNotEmpty()) numbered else fairways).take(160)
         val starts = pool.indices.filter { featureDistanceToPoint(tee, pool[it]) <= 115.0 }
         val ends = pool.indices.filter { featureDistanceToPoint(green, pool[it]) <= 115.0 }
         if (starts.isNotEmpty() && ends.isNotEmpty()) {
@@ -185,7 +197,7 @@ object HoleReconstructor {
                 val current = queue.removeFirst()
                 if (current in target) { finish = current; break }
                 for (next in pool.indices) {
-                    if (next !in previous && featureDistance(pool[current], pool[next]) <= 85.0) {
+                    if (next !in previous && featureDistance(pool[current], pool[next]) <= 45.0) {
                         previous[next] = current
                         queue.addLast(next)
                     }
@@ -206,8 +218,8 @@ object HoleReconstructor {
         return pool.mapNotNull { feature ->
             val distance = if (centerline.size >= 2) featureDistanceToPolyline(feature, centerline)
                 else featureDistanceToSegment(feature, tee, green)
-            if (distance <= 150.0) feature to distance else null
-        }.sortedBy { it.second }.take(3).map { it.first }
+            if (distance <= if (centerline.size >= 2) 65.0 else 90.0) feature to distance else null
+        }.sortedBy { it.second }.map { it.first }
     }
 
     private fun selectCenterline(
@@ -216,13 +228,22 @@ object HoleReconstructor {
         green: GeoPoint,
         holeNumber: Int
     ): CourseFeature? {
-        val eligible = lines.filter { number(it.holeNumber) == null || number(it.holeNumber) == holeNumber }
-        return eligible.minByOrNull { line ->
-            val explicitBonus = if (number(line.holeNumber) == holeNumber) -250.0 else 0.0
-            featureDistanceToPoint(tee, line) + featureDistanceToPoint(green, line) + explicitBonus
-        }?.takeIf { line ->
-            featureDistanceToPoint(tee, line) + featureDistanceToPoint(green, line) <= 260.0
-        }
+        val eligible = lines.filter { number(it.holeNumber) == null || holeNumber == null ||
+            number(it.holeNumber) == holeNumber }
+        return eligible.mapNotNull { line ->
+            val endpoint = endpointDistance(tee, green, line.points)
+            val explicitBonus = if (number(line.holeNumber) == holeNumber) -35.0 else 0.0
+            // A line passing near both points in its middle is not enough:
+            // its two ends must plausibly represent this hole's tee and green.
+            if (endpoint > 180.0) null else line to (endpoint + explicitBonus)
+        }.minByOrNull { it.second }?.first
+    }
+
+    private fun endpointDistance(tee: GeoPoint, green: GeoPoint, line: List<GeoPoint>): Double {
+        if (line.size < 2) return Double.POSITIVE_INFINITY
+        val a = meters(tee, line.first()) + meters(green, line.last())
+        val b = meters(tee, line.last()) + meters(green, line.first())
+        return min(a, b)
     }
 
     private fun featureDistanceToPolyline(feature: CourseFeature, line: List<GeoPoint>): Double =
@@ -281,24 +302,28 @@ object HoleReconstructor {
         points.map { it.longitude }.average()
     )
 
-    private fun corridor(start: GeoPoint, end: GeoPoint): List<GeoPoint> {
-        val latitudeScale = 111_320.0
-        val midLatitude = Math.toRadians((start.latitude + end.latitude) / 2.0)
-        val dx = (end.longitude - start.longitude) * latitudeScale * cos(midLatitude)
-        val dy = (end.latitude - start.latitude) * latitudeScale
-        val length = hypot(dx, dy).coerceAtLeast(1.0)
-        val perpendicularX = -dy / length
-        val perpendicularY = dx / length
-        fun offset(point: GeoPoint, width: Double, sign: Double) = GeoPoint(
-            point.latitude + perpendicularY * width * sign / latitudeScale,
-            point.longitude + perpendicularX * width * sign /
-                (latitudeScale * cos(midLatitude).coerceAtLeast(0.01))
-        )
-        return listOf(
-            offset(start, 24.0, 1.0), offset(end, 19.0, 1.0),
-            offset(end, 19.0, -1.0), offset(start, 24.0, -1.0),
-            offset(start, 24.0, 1.0)
-        )
+    /** Builds an estimated fairway envelope along every mapped route vertex,
+     * preserving doglegs instead of inventing a straight tee-to-green strip. */
+    private fun corridor(route: List<GeoPoint>): List<GeoPoint> {
+        if (route.size < 2) return emptyList()
+        val left = mutableListOf<GeoPoint>()
+        val right = mutableListOf<GeoPoint>()
+        val width = 25.0
+        for (i in route.indices) {
+            val previous = route[(i - 1).coerceAtLeast(0)]
+            val next = route[(i + 1).coerceAtMost(route.lastIndex)]
+            val midLat = Math.toRadians(route[i].latitude)
+            val dx = (next.longitude - previous.longitude) * 111320.0 * cos(midLat)
+            val dy = (next.latitude - previous.latitude) * 111320.0
+            val length = hypot(dx, dy).coerceAtLeast(0.01)
+            val ox = -dy / length * width
+            val oy = dx / length * width
+            val latOffset = oy / 111320.0
+            val lonOffset = ox / (111320.0 * cos(midLat).coerceAtLeast(0.01))
+            left += GeoPoint(route[i].latitude + latOffset, route[i].longitude + lonOffset)
+            right += GeoPoint(route[i].latitude - latOffset, route[i].longitude - lonOffset)
+        }
+        return left + right.asReversed() + left.first()
     }
 
     private fun meters(a: GeoPoint, b: GeoPoint): Double {
