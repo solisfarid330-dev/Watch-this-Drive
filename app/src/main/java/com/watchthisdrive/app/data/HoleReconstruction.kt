@@ -228,7 +228,15 @@ object HoleReconstructor {
                     route += pool[cursor]
                     cursor = previous[cursor]
                 }
-                return route.asReversed().distinctBy { it.elementType + ":" + it.id }
+                val connected = route.asReversed()
+                // Explicitly numbered fragments for this same hole may be
+                // separated by small unmapped gaps. Keep those fragments when
+                // they still follow the selected route instead of silently
+                // dropping their mapped shape.
+                val numberedFragments = pool.filter {
+                    number(it.holeNumber) == holeNumber && it !in connected
+                }
+                return (connected + numberedFragments).distinctBy { it.elementType + ":" + it.id }
             }
         }
         // Disconnected or incomplete mapping: keep only nearby fairways,
