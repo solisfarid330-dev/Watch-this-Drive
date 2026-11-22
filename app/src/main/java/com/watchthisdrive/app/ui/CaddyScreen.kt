@@ -42,6 +42,7 @@ private val caddyMuted = Color(0xFFB6C1B9)
 @Composable
 fun CaddyScreen(
     course: GolfCourse?,
+    initialGeometry: CourseGeometry?,
     location: Location?,
     onLocate: () -> Unit,
     onFindCourse: () -> Unit
@@ -60,13 +61,14 @@ fun CaddyScreen(
             }
         }
         if (clubManagement) ClubManagementScreen()
-        else PlayingCaddyScreen(course, location, onLocate, onFindCourse)
+        else PlayingCaddyScreen(course, initialGeometry, location, onLocate, onFindCourse)
     }
 }
 
 @Composable
 private fun PlayingCaddyScreen(
     course: GolfCourse?,
+    initialGeometry: CourseGeometry?,
     location: Location?,
     onLocate: () -> Unit,
     onFindCourse: () -> Unit
@@ -78,10 +80,18 @@ private fun PlayingCaddyScreen(
     var selectedHoleIndex by remember(course?.id) { mutableStateOf(0) }
     var holeMenuExpanded by remember { mutableStateOf(false) }
 
-    LaunchedEffect(course?.id) {
-        geometry = null
+    LaunchedEffect(course?.elementType, course?.id, initialGeometry) {
         error = null
-        if (course != null) {
+        if (course == null) {
+            geometry = null
+            loading = false
+        } else if (initialGeometry != null) {
+            // Use the exact geometry object handed off by Course Detail.
+            // Do not make a second Overpass request when this is available.
+            geometry = initialGeometry
+            loading = false
+        } else {
+            geometry = null
             loading = true
             CourseGeometryLoader.load(course) { result ->
                 result.onSuccess { geometry = it }
