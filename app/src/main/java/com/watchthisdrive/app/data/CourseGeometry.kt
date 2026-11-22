@@ -87,7 +87,7 @@ object CourseGeometryLoader {
             map_to_area -> .courseArea;
             (
               nwr(area.courseArea)["golf"];
-              nwr(around:2000,\${course.latitude},\${course.longitude})["golf"];
+              nwr(around:2000,${course.latitude},${course.longitude})["golf"];
             );
             out center geom;
         """.trimIndent()
