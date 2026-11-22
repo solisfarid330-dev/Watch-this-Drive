@@ -90,6 +90,7 @@ fun CourseHoleArtworkPanel(course: GolfCourse, geometry: CourseGeometry?) {
     var selected by remember(course.elementType, course.id) { mutableStateOf<Int?>(null) }
     var image by remember(course.elementType, course.id) { mutableStateOf<Bitmap?>(null) }
     var generatedImages by remember(course.elementType, course.id) { mutableStateOf<Map<Int, File>>(emptyMap()) }
+    var generating by remember(course.elementType, course.id) { mutableStateOf(false) }
 
     LaunchedEffect(course.elementType, course.id) {
         loading = true
@@ -103,12 +104,14 @@ fun CourseHoleArtworkPanel(course: GolfCourse, geometry: CourseGeometry?) {
     LaunchedEffect(course.elementType, course.id, geometry, artwork) {
         val sourceGeometry = geometry
         if (sourceGeometry != null && artwork?.holes.isNullOrEmpty()) {
+            generating = true
             generatedImages = withContext(Dispatchers.Default) {
                 HoleReconstructor.reconstruct(sourceGeometry).associate { hole ->
                     hole.number to CourseHoleArtworkRenderer.render(hole, context.cacheDir, course.elementType + "-" + course.id)
                 }
             }
             if (selected == null) selected = generatedImages.keys.minOrNull()
+            generating = false
         }
     }
 
@@ -129,7 +132,7 @@ fun CourseHoleArtworkPanel(course: GolfCourse, geometry: CourseGeometry?) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text("Illustrated holes", color = Color.White, style = MaterialTheme.typography.titleLarge)
             when {
-                loading -> CircularProgressIndicator(color = Color(0xFFB8F36B))
+                loading || generating -> CircularProgressIndicator(color = Color(0xFFB8F36B))
                 artwork?.holes.isNullOrEmpty() && generatedImages.isEmpty() -> Text(
                     if (geometry == null) "Course geometry is loading. Hole illustrations will be generated when it arrives."
                     else "There is not enough mapped tee/green geometry to reconstruct holes for this course yet. Satellite maps and mapped course details remain available.",
