@@ -2,11 +2,14 @@ package com.watchthisdrive.app.data
 
 import android.os.Handler
 import android.os.Looper
+import org.json.JSONArray
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLEncoder
 import kotlin.concurrent.thread
+import kotlin.math.max
+import kotlin.math.min
 
 data class GeoPoint(
     val latitude: Double,
@@ -28,7 +31,18 @@ data class CourseGeometry(
     val features: List<CourseFeature>
 )
 
+/**
+ * Downloads the selected course boundary first, then requests golf and
+ * landscape features inside a boundary-derived bounding box. All work runs
+ * off the UI thread. Course IDs and coordinates are runtime inputs; no
+ * individual course is special-cased.
+ */
 object CourseGeometryLoader {
+
+    private const val OVERPASS_TIMEOUT_SECONDS = 45
+    private const val CONNECT_TIMEOUT_MS = 12000
+    private const val READ_TIMEOUT_MS = 55000
+    private const val MAX_RESPONSE_CHARS = 12_000_000
 
     private val OVERPASS_SERVERS = listOf(
         "https://ovp.dresel.systems/api-na/interpreter",
@@ -36,201 +50,376 @@ object CourseGeometryLoader {
         "https://overpass-api.de/api/interpreter"
     )
 
+    private data class Bounds(
+        val south: Double,
+        val west: Double,
+        val north: Double,
+        val east: Double
+    ) {
+        fun expanded(): Bounds {
+            val latSpan = north - south
+            val lonSpan = east - west
+            val latPad = max(0.0006, latSpan * 0.12)
+            val lonPad = max(0.0006, lonSpan * 0.12)
+            return Bounds(
+                (south - latPad).coerceAtLeast(-90.0),
+                (west - lonPad).coerceAtLeast(-180.0),
+                (north + latPad).coerceAtMost(90.0),
+                (east + lonPad).coerceAtMost(180.0)
+            )
+        }
+
+        fun toOverpass(): String = "$south,$west,$north,$east"
+    }
+
     fun load(
         course: GolfCourse,
         onResult: (Result<CourseGeometry>) -> Unit
     ) {
-        thread {
-            val result = runCatching {
-                val query = buildCourseQuery(course)
-
-                val failures = mutableListOf<String>()
-
-                for (server in OVERPASS_SERVERS) {
-                    try {
-                        return@runCatching fetchGeometry(server, query, course)
-                    } catch (e: Exception) {
-                        failures.add(e.message ?: "Map-data server failed")
-                    }
-                }
-
-                throw Exception(
-                    "Couldn't retrieve course features from any map-data server. " +
-                        failures.joinToString(" • ")
-                )
-            }
-
-            Handler(Looper.getMainLooper()).post {
-                onResult(result)
-            }
+        thread(name = "course-geometry-loader") {
+            val result = runCatching { loadBlocking(course) }
+            Handler(Looper.getMainLooper()).post { onResult(result) }
         }
     }
 
-    private fun buildCourseQuery(course: GolfCourse): String {
-        val element = when (course.elementType.lowercase()) {
-            "relation" -> "relation(${course.id});"
-            "way" -> "way(${course.id});"
-            else -> throw Exception(
-                "This course is represented by an OSM node, " +
-                    "which does not provide a course boundary. " +
-                    "Boundary discovery is needed before its features can be mapped reliably."
+    private fun loadBlocking(course: GolfCourse): CourseGeometry {
+        require(course.latitude.isFinite() && course.longitude.isFinite()) {
+            "The selected course has invalid coordinates."
+        }
+        require(course.latitude in -90.0..90.0 && course.longitude in -180.0..180.0) {
+            "The selected course coordinates are outside the valid range."
+        }
+
+        val boundary = fetchBoundary(course)
+        val bounds = boundary.second ?: fallbackBounds(course)
+        val featureElements = fetchFeatures(bounds.expanded())
+        val parsed = parseFeatures(featureElements)
+
+        // Keep the selected boundary in the result so downstream reconstruction
+        // can distinguish the course footprint from nearby golf features.
+        val combined = (boundary.first + parsed)
+            .distinctBy { Triple(it.elementType, it.id, it.featureType) }
+
+        if (combined.none { it.featureType != "course_boundary" }) {
+            throw IllegalStateException(
+                "The selected course was found, but no mapped golf features were returned. " +
+                    "This course may have sparse OpenStreetMap coverage."
             )
         }
 
-        // Query the selected course's surrounding area directly. The previous
-        // area-conversion query could make Overpass return an XML runtime error
-        // for some course boundary ways; the app expects JSON and then failed
-        // before the Caddy could display any greens.
-        return """
-            [out:json][timeout:25];
-            nwr(around:2000,${course.latitude},${course.longitude})["golf"];
-            out center geom;
-        """.trimIndent()
+        return CourseGeometry(
+            courseId = course.id,
+            courseName = course.name,
+            features = combined
+        )
     }
 
-    private fun fetchGeometry(
-        server: String,
-        query: String,
-        course: GolfCourse
-    ): CourseGeometry {
-        val connection = URL(server).openConnection() as HttpURLConnection
+    /**
+     * Fetch the exact selected OSM way/relation before searching for details.
+     * Relations may expose their boundary as outer member ways.
+     */
+    private fun fetchBoundary(course: GolfCourse): Pair<List<CourseFeature>, Bounds?> {
+        if (course.elementType.equals("node", ignoreCase = true)) {
+            // A node is only a search marker, not a usable course footprint.
+            // Resolve a nearby mapped course boundary rather than treating the
+            // node as if it described the whole course.
+            val nearby = fetchNearbyCourseBoundary(course)
+            if (nearby != null) return nearby
+            return emptyList<CourseFeature>() to null
+        }
 
+        val selector = when (course.elementType.lowercase()) {
+            "way" -> "way(${course.id});"
+            "relation" -> "relation(${course.id});"
+            else -> return emptyList<CourseFeature>() to null
+        }
+        val query = """
+            [out:json][timeout:30];
+            $selector
+            out geom;
+        """.trimIndent()
+
+        val elements = requestOverpass(query, "course boundary")
+        val features = mutableListOf<CourseFeature>()
+        val points = mutableListOf<GeoPoint>()
+
+        for (i in 0 until elements.length()) {
+            val element = elements.getJSONObject(i)
+            val tags = element.optJSONObject("tags") ?: JSONObject()
+            val ownGeometry = readGeometry(element.optJSONArray("geometry"))
+            if (ownGeometry.isNotEmpty()) {
+                points.addAll(ownGeometry)
+                features.add(
+                    CourseFeature(
+                        id = element.optLong("id", course.id),
+                        elementType = element.optString("type", course.elementType),
+                        featureType = "course_boundary",
+                        holeNumber = null,
+                        name = tags.optString("name").takeIf { it.isNotBlank() } ?: course.name,
+                        points = ownGeometry
+                    )
+                )
+            }
+
+            val members = element.optJSONArray("members") ?: continue
+            for (j in 0 until members.length()) {
+                val member = members.getJSONObject(j)
+                val role = member.optString("role")
+                if (role.isNotBlank() && role != "outer") continue
+                val memberGeometry = readGeometry(member.optJSONArray("geometry"))
+                if (memberGeometry.isEmpty()) continue
+                points.addAll(memberGeometry)
+                features.add(
+                    CourseFeature(
+                        id = member.optLong("ref", element.optLong("id", course.id)),
+                        elementType = member.optString("type", "way"),
+                        featureType = "course_boundary",
+                        holeNumber = null,
+                        name = course.name + " boundary",
+                        points = memberGeometry
+                    )
+                )
+            }
+        }
+
+        return features to boundsFrom(points)
+    }
+
+    private fun fetchNearbyCourseBoundary(course: GolfCourse): Pair<List<CourseFeature>, Bounds?>? {
+        val query = """
+            [out:json][timeout:30];
+            (
+              way(around:2500,${course.latitude},${course.longitude})["leisure"="golf_course"];
+              relation(around:2500,${course.latitude},${course.longitude})["leisure"="golf_course"];
+            );
+            out center geom;
+        """.trimIndent()
+
+        val elements = runCatching { requestOverpass(query, "nearby course boundary") }
+            .getOrNull() ?: return null
+        if (elements.length() == 0) return null
+
+        val candidates = (0 until elements.length()).map { elements.getJSONObject(it) }
+            .filter { it.optJSONArray("geometry")?.length()?.let { n -> n >= 4 } == true ||
+                it.optJSONArray("members")?.length()?.let { n -> n > 0 } == true }
+        val chosen = candidates.minByOrNull { element ->
+            val center = element.optJSONObject("center")
+            val lat = center?.optDouble("lat", course.latitude) ?: course.latitude
+            val lon = center?.optDouble("lon", course.longitude) ?: course.longitude
+            haversineMeters(course.latitude, course.longitude, lat, lon)
+        } ?: return null
+
+        val points = mutableListOf<GeoPoint>()
+        val features = mutableListOf<CourseFeature>()
+        val own = readGeometry(chosen.optJSONArray("geometry"))
+        if (own.isNotEmpty()) {
+            points.addAll(own)
+            features.add(CourseFeature(
+                chosen.optLong("id"), chosen.optString("type"), "course_boundary",
+                null, course.name + " boundary", own
+            ))
+        }
+        val members = chosen.optJSONArray("members") ?: JSONArray()
+        for (i in 0 until members.length()) {
+            val member = members.getJSONObject(i)
+            if (member.optString("role").let { it.isNotBlank() && it != "outer" }) continue
+            val ring = readGeometry(member.optJSONArray("geometry"))
+            if (ring.isEmpty()) continue
+            points.addAll(ring)
+            features.add(CourseFeature(
+                member.optLong("ref"), member.optString("type", "way"),
+                "course_boundary", null, course.name + " boundary", ring
+            ))
+        }
+        return if (points.isEmpty()) null else features to boundsFrom(points)
+    }
+
+    private fun fetchFeatures(bounds: Bounds): JSONArray {
+        val box = bounds.toOverpass()
+        val query = """
+            [out:json][timeout:$OVERPASS_TIMEOUT_SECONDS];
+            (
+              nwr["golf"~"^(hole|fairway|green|bunker|tee|water_hazard|rough|driving_range|practice)$"]($box);
+              nwr["natural"~"^(water|wood)$"]($box);
+              nwr["landuse"~"^(forest|grass|meadow)$"]($box);
+              nwr["water"]($box);
+              way["highway"~"^(path|track|footway)$"]($box);
+              relation["highway"~"^(path|track|footway)$"]($box);
+            );
+            out center geom;
+        """.trimIndent()
+        return requestOverpass(query, "course features")
+    }
+
+    private fun requestOverpass(query: String, purpose: String): JSONArray {
+        val failures = mutableListOf<String>()
+        for (server in OVERPASS_SERVERS) {
+            try {
+                val response = postQuery(server, query)
+                val root = JSONObject(response)
+                val elements = root.optJSONArray("elements")
+                    ?: throw IllegalStateException("Map-data response did not contain an elements list.")
+                return elements
+            } catch (error: Exception) {
+                failures.add("${URL(server).host}: ${error.message ?: "request failed"}")
+            }
+        }
+        throw IllegalStateException(
+            "Unable to retrieve $purpose from the available OpenStreetMap servers. " +
+                failures.joinToString(" · ")
+        )
+    }
+
+    private fun postQuery(server: String, query: String): String {
+        val connection = URL(server).openConnection() as HttpURLConnection
         try {
             connection.requestMethod = "POST"
-            connection.connectTimeout = 10000
-            // Keep this longer than the Overpass query timeout so a valid
-            // response is not cut off while the server is still processing.
-            connection.readTimeout = 32000
+            connection.connectTimeout = CONNECT_TIMEOUT_MS
+            connection.readTimeout = READ_TIMEOUT_MS
             connection.instanceFollowRedirects = true
             connection.doOutput = true
-
             connection.setRequestProperty(
-                "Content-Type",
-                "application/x-www-form-urlencoded; charset=UTF-8"
+                "Content-Type", "application/x-www-form-urlencoded; charset=UTF-8"
             )
             connection.setRequestProperty("Accept", "application/json")
             connection.setRequestProperty(
-                "User-Agent",
-                "WatchThisDrive/0.1 Android Golf App"
+                "User-Agent", "WatchThisDrive/0.2 (Android golf course mapping)"
             )
 
             val body = "data=" + URLEncoder.encode(query, "UTF-8")
+            connection.outputStream.use { it.write(body.toByteArray(Charsets.UTF_8)) }
 
-            connection.outputStream.use {
-                it.write(body.toByteArray(Charsets.UTF_8))
-            }
+            val status = connection.responseCode
+            val stream = if (status in 200..299) connection.inputStream else connection.errorStream
+            val response = stream?.bufferedReader()?.use { reader ->
+                val text = StringBuilder()
+                val buffer = CharArray(8192)
+                while (true) {
+                    val count = reader.read(buffer)
+                    if (count < 0) break
+                    if (text.length + count > MAX_RESPONSE_CHARS) {
+                        throw IllegalStateException("Map-data response exceeded the safe size limit.")
+                    }
+                    text.append(buffer, 0, count)
+                }
+                text.toString()
+            }.orEmpty()
 
-            val responseCode = connection.responseCode
-
-            if (responseCode !in 200..299) {
-                val errorBody = runCatching {
-                    connection.errorStream?.bufferedReader()?.use { it.readText() }
-                }.getOrNull().orEmpty().take(180)
-                throw Exception(
-                    "Geometry server ${URL(server).host} returned HTTP $responseCode" +
-                        if (errorBody.isBlank()) "" else ": $errorBody"
+            if (status !in 200..299) {
+                throw IllegalStateException(
+                    "HTTP $status" + response.replace(Regex("\\s+"), " ").take(220)
+                        .takeIf { it.isNotBlank() }?.let { ": $it" }.orEmpty()
                 )
             }
-
-            val response = connection.inputStream.bufferedReader().use {
-                it.readText()
-            }
-
-            // Overpass can return an XML error document with HTTP 200. Do not
-            // pass that body to JSONObject; report a useful server-side error
-            // and let the loader try the next endpoint.
-            val trimmed = response.trimStart()
-            if (!trimmed.startsWith("{")) {
-                val detail = trimmed.replace(Regex("\\s+"), " ").take(220)
-                throw Exception(
-                    "Geometry server ${URL(server).host} returned a non-JSON response" +
-                        if (detail.isBlank()) "." else ": $detail"
+            if (!response.trimStart().startsWith("{")) {
+                throw IllegalStateException(
+                    "Server returned a non-JSON response: " +
+                        response.replace(Regex("\\s+"), " ").take(180)
                 )
             }
-
-            return parseGeometry(response, course)
+            return response
         } finally {
             connection.disconnect()
         }
     }
 
-    private fun parseGeometry(
-        response: String,
-        course: GolfCourse
-    ): CourseGeometry {
-        val elements = JSONObject(response).getJSONArray("elements")
+    private fun parseFeatures(elements: JSONArray): List<CourseFeature> {
         val features = mutableListOf<CourseFeature>()
-
         for (i in 0 until elements.length()) {
             val element = elements.getJSONObject(i)
             val tags = element.optJSONObject("tags") ?: continue
-            val golfType = tags.optString("golf").trim()
-
-            if (golfType.isBlank()) continue
-
-            val points = mutableListOf<GeoPoint>()
-            val geometry = element.optJSONArray("geometry")
-
-            if (geometry != null) {
-                for (j in 0 until geometry.length()) {
-                    val point = geometry.getJSONObject(j)
-                    val lat = point.optDouble("lat", Double.NaN)
-                    val lon = point.optDouble("lon", Double.NaN)
-
-                    if (lat.isFinite() && lon.isFinite()) {
-                        points.add(GeoPoint(lat, lon))
-                    }
-                }
-            }
-
-            if (points.isEmpty()) {
+            val featureType = classify(tags) ?: continue
+            val points = readGeometry(element.optJSONArray("geometry")).ifEmpty {
                 val center = element.optJSONObject("center")
-
-                val lat = if (center != null) {
-                    center.optDouble("lat", Double.NaN)
+                if (center != null) {
+                    listOf(GeoPoint(
+                        center.optDouble("lat", Double.NaN),
+                        center.optDouble("lon", Double.NaN)
+                    ).takeIf { it.latitude.isFinite() && it.longitude.isFinite() } ?: return@letEmpty)
                 } else {
-                    element.optDouble("lat", Double.NaN)
-                }
-
-                val lon = if (center != null) {
-                    center.optDouble("lon", Double.NaN)
-                } else {
-                    element.optDouble("lon", Double.NaN)
-                }
-
-                if (lat.isFinite() && lon.isFinite()) {
-                    points.add(GeoPoint(lat, lon))
+                    val lat = element.optDouble("lat", Double.NaN)
+                    val lon = element.optDouble("lon", Double.NaN)
+                    if (lat.isFinite() && lon.isFinite()) listOf(GeoPoint(lat, lon)) else emptyList()
                 }
             }
-
             if (points.isEmpty()) continue
 
-            val holeNumber = tags.optString("ref")
-                .takeIf { it.isNotBlank() }
-                ?: tags.optString("golf:hole")
-                    .takeIf { it.isNotBlank() }
-
-            val name = tags.optString("name")
-                .takeIf { it.isNotBlank() }
-
-            features.add(
-                CourseFeature(
-                    id = element.optLong("id"),
-                    elementType = element.optString("type"),
-                    featureType = golfType,
-                    holeNumber = holeNumber,
-                    name = name,
-                    points = points
-                )
-            )
+            val hole = tags.optString("ref").takeIf { it.isNotBlank() }
+                ?: tags.optString("golf:hole").takeIf { it.isNotBlank() }
+            val name = tags.optString("name").takeIf { it.isNotBlank() }
+            features.add(CourseFeature(
+                id = element.optLong("id"),
+                elementType = element.optString("type"),
+                featureType = featureType,
+                holeNumber = hole,
+                name = name,
+                points = points
+            ))
         }
+        return features.distinctBy { Triple(it.elementType, it.id, it.featureType) }
+    }
 
-        val uniqueFeatures = features.distinctBy { it.elementType to it.id }
+    private fun classify(tags: JSONObject): String? {
+        val golf = tags.optString("golf").lowercase()
+        if (golf in setOf("hole", "fairway", "green", "bunker", "tee", "water_hazard", "rough")) {
+            return golf
+        }
+        if (tags.optString("natural") == "water" || tags.has("water")) return "water"
+        if (tags.optString("natural") in setOf("wood", "scrub")) return "woodland"
+        if (tags.optString("landuse") in setOf("forest", "grass", "meadow")) {
+            return if (tags.optString("landuse") == "grass") "rough" else "woodland"
+        }
+        if (tags.optString("highway") in setOf("path", "track", "footway")) return "path"
+        return null
+    }
 
-        return CourseGeometry(
-            courseId = course.id,
-            courseName = course.name,
-            features = uniqueFeatures
+    private fun readGeometry(array: JSONArray?): List<GeoPoint> {
+        if (array == null) return emptyList()
+        val points = mutableListOf<GeoPoint>()
+        for (i in 0 until array.length()) {
+            val point = array.optJSONObject(i) ?: continue
+            val lat = point.optDouble("lat", Double.NaN)
+            val lon = point.optDouble("lon", Double.NaN)
+            if (lat.isFinite() && lon.isFinite() && lat in -90.0..90.0 && lon in -180.0..180.0) {
+                points.add(GeoPoint(lat, lon))
+            }
+        }
+        return points
+    }
+
+    private fun boundsFrom(points: List<GeoPoint>): Bounds? {
+        if (points.isEmpty()) return null
+        val south = points.minOf { it.latitude }
+        val north = points.maxOf { it.latitude }
+        val west = points.minOf { it.longitude }
+        val east = points.maxOf { it.longitude }
+        // Reject malformed or continent-scale geometry instead of issuing an
+        // enormous query. The coordinate fallback remains available.
+        if (north - south > 0.20 || east - west > 0.20) return null
+        return Bounds(south, west, north, east)
+    }
+
+    private fun fallbackBounds(course: GolfCourse): Bounds {
+        // Roughly 1.7 km north/south at mid-latitudes. Used only when OSM
+        // supplies no usable boundary geometry for the selected course.
+        val latPad = 0.008
+        val lonPad = 0.008 / kotlin.math.cos(Math.toRadians(course.latitude))
+            .coerceAtLeast(0.2)
+        return Bounds(
+            (course.latitude - latPad).coerceAtLeast(-90.0),
+            (course.longitude - lonPad).coerceAtLeast(-180.0),
+            (course.latitude + latPad).coerceAtMost(90.0),
+            (course.longitude + lonPad).coerceAtMost(180.0)
         )
+    }
+
+    private fun haversineMeters(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
+        val radius = 6_371_000.0
+        val dLat = Math.toRadians(lat2 - lat1)
+        val dLon = Math.toRadians(lon2 - lon1)
+        val a = kotlin.math.sin(dLat / 2) * kotlin.math.sin(dLat / 2) +
+            kotlin.math.cos(Math.toRadians(lat1)) * kotlin.math.cos(Math.toRadians(lat2)) *
+            kotlin.math.sin(dLon / 2) * kotlin.math.sin(dLon / 2)
+        return 2 * radius * kotlin.math.asin(kotlin.math.sqrt(a.coerceIn(0.0, 1.0)))
     }
 }
