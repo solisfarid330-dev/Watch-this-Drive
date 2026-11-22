@@ -23,7 +23,8 @@ data class ReconstructedHole(
     val mappedCenterline: CourseFeature? = null,
     val rough: List<CourseFeature> = emptyList(),
     val woodland: List<CourseFeature> = emptyList(),
-    val paths: List<CourseFeature> = emptyList()
+    val paths: List<CourseFeature> = emptyList(),
+    val trees: List<CourseFeature> = emptyList()
 ) {
     val usesMappedFairway: Boolean get() = mappedFairways.isNotEmpty()
 }
@@ -152,7 +153,8 @@ object HoleReconstructor {
                 mappedCenterline = centerline,
                 rough = nearbyLandscape.filter { it.featureType.equals("rough", true) && it.points.size >= 3 },
                 woodland = nearbyLandscape.filter { it.featureType.equals("woodland", true) && it.points.size >= 3 },
-                paths = nearbyLandscape.filter { it.featureType.equals("path", true) && it.points.size >= 2 }
+                paths = nearbyLandscape.filter { it.featureType.equals("path", true) && it.points.size >= 2 },
+                trees = nearbyLandscape.filter { it.featureType.equals("tree", true) && it.points.isNotEmpty() }
             )
         }.distinctBy { it.number }.sortedBy { it.number }
     }
