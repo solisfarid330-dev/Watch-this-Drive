@@ -84,7 +84,7 @@ fun CourseHoleArtworkPanel(course: GolfCourse, geometry: CourseGeometry?) {
     }
     LaunchedEffect(course.elementType, course.id, geometry, artwork) {
         val sourceGeometry = geometry
-        if (sourceGeometry != null && artwork?.holes.isNullOrEmpty()) {
+        if (sourceGeometry != null) {
             generating = true
             try {
                 val rendered = withContext(Dispatchers.Default) {
@@ -105,8 +105,8 @@ fun CourseHoleArtworkPanel(course: GolfCourse, geometry: CourseGeometry?) {
         val generated = selected?.let { generatedImages[it] }
         image = withContext(Dispatchers.IO) {
             when {
-                hole != null -> CourseHoleArtworkRepository.bitmap(context, hole.assetPath)
                 generated != null -> BitmapFactory.decodeFile(generated.absolutePath)
+                hole != null -> CourseHoleArtworkRepository.bitmap(context, hole.assetPath)
                 else -> null
             }
         }
@@ -174,11 +174,11 @@ fun CourseHoleArtworkForHole(
         bitmap = withContext(Dispatchers.IO) {
             val pack = CourseHoleArtworkRepository.load(context, course)
             val entry = pack?.holes?.firstOrNull { it.number == holeNumber }
-            val packaged = entry?.let { CourseHoleArtworkRepository.bitmap(context, it.assetPath) }
-            if (packaged != null) packaged else reconstructedHole?.let { hole ->
+            val generated = reconstructedHole?.let { hole ->
                 val file = CourseHoleArtworkRenderer.render(hole, context.cacheDir, course.elementType + "-" + course.id)
                 BitmapFactory.decodeFile(file.absolutePath)
             }
+            generated ?: entry?.let { CourseHoleArtworkRepository.bitmap(context, it.assetPath) }
         }
         loading = false
     }
