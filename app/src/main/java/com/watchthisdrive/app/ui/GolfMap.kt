@@ -79,7 +79,7 @@ fun GolfMap(
         } else if (sharedGeometry != null) {
             geometry = sharedGeometry
             saveCachedGeometry(context, sharedGeometry)
-            geometryMessage = null
+            geometryMessage = if (sharedGeometryError != null) "Saved map shown · refresh failed" else null
         } else if (course != null) {
             geometryMessage = if (geometry == null) "Loading course features…" else "Saved map · refreshing in background…"
             CourseGeometryLoader.load(course) { result ->
