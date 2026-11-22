@@ -247,6 +247,7 @@ private fun WatchThisDriveApp() {
                         onStartRound = {
                             activeCourse = selectedCourse
                             activeHole = 1
+                            mapTarget = null
                             selectedCourse = null
                             showNearbyCourses = false
                             selected = Tab.PLAY
