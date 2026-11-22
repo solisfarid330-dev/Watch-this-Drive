@@ -3,9 +3,9 @@ package com.watchthisdrive.app.data
 import kotlin.math.*
 
 /**
- * First-pass inferred hole geometry. Every generated corridor is an estimate,
- * not a surveyed fairway boundary. Source features are retained separately
- * so the UI can distinguish mapped hazards/greens from generated fairway.
+ * A reconstructed hole keeps surveyed/mapped OSM geometry separate from any
+ * generated fallback. Mapped fairway polygons are never replaced by a straight
+ * tee-to-green corridor.
  */
 data class ReconstructedHole(
     val number: Int,
@@ -17,112 +17,148 @@ data class ReconstructedHole(
     val water: List<CourseFeature>,
     val teeSource: CourseFeature,
     val greenSource: CourseFeature,
-    val lengthMeters: Double
-)
+    val lengthMeters: Double,
+    val mappedFairways: List<CourseFeature> = emptyList()
+) {
+    val usesMappedFairway: Boolean get() = mappedFairways.isNotEmpty()
+}
 
 object HoleReconstructor {
+    private const val MIN_HOLE_METERS = 45.0
+    private const val MAX_HOLE_METERS = 720.0
+
     private data class TeeCandidate(
-        val source: CourseFeature,
+        val sources: List<CourseFeature>,
         val point: GeoPoint,
         val holeNumber: Int?
     )
 
+    private data class Pairing(
+        val greenIndex: Int,
+        val teeIndex: Int,
+        val score: Double
+    )
+
     /**
-     * Builds an initial tee-to-green playing corridor for holes where a mapped
-     * tee and green can be associated confidently enough by proximity.
-     * It intentionally does not fabricate tees or greens when none exist.
+     * Associates tees and greens using explicit OSM hole numbers first, then
+     * constrained spatial matching. It uses mapped fairways as the actual
+     * playing shape and only generates a corridor when no mapped fairway fits.
      */
     fun reconstruct(geometry: CourseGeometry): List<ReconstructedHole> {
         val greens = geometry.features.filter {
-            it.featureType.equals("green", true) && it.points.isNotEmpty()
+            it.featureType.equals("green", true) && it.points.size >= 1
         }
         val tees = clusterTees(geometry.features.filter {
             it.featureType.equals("tee", true) && it.points.isNotEmpty()
         })
         if (greens.isEmpty() || tees.isEmpty()) return emptyList()
 
-        val pairs = mutableListOf<Triple<Int, Int, Double>>()
-        greens.forEachIndexed { gi, green ->
-            val greenCenter = center(green.points)
-            tees.forEachIndexed { ti, tee ->
-                val distance = meters(tee.point, greenCenter)
-                if (distance in 35.0..650.0) {
-                    val sameNumber = green.holeNumber?.toIntOrNull() != null &&
-                        tee.holeNumber != null &&
-                        green.holeNumber.toIntOrNull() == tee.holeNumber
-                    val conflictingNumber = green.holeNumber?.toIntOrNull() != null &&
-                        tee.holeNumber != null && !sameNumber
-                    if (!conflictingNumber) {
-                        pairs.add(Triple(gi, ti, distance - if (sameNumber) 1000.0 else 0.0))
-                    }
+        val pairings = mutableListOf<Pairing>()
+        greens.forEachIndexed { greenIndex, green ->
+            val greenPoint = center(green.points)
+            tees.forEachIndexed { teeIndex, tee ->
+                val distance = meters(tee.point, greenPoint)
+                if (distance !in MIN_HOLE_METERS..MAX_HOLE_METERS) return@forEachIndexed
+                val greenNumber = number(green.holeNumber)
+                val teeNumber = tee.holeNumber
+                if (greenNumber != null && teeNumber != null && greenNumber != teeNumber) {
+                    return@forEachIndexed
                 }
+                // Explicit matching is a strong preference, not a small tie-break.
+                val numberPenalty = if (greenNumber != null && teeNumber == greenNumber) -10000.0
+                    else if (greenNumber != null || teeNumber != null) 0.0 else 0.0
+                pairings += Pairing(greenIndex, teeIndex, distance + numberPenalty)
             }
         }
 
-        // Greedy shortest links first; each green and tee cluster can be used once.
+        // Global one-to-one assignment prevents a nearby tee from being reused
+        // for several greens. Explicit hole-number matches dominate distance.
         val usedGreens = mutableSetOf<Int>()
         val usedTees = mutableSetOf<Int>()
-        val assignments = pairs.sortedBy { it.third }.mapNotNull { pair ->
-            val (gi, ti, _) = pair
-            if (gi in usedGreens || ti in usedTees) null
+        val assignments = pairings.sortedBy { it.score }.mapNotNull { pair ->
+            if (pair.greenIndex in usedGreens || pair.teeIndex in usedTees) null
             else {
-                usedGreens.add(gi)
-                usedTees.add(ti)
-                gi to ti
+                usedGreens += pair.greenIndex
+                usedTees += pair.teeIndex
+                pair
             }
         }
 
-        val ordered = assignments.map { (gi, ti) ->
-            val greenFeature = greens[gi]
-            val tee = tees[ti]
-            val greenCenter = center(greenFeature.points)
+        val fairways = geometry.features.filter {
+            it.featureType.equals("fairway", true) && it.points.size >= 3
+        }
+        val hazards = geometry.features.filter {
+            it.featureType.equals("bunker", true) ||
+                it.featureType.equals("water", true) ||
+                it.featureType.equals("water_hazard", true)
+        }
+
+        return assignments.mapIndexed { fallbackIndex, pair ->
+            val greenFeature = greens[pair.greenIndex]
+            val tee = tees[pair.teeIndex]
+            val greenPoint = center(greenFeature.points)
             val teePoint = tee.point
-            val length = meters(teePoint, greenCenter)
-            val number = greenFeature.holeNumber?.toIntOrNull()
-                ?: tee.holeNumber
-                ?: (gi + 1)
-            val fairway = corridor(teePoint, greenCenter, 24.0, 19.0)
-            val hazards = geometry.features.filter { feature ->
-                val kind = feature.featureType.lowercase()
-                (kind == "bunker" || kind == "water" || kind == "water_hazard") &&
-                    feature.points.any { point ->
-                        distanceToSegmentMeters(point, teePoint, greenCenter) <= 95.0
-                    }
+            val holeNumber = number(greenFeature.holeNumber) ?: tee.holeNumber ?: (fallbackIndex + 1)
+
+            // A mapped fairway is assigned only when its geometry is close to
+            // this hole's tee/green axis. Keep its original polygon unchanged.
+            val mapped = fairways.mapNotNull { feature ->
+                val distance = featureDistanceToSegment(feature, teePoint, greenPoint)
+                if (distance <= 125.0) feature to distance else null
+            }.sortedBy { it.second }.take(3).map { it.first }
+
+            val relevantHazards = hazards.filter { hazard ->
+                val mappedDistance = mapped.minOfOrNull { fairway ->
+                    featureDistance(hazard, fairway)
+                }
+                val routeDistance = featureDistanceToSegment(hazard, teePoint, greenPoint)
+                if (mappedDistance != null && mappedDistance.isFinite()) {
+                    mappedDistance <= 95.0 || routeDistance <= 75.0
+                } else {
+                    routeDistance <= 90.0
+                }
             }
+
             ReconstructedHole(
-                number = number,
+                number = holeNumber,
                 tee = teePoint,
-                green = greenCenter,
+                green = greenPoint,
                 greenBoundary = greenFeature.points,
-                fairwayEstimate = fairway,
-                bunkers = hazards.filter { it.featureType.equals("bunker", true) },
-                water = hazards.filter {
+                // The estimate is deliberately absent when real fairway data exists.
+                fairwayEstimate = if (mapped.isEmpty()) corridor(teePoint, greenPoint) else emptyList(),
+                bunkers = relevantHazards.filter { it.featureType.equals("bunker", true) },
+                water = relevantHazards.filter {
                     it.featureType.equals("water", true) ||
                         it.featureType.equals("water_hazard", true)
                 },
-                teeSource = tee.source,
+                teeSource = tee.sources.first(),
                 greenSource = greenFeature,
-                lengthMeters = length
+                lengthMeters = meters(teePoint, greenPoint),
+                mappedFairways = mapped
             )
-        }
-        return ordered.sortedBy { it.number }
+        }.distinctBy { it.number }.sortedBy { it.number }
     }
 
     private fun clusterTees(features: List<CourseFeature>): List<TeeCandidate> {
         val remaining = features.toMutableList()
-        val clusters = mutableListOf<TeeCandidate>()
+        val result = mutableListOf<TeeCandidate>()
         while (remaining.isNotEmpty()) {
             val seed = remaining.removeAt(0)
-            val points = seed.points.toMutableList()
+            val seedNumber = number(seed.holeNumber)
             val members = mutableListOf(seed)
+            val points = seed.points.toMutableList()
             var changed = true
             while (changed) {
                 changed = false
                 val nearby = remaining.filter { candidate ->
-                    val sameHole = seed.holeNumber != null && candidate.holeNumber != null &&
-                        seed.holeNumber != candidate.holeNumber
-                    !sameHole && candidate.points.any { p ->
-                        points.any { q -> meters(p, q) <= 22.0 }
+                    val candidateNumber = number(candidate.holeNumber)
+                    val conflicting = seedNumber != null && candidateNumber != null &&
+                        seedNumber != candidateNumber
+                    val sameNumber = seedNumber != null && seedNumber == candidateNumber
+                    !conflicting && candidate.points.any { p ->
+                        points.any { q ->
+                            meters(p, q) <= if (sameNumber) 70.0 else 24.0
+                        }
                     }
                 }
                 if (nearby.isNotEmpty()) {
@@ -132,66 +168,96 @@ object HoleReconstructor {
                     changed = true
                 }
             }
-            clusters.add(
-                TeeCandidate(
-                    source = members.first(),
-                    point = center(points),
-                    holeNumber = members.mapNotNull { it.holeNumber?.toIntOrNull() }.distinct().singleOrNull()
-                )
+            result += TeeCandidate(
+                sources = members,
+                point = center(points),
+                holeNumber = members.mapNotNull { number(it.holeNumber) }.distinct().singleOrNull()
             )
         }
-        return clusters
+        return result
     }
+
+    private fun number(value: String?): Int? =
+        value?.trim()?.let { Regex("\\d+").find(it)?.value?.toIntOrNull() }
 
     private fun center(points: List<GeoPoint>) = GeoPoint(
         points.map { it.latitude }.average(),
         points.map { it.longitude }.average()
     )
 
-    /** Creates a tapered, approximate fairway corridor between tee and green. */
-    private fun corridor(start: GeoPoint, end: GeoPoint, startHalfWidth: Double, endHalfWidth: Double): List<GeoPoint> {
-        val latScale = 111_320.0
-        val midLat = Math.toRadians((start.latitude + end.latitude) / 2.0)
-        val dx = (end.longitude - start.longitude) * latScale * cos(midLat)
-        val dy = (end.latitude - start.latitude) * latScale
+    private fun corridor(start: GeoPoint, end: GeoPoint): List<GeoPoint> {
+        val latitudeScale = 111_320.0
+        val midLatitude = Math.toRadians((start.latitude + end.latitude) / 2.0)
+        val dx = (end.longitude - start.longitude) * latitudeScale * cos(midLatitude)
+        val dy = (end.latitude - start.latitude) * latitudeScale
         val length = hypot(dx, dy).coerceAtLeast(1.0)
-        val px = -dy / length
-        val py = dx / length
-        fun offset(point: GeoPoint, width: Double, sign: Double): GeoPoint = GeoPoint(
-            point.latitude + py * width * sign / latScale,
-            point.longitude + px * width * sign / (latScale * cos(midLat).coerceAtLeast(0.01))
+        val perpendicularX = -dy / length
+        val perpendicularY = dx / length
+        fun offset(point: GeoPoint, width: Double, sign: Double) = GeoPoint(
+            point.latitude + perpendicularY * width * sign / latitudeScale,
+            point.longitude + perpendicularX * width * sign /
+                (latitudeScale * cos(midLatitude).coerceAtLeast(0.01))
         )
         return listOf(
-            offset(start, startHalfWidth, 1.0),
-            offset(end, endHalfWidth, 1.0),
-            offset(end, endHalfWidth, -1.0),
-            offset(start, startHalfWidth, -1.0),
-            offset(start, startHalfWidth, 1.0)
+            offset(start, 24.0, 1.0), offset(end, 19.0, 1.0),
+            offset(end, 19.0, -1.0), offset(start, 24.0, -1.0),
+            offset(start, 24.0, 1.0)
         )
     }
 
     private fun meters(a: GeoPoint, b: GeoPoint): Double {
-        val r = 6_371_000.0
+        val radius = 6_371_000.0
         val p1 = Math.toRadians(a.latitude)
         val p2 = Math.toRadians(b.latitude)
         val dp = p2 - p1
         val dl = Math.toRadians(b.longitude - a.longitude)
         val h = sin(dp / 2).pow(2) + cos(p1) * cos(p2) * sin(dl / 2).pow(2)
-        return 2 * r * asin(sqrt(h.coerceIn(0.0, 1.0)))
+        return 2 * radius * asin(sqrt(h.coerceIn(0.0, 1.0)))
     }
 
-    private fun distanceToSegmentMeters(point: GeoPoint, start: GeoPoint, end: GeoPoint): Double {
-        val latScale = 111_320.0
-        val midLat = Math.toRadians((start.latitude + end.latitude + point.latitude) / 3.0)
-        fun xy(p: GeoPoint) = Pair(
-            p.longitude * latScale * cos(midLat),
-            p.latitude * latScale
-        )
+    private fun featureDistanceToSegment(
+        feature: CourseFeature,
+        start: GeoPoint,
+        end: GeoPoint
+    ): Double = feature.points.minOfOrNull { distanceToSegment(it, start, end) }
+        ?: Double.POSITIVE_INFINITY
+
+    private fun featureDistance(first: CourseFeature, second: CourseFeature): Double {
+        if (first.points.any { point -> second.points.size >= 4 && pointInPolygon(point, second.points) }) {
+            return 0.0
+        }
+        return first.points.minOfOrNull { a ->
+            second.points.zipWithNext().minOfOrNull { (b, c) -> distanceToSegment(a, b, c) }
+                ?: meters(a, center(second.points))
+        } ?: Double.POSITIVE_INFINITY
+    }
+
+    private fun distanceToSegment(point: GeoPoint, start: GeoPoint, end: GeoPoint): Double {
+        val latitudeScale = 111_320.0
+        val middleLatitude = Math.toRadians((start.latitude + end.latitude + point.latitude) / 3.0)
+        fun xy(p: GeoPoint) = p.longitude * latitudeScale * cos(middleLatitude) to
+            p.latitude * latitudeScale
         val a = xy(start); val b = xy(end); val p = xy(point)
         val dx = b.first - a.first; val dy = b.second - a.second
         val denominator = dx * dx + dy * dy
-        val t = if (denominator == 0.0) 0.0 else
+        val t = if (denominator <= 1e-9) 0.0 else
             (((p.first - a.first) * dx + (p.second - a.second) * dy) / denominator).coerceIn(0.0, 1.0)
         return hypot(p.first - (a.first + t * dx), p.second - (a.second + t * dy))
+    }
+
+    private fun pointInPolygon(point: GeoPoint, polygon: List<GeoPoint>): Boolean {
+        var inside = false
+        var previous = polygon.lastIndex
+        for (i in polygon.indices) {
+            val a = polygon[i]
+            val b = polygon[previous]
+            if ((a.latitude > point.latitude) != (b.latitude > point.latitude) &&
+                point.longitude < (b.longitude - a.longitude) *
+                (point.latitude - a.latitude) /
+                ((b.latitude - a.latitude).takeIf { abs(it) > 1e-12 } ?: 1e-12) + a.longitude
+            ) inside = !inside
+            previous = i
+        }
+        return inside
     }
 }
