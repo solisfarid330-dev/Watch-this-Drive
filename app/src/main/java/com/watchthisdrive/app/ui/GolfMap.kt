@@ -207,6 +207,7 @@ fun GolfMap(
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         LegendItem("#43B9E8", "Water")
                         LegendItem("#A7C98B", "Tee marker")
+                        LegendItem("#B8F36B", "You")
                     }
                 }
             }
