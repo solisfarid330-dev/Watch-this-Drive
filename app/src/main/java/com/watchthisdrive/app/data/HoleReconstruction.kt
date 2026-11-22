@@ -20,7 +20,10 @@ data class ReconstructedHole(
     val greenSource: CourseFeature,
     val lengthMeters: Double,
     val mappedFairways: List<CourseFeature> = emptyList(),
-    val mappedCenterline: CourseFeature? = null
+    val mappedCenterline: CourseFeature? = null,
+    val rough: List<CourseFeature> = emptyList(),
+    val woodland: List<CourseFeature> = emptyList(),
+    val paths: List<CourseFeature> = emptyList()
 ) {
     val usesMappedFairway: Boolean get() = mappedFairways.isNotEmpty()
 }
@@ -95,6 +98,11 @@ object HoleReconstructor {
                 it.featureType.equals("water", true) ||
                 it.featureType.equals("water_hazard", true)
         }
+        val landscape = geometry.features.filter {
+            it.featureType.equals("rough", true) ||
+                it.featureType.equals("woodland", true) ||
+                it.featureType.equals("path", true)
+        }
 
         return assignments.mapIndexed { fallbackIndex, pair ->
             val greenFeature = greens[pair.greenIndex]
@@ -109,13 +117,20 @@ object HoleReconstructor {
             val route = centerline?.points.orEmpty()
             val mapped = fairwaysForHole(fairways, teePoint, greenPoint, holeNumber, route)
 
-            val relevantHazards = hazards.filter { hazard ->
-                val mappedDistance = mapped.minOfOrNull { fairway -> featureDistance(hazard, fairway) }
-                when {
-                    mapped.isNotEmpty() -> mappedDistance != null && mappedDistance <= 95.0
-                    route.size >= 2 -> featureDistanceToPolyline(hazard, route) <= 90.0
-                    else -> featureDistanceToSegment(hazard, teePoint, greenPoint) <= 90.0
+            fun routeDistance(feature: CourseFeature): Double {
+                val mappedDistance = mapped.minOfOrNull { fairway -> featureDistance(feature, fairway) }
+                return when {
+                    mappedDistance != null -> mappedDistance
+                    route.size >= 2 -> featureDistanceToPolyline(feature, route)
+                    else -> featureDistanceToSegment(feature, teePoint, greenPoint)
                 }
+            }
+            val relevantHazards = hazards.filter { routeDistance(it) <= 95.0 }
+            // Preserve useful surrounding course context for the renderer:
+            // tree belts, rough polygons and cart/walking paths near this hole.
+            val nearbyLandscape = landscape.filter { feature ->
+                val threshold = if (feature.featureType.equals("path", true)) 65.0 else 115.0
+                routeDistance(feature) <= threshold
             }
 
             ReconstructedHole(
@@ -134,7 +149,10 @@ object HoleReconstructor {
                 greenSource = greenFeature,
                 lengthMeters = meters(teePoint, greenPoint),
                 mappedFairways = mapped,
-                mappedCenterline = centerline
+                mappedCenterline = centerline,
+                rough = nearbyLandscape.filter { it.featureType.equals("rough", true) && it.points.size >= 3 },
+                woodland = nearbyLandscape.filter { it.featureType.equals("woodland", true) && it.points.size >= 3 },
+                paths = nearbyLandscape.filter { it.featureType.equals("path", true) && it.points.size >= 2 }
             )
         }.distinctBy { it.number }.sortedBy { it.number }
     }
