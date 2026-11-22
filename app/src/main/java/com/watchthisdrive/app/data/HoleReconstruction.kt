@@ -100,23 +100,14 @@ object HoleReconstructor {
             val teePoint = tee.point
             val holeNumber = number(greenFeature.holeNumber) ?: tee.holeNumber ?: (fallbackIndex + 1)
 
-            // A mapped fairway is assigned only when its geometry is close to
-            // this hole's tee/green axis. Keep its original polygon unchanged.
-            val mapped = fairways.mapNotNull { feature ->
-                val distance = featureDistanceToSegment(feature, teePoint, greenPoint)
-                if (distance <= 125.0) feature to distance else null
-            }.sortedBy { it.second }.take(3).map { it.first }
+            // Follow connected mapped fairway sections, allowing doglegs to
+            // bend away from the direct tee-to-green axis.
+            val mapped = fairwaysForHole(fairways, teePoint, greenPoint, holeNumber)
 
             val relevantHazards = hazards.filter { hazard ->
-                val mappedDistance = mapped.minOfOrNull { fairway ->
-                    featureDistance(hazard, fairway)
-                }
-                val routeDistance = featureDistanceToSegment(hazard, teePoint, greenPoint)
-                if (mappedDistance != null && mappedDistance.isFinite()) {
-                    mappedDistance <= 95.0 || routeDistance <= 75.0
-                } else {
-                    routeDistance <= 90.0
-                }
+                val mappedDistance = mapped.minOfOrNull { fairway -> featureDistance(hazard, fairway) }
+                if (mapped.isNotEmpty()) mappedDistance != null && mappedDistance <= 95.0
+                else featureDistanceToSegment(hazard, teePoint, greenPoint) <= 90.0
             }
 
             ReconstructedHole(
@@ -139,6 +130,56 @@ object HoleReconstructor {
         }.distinctBy { it.number }.sortedBy { it.number }
     }
 
+    private fun fairwaysForHole(
+        fairways: List<CourseFeature>,
+        tee: GeoPoint,
+        green: GeoPoint,
+        holeNumber: Int
+    ): List<CourseFeature> {
+        if (fairways.isEmpty()) return emptyList()
+        val numbered = fairways.filter { number(it.holeNumber) == holeNumber }
+        val pool = (if (numbered.isNotEmpty()) numbered else fairways).take(80)
+        val starts = pool.indices.filter { featureDistanceToPoint(tee, pool[it]) <= 115.0 }
+        val ends = pool.indices.filter { featureDistanceToPoint(green, pool[it]) <= 115.0 }
+        if (starts.isNotEmpty() && ends.isNotEmpty()) {
+            val target = ends.toSet()
+            val queue = ArrayDeque<Int>()
+            val previous = mutableMapOf<Int, Int?>()
+            starts.forEach { queue.addLast(it); previous[it] = null }
+            var finish: Int? = null
+            while (queue.isNotEmpty() && finish == null) {
+                val current = queue.removeFirst()
+                if (current in target) { finish = current; break }
+                for (next in pool.indices) {
+                    if (next !in previous && featureDistance(pool[current], pool[next]) <= 85.0) {
+                        previous[next] = current
+                        queue.addLast(next)
+                    }
+                }
+            }
+            if (finish != null) {
+                val route = mutableListOf<CourseFeature>()
+                var cursor: Int? = finish
+                while (cursor != null) {
+                    route += pool[cursor]
+                    cursor = previous[cursor]
+                }
+                return route.asReversed().distinctBy { it.elementType + ":" + it.id }
+            }
+        }
+        // Disconnected or incomplete mapping: keep only nearby fairways,
+        // never invent a connecting mapped segment.
+        return pool.mapNotNull { feature ->
+            val distance = featureDistanceToSegment(feature, tee, green)
+            if (distance <= 150.0) feature to distance else null
+        }.sortedBy { it.second }.take(3).map { it.first }
+    }
+
+    private fun featureDistanceToPoint(point: GeoPoint, feature: CourseFeature): Double {
+        if (feature.points.size >= 4 && pointInPolygon(point, feature.points)) return 0.0
+        return feature.points.zipWithNext().minOfOrNull { (a, b) -> distanceToSegment(point, a, b) }
+            ?: feature.points.minOfOrNull { meters(point, it) } ?: Double.POSITIVE_INFINITY
+    }
     private fun clusterTees(features: List<CourseFeature>): List<TeeCandidate> {
         val remaining = features.toMutableList()
         val result = mutableListOf<TeeCandidate>()
