@@ -24,7 +24,9 @@ data class ReconstructedHole(
     val rough: List<CourseFeature> = emptyList(),
     val woodland: List<CourseFeature> = emptyList(),
     val paths: List<CourseFeature> = emptyList(),
-    val trees: List<CourseFeature> = emptyList()
+    val trees: List<CourseFeature> = emptyList(),
+    val par: Int? = null,
+    val handicap: Int? = null
 ) {
     val usesMappedFairway: Boolean get() = mappedFairways.isNotEmpty()
 }
@@ -123,6 +125,14 @@ object HoleReconstructor {
             val centerline = selectCenterline(holeLines, teePoint, greenPoint, holeNumber)
             val route = centerline?.points.orEmpty()
             val mapped = fairwaysForHole(fairways, teePoint, greenPoint, holeNumber, route)
+            // Prefer metadata on the explicitly numbered hole centerline.
+            // Fall back only to other explicitly numbered features for this
+            // same hole; never borrow par/handicap from a nearby hole.
+            val metadataSources = listOfNotNull(centerline) + geometry.features.filter {
+                number(it.holeNumber) == holeNumber
+            }
+            val holePar = metadataSources.firstNotNullOfOrNull { it.par }
+            val holeHandicap = metadataSources.firstNotNullOfOrNull { it.handicap }
 
             fun routeDistance(feature: CourseFeature): Double {
                 val mappedDistance = mapped.minOfOrNull { fairway -> featureDistance(feature, fairway) }
@@ -162,7 +172,9 @@ object HoleReconstructor {
                 rough = nearbyLandscape.filter { it.featureType.equals("rough", true) && it.points.size >= 3 },
                 woodland = nearbyLandscape.filter { it.featureType.equals("woodland", true) && it.points.size >= 3 },
                 paths = nearbyLandscape.filter { it.featureType.equals("path", true) && it.points.size >= 2 },
-                trees = nearbyLandscape.filter { it.featureType.equals("tree", true) && it.points.isNotEmpty() }
+                trees = nearbyLandscape.filter { it.featureType.equals("tree", true) && it.points.isNotEmpty() },
+                par = holePar,
+                handicap = holeHandicap
             )
         }.distinctBy { it.number }.sortedBy { it.number }
     }
@@ -246,11 +258,35 @@ object HoleReconstructor {
         return min(a, b)
     }
 
-    private fun featureDistanceToPolyline(feature: CourseFeature, line: List<GeoPoint>): Double =
-        feature.points.minOfOrNull { point ->
+    private fun featureDistanceToPolyline(feature: CourseFeature, line: List<GeoPoint>): Double {
+        if (feature.points.isEmpty() || line.isEmpty()) return Double.POSITIVE_INFINITY
+        val polygonEdges = if (isClosedPolygon(feature.points)) feature.points.zipWithNext() else emptyList()
+        // A route passing through a mapped fairway polygon can be far from all
+        // polygon vertices. Test route vertices against polygon edges and both
+        // sets of segments against each other so the real fairway is retained.
+        val vertexDistance = feature.points.minOfOrNull { point ->
             line.zipWithNext().minOfOrNull { (a, b) -> distanceToSegment(point, a, b) }
                 ?: meters(point, line.first())
         } ?: Double.POSITIVE_INFINITY
+        val routeVertexDistance = if (polygonEdges.isNotEmpty()) line.minOfOrNull { point ->
+            polygonEdges.minOfOrNull { (a, b) -> distanceToSegment(point, a, b) } ?: Double.POSITIVE_INFINITY
+        } ?: Double.POSITIVE_INFINITY else Double.POSITIVE_INFINITY
+        val crossesInterior = if (polygonEdges.isNotEmpty()) line.zipWithNext().any { (a, b) ->
+            pointInPolygon(a, feature.points) || pointInPolygon(b, feature.points) ||
+                polygonEdges.any { (c, d) -> segmentsIntersect(a, b, c, d) }
+        } else false
+        return if (crossesInterior) 0.0 else min(vertexDistance, routeVertexDistance)
+    }
+
+    private fun segmentsIntersect(a: GeoPoint, b: GeoPoint, c: GeoPoint, d: GeoPoint): Boolean {
+        fun orient(p: GeoPoint, q: GeoPoint, r: GeoPoint): Double =
+            (q.longitude - p.longitude) * (r.latitude - p.latitude) -
+                (q.latitude - p.latitude) * (r.longitude - p.longitude)
+        val o1 = orient(a, b, c); val o2 = orient(a, b, d)
+        val o3 = orient(c, d, a); val o4 = orient(c, d, b)
+        return (o1 == 0.0 || o2 == 0.0 || (o1 > 0.0) != (o2 > 0.0)) &&
+            (o3 == 0.0 || o4 == 0.0 || (o3 > 0.0) != (o4 > 0.0))
+    }
     private fun featureDistanceToPoint(point: GeoPoint, feature: CourseFeature): Double {
         if (isClosedPolygon(feature.points) && pointInPolygon(point, feature.points)) return 0.0
         return feature.points.zipWithNext().minOfOrNull { (a, b) -> distanceToSegment(point, a, b) }
