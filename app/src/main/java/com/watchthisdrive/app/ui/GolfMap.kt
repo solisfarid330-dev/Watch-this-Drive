@@ -45,7 +45,8 @@ import org.maplibre.android.style.sources.GeoJsonSource
 fun GolfMap(
     location: Location?,
     course: GolfCourse?,
-    onLocate: () -> Unit
+    onLocate: () -> Unit,
+    sharedGeometry: CourseGeometry? = null
 ) {
     val context = LocalContext.current
     val mapView = remember {
@@ -54,7 +55,7 @@ fun GolfMap(
     }
     var mapReady by remember { mutableStateOf(false) }
     var geometry by remember(course?.id) {
-        mutableStateOf(course?.let { loadCachedGeometry(context, it) })
+        mutableStateOf(sharedGeometry ?: course?.let { loadCachedGeometry(context, it) })
     }
     var geometryMessage by remember(course?.id) {
         mutableStateOf(if (geometry != null) "Saved map · checking for updates…" else null)
@@ -63,8 +64,12 @@ fun GolfMap(
     val key = BuildConfig.MAPTILER_API_KEY
     val styleUrl = if (key.isNotBlank()) "https://api.maptiler.com/maps/satellite/style.json?key=$key" else ""
 
-    LaunchedEffect(course?.id, retryToken) {
-        if (course != null) {
+    LaunchedEffect(course?.id, retryToken, sharedGeometry) {
+        if (sharedGeometry != null) {
+            geometry = sharedGeometry
+            saveCachedGeometry(context, sharedGeometry)
+            geometryMessage = null
+        } else if (course != null) {
             geometryMessage = if (geometry == null) "Loading course features…" else "Saved map · refreshing in background…"
             CourseGeometryLoader.load(course) { result ->
                 result.onSuccess { fresh ->
