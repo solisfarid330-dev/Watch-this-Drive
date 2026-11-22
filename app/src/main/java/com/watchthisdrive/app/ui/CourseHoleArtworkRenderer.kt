@@ -372,6 +372,48 @@ internal object CourseHoleArtworkRenderer {
         return output
     }
 
+    /** Returns the same normalized canvas position used by render(), or null off the hole view. */
+    fun project(hole: ReconstructedHole, point: GeoPoint): Pair<Float, Float>? {
+        val geographic = buildList {
+            add(hole.tee)
+            add(hole.green)
+            addAll(hole.greenBoundary)
+            addAll(hole.fairwayEstimate)
+            hole.mappedFairways.forEach { addAll(it.points) }
+            hole.bunkers.forEach { addAll(it.points) }
+            hole.water.forEach { addAll(it.points) }
+            (hole.rough + hole.woodland + hole.paths + hole.trees).forEach { addAll(it.points) }
+        }.distinct()
+        val midLat = Math.toRadians((hole.tee.latitude + hole.green.latitude) / 2.0)
+        val lonScale = 111320.0 * cos(midLat)
+        val east = (hole.green.longitude - hole.tee.longitude) * lonScale
+        val north = (hole.green.latitude - hole.tee.latitude) * 111320.0
+        val length = hypot(east, north).coerceAtLeast(1.0)
+        val ux = east / length; val uy = north / length
+        val vx = -uy; val vy = ux
+        fun local(p: GeoPoint): XY {
+            val e = (p.longitude - hole.tee.longitude) * lonScale
+            val n = (p.latitude - hole.tee.latitude) * 111320.0
+            return XY(e * vx + n * vy, e * ux + n * uy)
+        }
+        val projected = geographic.map(::local)
+        val framing = projected.filter { it.x in -180.0..180.0 && it.y in -100.0..(length + 100.0) }
+        val minX = min(0.0, framing.minOfOrNull { it.x } ?: 0.0)
+        val maxX = max(0.0, framing.maxOfOrNull { it.x } ?: 0.0)
+        val minY = min(0.0, framing.minOfOrNull { it.y } ?: 0.0)
+        val maxY = max(length, framing.maxOfOrNull { it.y } ?: length)
+        val rangeX = (maxX - minX).coerceAtLeast(30.0)
+        val rangeY = (maxY - minY).coerceAtLeast(50.0)
+        val scale = min((RIGHT - LEFT) / rangeX, (BOTTOM - TOP) / rangeY) * 0.975
+        val ox = (WIDTH - rangeX * scale) / 2.0 - minX * scale
+        val oy = (TOP + BOTTOM - rangeY * scale) / 2.0 + maxY * scale
+        val q = local(point)
+        val x = ox + q.x * scale
+        val y = oy - q.y * scale
+        if (x !in 0.0..WIDTH.toDouble() || y !in 0.0..HEIGHT.toDouble()) return null
+        return (x / WIDTH).toFloat() to (y / HEIGHT).toFloat()
+    }
+
     private fun niceScaleMeters(raw: Double): Double {
         val safe = raw.coerceAtLeast(1.0)
         val power = 10.0.pow(floor(log10(safe)))
