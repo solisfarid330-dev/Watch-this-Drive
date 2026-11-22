@@ -29,32 +29,12 @@ private data class CourseArtworkPackage(val holes: List<HoleArtwork>)
 
 /** Generic asset contract: course_holes/<OSM-type>-<OSM-id>/manifest.json plus its PNGs. */
 private object CourseHoleArtworkRepository {
-    private fun normalizedName(value: String): String =
-        value.lowercase(java.util.Locale.ROOT).replace(Regex("[^a-z0-9]"), "")
-
     private fun findAssetRoot(context: android.content.Context, course: GolfCourse): String? {
         val exact = "course_holes/" + course.elementType.lowercase() + "-" + course.id
-        if (runCatching { context.assets.open(exact + "/manifest.json").close() }.isSuccess) {
-            return exact
+        return exact.takeIf { root ->
+            runCatching { context.assets.open(root + "/manifest.json").close() }.isSuccess
         }
-
-        // Search generated course packages by normalized name as a fallback.
-        // Course discovery can return a different OSM way/relation for the same
-        // named facility than the boundary element used when artwork was built.
-        val folders = runCatching { context.assets.list("course_holes").orEmpty() }
-            .getOrDefault(emptyArray())
-        val matching = folders.mapNotNull { folder ->
-            val root = "course_holes/" + folder
-            val manifest = runCatching {
-                context.assets.open(root + "/manifest.json").bufferedReader().use { it.readText() }
-            }.getOrNull() ?: return@mapNotNull null
-            val name = runCatching { JSONObject(manifest).optString("course") }.getOrNull()
-            if (name != null && normalizedName(name) == normalizedName(course.name)) root else null
-        }
-        // Do not guess if multiple courses share the same name.
-        return matching.singleOrNull()
     }
-
     fun load(context: android.content.Context, course: GolfCourse): CourseArtworkPackage? {
         val root = findAssetRoot(context, course) ?: return null
         val text = runCatching {
