@@ -260,7 +260,7 @@ object CourseGeometryLoader {
         val query = """
             [out:json][timeout:$OVERPASS_TIMEOUT_SECONDS];
             (
-              nwr["golf"~"^(hole|fairway|green|bunker|tee|water_hazard|rough|driving_range|practice)$"]($box);
+              nwr["golf"~"^(hole|fairway|green|bunker|tee|water_hazard|rough|driving_range|practice|cartpath)$"]($box);
               nwr["natural"~"^(water|wood)$"]($box);
               nwr["landuse"~"^(forest|grass|meadow)$"]($box);
               nwr["water"]($box);
@@ -381,9 +381,12 @@ object CourseGeometryLoader {
 
     private fun classify(tags: JSONObject): String? {
         val golf = tags.optString("golf").lowercase()
-        if (golf in setOf("hole", "fairway", "green", "bunker", "tee", "water_hazard", "rough")) {
-            return golf
-        }
+        if (golf in setOf(
+                "hole", "fairway", "green", "bunker", "tee", "water_hazard",
+                "rough", "driving_range", "practice"
+            )
+        ) return golf
+        if (golf == "cartpath") return "path"
         if (tags.optString("natural") == "water" || tags.has("water")) return "water"
         if (tags.optString("natural") in setOf("wood", "scrub")) return "woodland"
         if (tags.optString("landuse") in setOf("forest", "grass", "meadow")) {
