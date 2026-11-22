@@ -6,6 +6,7 @@ on:
     branches:
       - feature/hybrid-course-intelligence-foundation
       - feature/automatic-vector-hole-renderer
+      - feature/full-course-geometry-reconstruction
     paths:
       - "scripts/discover_lake_arlington_naip.py"
       - "scripts/build_lake_arlington_naip_crop.py"
