@@ -177,7 +177,7 @@ object HoleReconstructor {
         if (fairways.isEmpty()) return emptyList()
         val numbered = fairways.filter { number(it.holeNumber) == holeNumber }
         val routeScoped = if (centerline.size >= 2) {
-            fairways.filter { featureDistanceToPolyline(it, centerline) <= 140.0 }
+            fairways.filter { featureDistanceToPolyline(it, centerline) <= 65.0 }
         } else emptyList()
         // When a centerline exists, it is the authoritative corridor. Do not
         // pull in fairways merely because they are close to a straight tee-green chord.
