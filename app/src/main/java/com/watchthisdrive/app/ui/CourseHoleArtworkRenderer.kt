@@ -18,7 +18,7 @@ import kotlin.math.*
 
 /** Rich tee-bottom/green-top artwork, fitted to the complete reconstructed hole. */
 internal object CourseHoleArtworkRenderer {
-    private const val VERSION = 4
+    private const val VERSION = 5
     private const val WIDTH = 1200
     private const val HEIGHT = 1800
     private const val LEFT = 48.0
@@ -44,11 +44,18 @@ internal object CourseHoleArtworkRenderer {
         val output = File(folder, digest + ".png")
         if (output.exists() && output.length() > 0L) return output
 
+        // Frame the playable hole, not every nearby map feature. Long rivers and
+        // OSM hole centerlines can extend hundreds of metres beyond this hole;
+        // including them here makes the actual tee-to-green layout microscopic.
+        // Water and centerlines are still drawn, but are naturally clipped by the
+        // canvas at this hole-focused viewport.
         val geographic = buildList {
-            add(hole.tee); add(hole.green); addAll(hole.greenBoundary); addAll(hole.fairwayEstimate)
+            add(hole.tee)
+            add(hole.green)
+            addAll(hole.greenBoundary)
+            addAll(hole.fairwayEstimate)
             hole.mappedFairways.forEach { addAll(it.points) }
-            (hole.bunkers + hole.water).forEach { addAll(it.points) }
-            hole.mappedCenterline?.let { addAll(it.points) }
+            hole.bunkers.forEach { addAll(it.points) }
         }.distinct()
         val midLat = Math.toRadians((hole.tee.latitude + hole.green.latitude) / 2.0)
         val lonScale = 111320.0 * cos(midLat)
