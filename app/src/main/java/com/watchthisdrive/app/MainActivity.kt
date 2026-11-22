@@ -45,7 +45,7 @@ class MainActivity : ComponentActivity() {
 }
 
 private enum class Tab(val label: String) {
-    HOME("Home"), MAP("Course"), SCORE("Scorecard"), CADDY("Caddy")
+    HOME("Home"), PLAY("Play"), SCORE("Scorecard"), SETTINGS("Settings")
 }
 
 @Composable
@@ -129,9 +129,9 @@ private fun WatchThisDriveApp() {
                     Tab.values().forEach { tab ->
                         val icon = when (tab) {
                             Tab.HOME -> Icons.Filled.Home
-                            Tab.MAP -> Icons.Filled.Map
+                            Tab.PLAY -> Icons.Filled.Map
                             Tab.SCORE -> Icons.Filled.Scoreboard
-                            Tab.CADDY -> Icons.Filled.SportsGolf
+                            Tab.SETTINGS -> Icons.Filled.Settings
                         }
 
                         NavigationBarItem(
@@ -166,7 +166,7 @@ private fun WatchThisDriveApp() {
                             activeCourse = selectedCourse
                             selectedCourse = null
                             showNearbyCourses = false
-                            selected = Tab.CADDY
+                            selected = Tab.PLAY
                             locate()
                         },
                         onViewOnMap = {
@@ -177,7 +177,7 @@ private fun WatchThisDriveApp() {
                             }
                             selectedCourse = null
                             showNearbyCourses = false
-                            selected = Tab.MAP
+                            selected = Tab.PLAY
                         }
                     )
                 } else {
@@ -200,30 +200,134 @@ private fun WatchThisDriveApp() {
                         }
                     )
 
-                    Tab.MAP -> GolfMap(
-                        location = mapTarget ?: location,
-                        course = activeCourse,
-                        onLocate = { mapTarget = null; locate() }
-                    )
-
-                    Tab.SCORE -> PlaceholderScreen(
-                        "Scorecard",
-                        "Your round and player scores will live here.",
-                        Icons.Filled.Scoreboard
-                    )
-
-                    Tab.CADDY -> CaddyScreen(
-                        course = activeCourse,
-                        location = location,
-                        onLocate = { locate() },
-                        onFindCourse = {
-                            selectedCourse = null
-                            showNearbyCourses = true
+                    Tab.PLAY -> {
+                        if (activeCourse == null) {
+                            EmptyRoundScreen(onFindCourse = {
+                                selectedCourse = null
+                                showNearbyCourses = true
+                            })
+                        } else {
+                            RoundHubScreen(
+                                course = activeCourse!!,
+                                location = location,
+                                mapTarget = mapTarget,
+                                onLocate = { mapTarget = null; locate() },
+                                onFindCourse = {
+                                    selectedCourse = null
+                                    showNearbyCourses = true
+                                }
+                            )
                         }
+                    }
+
+                    Tab.SCORE -> ScorecardScreen(course = activeCourse)
+
+                    Tab.SETTINGS -> SettingsScreen(
+                        locationMessage = locationMessage,
+                        location = location,
+                        onLocate = { locate() }
                     )
                 }
             }
         }
+    }
+}
+ 
+@Composable
+private fun EmptyRoundScreen(onFindCourse: () -> Unit) {
+    Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.Center) {
+        Text("READY TO PLAY?", color = Color(0xFFB8F36B), style = MaterialTheme.typography.labelLarge)
+        Text("Your course belongs here.", color = Color.White, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+        Text("Choose a course to bring the satellite map, illustrated hole, GPS distances and caddy together.", color = Color(0xFFB6C1B9))
+        Button(onClick = onFindCourse, modifier = Modifier.fillMaxWidth()) { Text("FIND A COURSE") }
+    }
+}
+
+@Composable
+private fun RoundHubScreen(
+    course: GolfCourse,
+    location: Location?,
+    mapTarget: Location?,
+    onLocate: () -> Unit,
+    onFindCourse: () -> Unit
+) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 20.dp)) {
+        Text("YOUR ROUND", color = Color(0xFFB8F36B), style = MaterialTheme.typography.labelLarge,
+            modifier = Modifier.padding(start = 18.dp, top = 14.dp))
+        Text(course.name, color = Color.White, style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 18.dp, vertical = 6.dp))
+        GolfMap(location = mapTarget ?: location, course = course, onLocate = onLocate)
+        CaddyScreen(course = course, location = location, onLocate = onLocate, onFindCourse = onFindCourse)
+    }
+}
+
+@Composable
+private fun ScorecardScreen(course: GolfCourse?) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val prefs = remember(course?.id) { context.getSharedPreferences("watch_this_drive_scorecard_${course?.id ?: 0}", android.content.Context.MODE_PRIVATE) }
+    var scores by remember(course?.id) { mutableStateOf((1..18).map { hole ->
+        prefs.getInt("strokes_$hole", 0)
+    }) }
+    var pars by remember(course?.id) { mutableStateOf((1..18).map { hole ->
+        prefs.getInt("par_$hole", if (hole in listOf(1, 4, 7, 10, 13, 16)) 4 else 4)
+    }) }
+    val total = scores.sum()
+    val played = scores.count { it > 0 }
+    Column(Modifier.fillMaxSize().padding(18.dp)) {
+        Text("SCORECARD", color = Color(0xFFB8F36B), style = MaterialTheme.typography.labelLarge)
+        Text(course?.name ?: "No active round", color = Color.White, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        Text(if (played == 0) "Enter your score as you play each hole." else "$played holes · $total strokes · Par ${pars.take(played).sum()}",
+            color = Color(0xFFB6C1B9))
+        if (course == null) Text("Start a round from a selected course to keep its scorecard.", color = Color(0xFFB6C1B9))
+        LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.weight(1f)) {
+            items((1..18).toList()) { hole ->
+                val index = hole - 1
+                Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF1D2A22))) {
+                    Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text("Hole $hole", color = Color.White, fontWeight = FontWeight.Bold)
+                            Text("Par ${pars[index]}", color = Color(0xFFB6C1B9), style = MaterialTheme.typography.bodySmall)
+                        }
+                        TextButton(onClick = {
+                            pars = pars.toMutableList().also { it[index] = (it[index] - 1).coerceIn(3, 5) }
+                            prefs.edit().putInt("par_$hole", pars[index]).apply()
+                        }) { Text("−") }
+                        Text("${pars[index]}", color = Color.White)
+                        TextButton(onClick = {
+                            pars = pars.toMutableList().also { it[index] = (it[index] + 1).coerceIn(3, 5) }
+                            prefs.edit().putInt("par_$hole", pars[index]).apply()
+                        }) { Text("+") }
+                        TextButton(onClick = {
+                            scores = scores.toMutableList().also { it[index] = (it[index] - 1).coerceAtLeast(0) }
+                            prefs.edit().putInt("strokes_$hole", scores[index]).apply()
+                        }) { Text("−") }
+                        Text("${scores[index].takeIf { it > 0 } ?: "—"}", color = Color(0xFFB8F36B), fontWeight = FontWeight.Bold)
+                        TextButton(onClick = {
+                            scores = scores.toMutableList().also { it[index] = (it[index] + 1).coerceAtMost(20) }
+                            prefs.edit().putInt("strokes_$hole", scores[index]).apply()
+                        }) { Text("+") }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingsScreen(locationMessage: String, location: Location?, onLocate: () -> Unit) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(18.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Text("SETTINGS", color = Color(0xFFB8F36B), style = MaterialTheme.typography.labelLarge)
+        Text("Location & clubs", color = Color.White, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF1D2A22))) {
+            Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("GPS STATUS", color = Color(0xFFB8F36B), fontWeight = FontWeight.Bold)
+                Text(locationMessage, color = Color.White)
+                location?.let { Text("${"%.5f".format(Locale.US, it.latitude)}, ${"%.5f".format(Locale.US, it.longitude)}", color = Color(0xFFB6C1B9)) }
+                OutlinedButton(onClick = onLocate, modifier = Modifier.fillMaxWidth()) { Text("CHECK MY LOCATION") }
+            }
+        }
+        ClubDistancesSettings()
     }
 }
 
@@ -297,47 +401,6 @@ private fun HomeScreen(
                     Icon(Icons.Filled.Search, null)
                     Spacer(Modifier.width(8.dp))
                     Text("FIND NEARBY COURSES", fontWeight = FontWeight.Bold)
-                }
-            }
-        }
-
-        Card(
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF18231C)),
-            shape = RoundedCornerShape(18.dp)
-        ) {
-            Column(
-                Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Filled.MyLocation,
-                        null,
-                        tint = Color(0xFFB8F36B)
-                    )
-                    Spacer(Modifier.width(9.dp))
-                    Text("GPS STATUS", color = Color.White, fontWeight = FontWeight.Bold)
-                }
-                Text(message, color = Color(0xFFB6C1B9))
-
-                if (location != null) {
-                    Text(
-                        "${"%.5f".format(Locale.US, location.latitude)}, ${
-                            "%.5f".format(Locale.US, location.longitude)
-                        }",
-                        color = Color.White,
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-
-                OutlinedButton(
-                    onClick = onLocate,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = Color(0xFFB8F36B)
-                    )
-                ) {
-                    Text("CHECK MY LOCATION")
                 }
             }
         }
