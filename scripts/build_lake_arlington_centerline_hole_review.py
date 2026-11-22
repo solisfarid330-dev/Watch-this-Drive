@@ -62,6 +62,14 @@ def choose_hole(features):
         ranked.append((score, feature, by_type, ambiguous))
     if not ranked:
         raise RuntimeError("No OSM hole centerlines were reconstructed")
+    # Hole 16 is the pilot selected during visual inspection of the OSM
+    # centerlines: three tee markers, one green, one mapped fairway, no
+    # ambiguous associations. Keep this review stable rather than silently
+    # switching to a different hole when score ties or metadata changes.
+    for item in ranked:
+        label = (item[1].get("properties") or {}).get("hole_label")
+        if str(label) == "16" and item[3] == 0:
+            return item
     ranked.sort(key=lambda item: item[0], reverse=True)
     return ranked[0]
 
@@ -137,30 +145,32 @@ def main():
         draw_geom(centerline, (255, 255, 255), 4)
 
         legend = [
-            ("OSM hole centerline", (255, 255, 255)),
+            ("OSM centerline", (255, 255, 255)),
             ("Mapped fairway", (255, 210, 45)),
             ("Mapped green", (65, 255, 100)),
             ("Mapped tee", (0, 235, 255)),
             ("Mapped bunker", (255, 145, 40)),
             ("Mapped water", (55, 155, 255)),
         ]
-        panel = Image.new("RGBA", (image.width, 145), (0, 0, 0, 185))
-        image = image.convert("RGBA")
-        image.alpha_composite(panel, (0, image.height - 145))
-        draw = ImageDraw.Draw(image)
+        # Put labels in dedicated header/footer bands so neither text nor
+        # legend obscures the aerial crop or gets clipped on narrow crops.
+        canvas = Image.new("RGB", (WIDTH, HEIGHT + 150), (24, 32, 29))
+        image.thumbnail((WIDTH - 40, HEIGHT - 100), Image.Resampling.LANCZOS)
+        x0 = (WIDTH - image.width) // 2
+        y0 = 80 + (HEIGHT - 100 - image.height) // 2
+        canvas.paste(image, (x0, y0))
+        draw = ImageDraw.Draw(canvas)
         title = f"Lake Arlington — OSM Hole {props.get('hole_label', 'unlabeled')}"
-        draw.text((22, 18), title, font=font(34), fill="white", stroke_width=2, stroke_fill="black")
-        draw.text((22, image.height - 132),
-                  "Aerial imagery + mapped OSM geometry | Not a finished hole map",
-                  font=font(22), fill="white")
-        x, y = 24, image.height - 92
+        draw.text((30, 18), title, font=font(34), fill="white")
+        draw.text((30, HEIGHT + 10),
+                  "NAIP aerial reference • Existing OSM geometry only • Not a finished hole map",
+                  font=font(19), fill="white")
+        x, y = 30, HEIGHT + 55
         for label, color in legend:
-            draw.line((x, y+10, x+30, y+10), fill=color, width=6)
-            draw.text((x+38, y), label, font=font(16), fill="white")
-            x += 230
-            if x > image.width - 220:
-                x, y = 24, y + 30
-        image.convert("RGB").save(OUT_PNG, optimize=True)
+            draw.line((x, y+10, x+26, y+10), fill=color, width=6)
+            draw.text((x+34, y), label, font=font(16), fill="white")
+            x += 235
+        canvas.save(OUT_PNG, optimize=True)
 
     output = {
         "type": "FeatureCollection",
