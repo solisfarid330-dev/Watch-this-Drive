@@ -192,7 +192,7 @@ private fun PlayingCaddyScreen(
                             loading -> Text("Building hole layouts from mapped tees, greens and hazards…", color = caddyMuted)
                             reconstructedHoles.isEmpty() -> Text("Insufficient mapped tee and green features for a hole preview.", color = caddyMuted)
                             else -> {
-                                Text("${reconstructedHoles.size} estimated hole layout(s) generated. Choose one to preview.", color = caddyMuted, style = MaterialTheme.typography.bodySmall)
+                                Text("${reconstructedHoles.size} reconstructed hole layout(s). Mapped fairways are preserved where available.", color = caddyMuted, style = MaterialTheme.typography.bodySmall)
                                 OutlinedButton(onClick = { holeMenuExpanded = true }, modifier = Modifier.fillMaxWidth()) {
                                     Text(selectedHole?.let { "HOLE ${it.number} · ${(it.lengthMeters * 1.0936133).roundToInt()} yd" } ?: "SELECT HOLE")
                                 }
@@ -205,11 +205,11 @@ private fun PlayingCaddyScreen(
                                     }
                                 }
                                 selectedHole?.let { hole ->
-                                    CourseHoleArtworkForHole(course = course, holeNumber = hole.number) {
+                                    CourseHoleArtworkForHole(course = course, holeNumber = hole.number, reconstructedHole = hole) {
                                         ReconstructedHoleMap(hole = hole, location = location, modifier = Modifier.fillMaxWidth().height(440.dp))
                                     }
                                 }
-                                Text("Early estimate: tee/green pairing may be wrong where hole numbers are missing. Fairway is generated, not surveyed.", color = caddyMuted, style = MaterialTheme.typography.bodySmall)
+                                Text("Early estimate: tee/green pairing may be uncertain where hole numbers are missing. Estimated fairway corridors are labeled separately from mapped fairways.", color = caddyMuted, style = MaterialTheme.typography.bodySmall)
                             }
                         }
                     }
