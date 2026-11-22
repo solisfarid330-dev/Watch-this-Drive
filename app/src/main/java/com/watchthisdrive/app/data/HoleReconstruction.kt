@@ -102,7 +102,8 @@ object HoleReconstructor {
         val landscape = geometry.features.filter {
             it.featureType.equals("rough", true) ||
                 it.featureType.equals("woodland", true) ||
-                it.featureType.equals("path", true)
+                it.featureType.equals("path", true) ||
+                it.featureType.equals("tree", true)
         }
 
         return assignments.mapIndexed { fallbackIndex, pair ->
