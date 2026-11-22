@@ -205,7 +205,9 @@ private fun PlayingCaddyScreen(
                                     }
                                 }
                                 selectedHole?.let { hole ->
-                                    ReconstructedHoleMap(hole = hole, location = location, modifier = Modifier.fillMaxWidth().height(440.dp))
+                                    CourseHoleArtworkForHole(course = course, holeNumber = hole.number) {
+                                        ReconstructedHoleMap(hole = hole, location = location, modifier = Modifier.fillMaxWidth().height(440.dp))
+                                    }
                                 }
                                 Text("Early estimate: tee/green pairing may be wrong where hole numbers are missing. Fairway is generated, not surveyed.", color = caddyMuted, style = MaterialTheme.typography.bodySmall)
                             }
