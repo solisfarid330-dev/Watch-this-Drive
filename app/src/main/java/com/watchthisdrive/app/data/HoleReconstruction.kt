@@ -1,6 +1,7 @@
 package com.watchthisdrive.app.data
 
 import kotlin.math.*
+import java.util.ArrayDeque
 
 /**
  * A reconstructed hole keeps surveyed/mapped OSM geometry separate from any
@@ -206,7 +207,7 @@ object HoleReconstructor {
                 ?: meters(point, line.first())
         } ?: Double.POSITIVE_INFINITY
     private fun featureDistanceToPoint(point: GeoPoint, feature: CourseFeature): Double {
-        if (feature.points.size >= 4 && pointInPolygon(point, feature.points)) return 0.0
+        if (isClosedPolygon(feature.points) && pointInPolygon(point, feature.points)) return 0.0
         return feature.points.zipWithNext().minOfOrNull { (a, b) -> distanceToSegment(point, a, b) }
             ?: feature.points.minOfOrNull { meters(point, it) } ?: Double.POSITIVE_INFINITY
     }
@@ -294,7 +295,7 @@ object HoleReconstructor {
         ?: Double.POSITIVE_INFINITY
 
     private fun featureDistance(first: CourseFeature, second: CourseFeature): Double {
-        if (first.points.any { point -> second.points.size >= 4 && pointInPolygon(point, second.points) }) {
+        if (first.points.any { point -> isClosedPolygon(second.points) && pointInPolygon(point, second.points) }) {
             return 0.0
         }
         return first.points.minOfOrNull { a ->
@@ -315,6 +316,9 @@ object HoleReconstructor {
             (((p.first - a.first) * dx + (p.second - a.second) * dy) / denominator).coerceIn(0.0, 1.0)
         return hypot(p.first - (a.first + t * dx), p.second - (a.second + t * dy))
     }
+
+    private fun isClosedPolygon(points: List<GeoPoint>): Boolean =
+        points.size >= 4 && meters(points.first(), points.last()) <= 5.0
 
     private fun pointInPolygon(point: GeoPoint, polygon: List<GeoPoint>): Boolean {
         var inside = false
