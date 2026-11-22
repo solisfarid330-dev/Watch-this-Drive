@@ -135,6 +135,7 @@ fun GolfMap(
                         LatLng(location.latitude, location.longitude), 16.0
                     )
                 )
+                map.style?.let { renderPlayerLocation(it, location) }
             }
         }
     }
@@ -281,6 +282,43 @@ private fun saveCachedGeometry(context: android.content.Context, geometry: Cours
         context.getSharedPreferences("course_geometry_cache", android.content.Context.MODE_PRIVATE)
             .edit().putString(cacheKey(geometry.courseId), root.toString()).apply()
     }
+}
+
+private const val PLAYER_SOURCE_ID = "watch-this-drive-player-location"
+
+private fun renderPlayerLocation(style: Style, location: Location) {
+    val point = JSONObject()
+        .put("type", "Feature")
+        .put("geometry", JSONObject()
+            .put("type", "Point")
+            .put("coordinates", JSONArray().put(location.longitude).put(location.latitude)))
+        .put("properties", JSONObject())
+    val geoJson = JSONObject()
+        .put("type", "FeatureCollection")
+        .put("features", JSONArray().put(point))
+        .toString()
+    val existing = style.getSourceAs<GeoJsonSource>(PLAYER_SOURCE_ID)
+    if (existing != null) {
+        existing.setGeoJson(geoJson)
+        return
+    }
+    style.addSource(GeoJsonSource(PLAYER_SOURCE_ID, geoJson))
+    style.addLayer(CircleLayer("player-location-halo", PLAYER_SOURCE_ID).apply {
+        setProperties(
+            circleColor("#F8FFF0"),
+            circleRadius(13f),
+            circleStrokeColor("#173D2B"),
+            circleStrokeWidth(2.5f)
+        )
+    })
+    style.addLayer(CircleLayer("player-location-dot", PLAYER_SOURCE_ID).apply {
+        setProperties(
+            circleColor("#B8F36B"),
+            circleRadius(7f),
+            circleStrokeColor("#173D2B"),
+            circleStrokeWidth(1.5f)
+        )
+    })
 }
 
 private fun renderCourseFeatures(style: Style, features: List<CourseFeature>) {
