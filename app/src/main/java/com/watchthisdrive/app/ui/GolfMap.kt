@@ -47,7 +47,8 @@ fun GolfMap(
     course: GolfCourse?,
     onLocate: () -> Unit,
     sharedGeometry: CourseGeometry? = null,
-    useSharedGeometry: Boolean = false
+    useSharedGeometry: Boolean = false,
+    modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     val mapView = remember {
@@ -141,7 +142,7 @@ fun GolfMap(
         }
     }
 
-    Box(Modifier.fillMaxSize()) {
+    Box(modifier.fillMaxWidth().height(320.dp)) {
         AndroidView(factory = { mapView }, modifier = Modifier.fillMaxSize())
         if (key.isBlank()) {
             Card(
