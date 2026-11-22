@@ -331,15 +331,14 @@ object CourseGeometryLoader {
             val featureType = classify(tags) ?: continue
             val points = readGeometry(element.optJSONArray("geometry")).ifEmpty {
                 val center = element.optJSONObject("center")
-                if (center != null) {
-                    listOf(GeoPoint(
-                        center.optDouble("lat", Double.NaN),
-                        center.optDouble("lon", Double.NaN)
-                    ).takeIf { it.latitude.isFinite() && it.longitude.isFinite() } ?: return@letEmpty)
+                val lat = if (center != null) center.optDouble("lat", Double.NaN)
+                    else element.optDouble("lat", Double.NaN)
+                val lon = if (center != null) center.optDouble("lon", Double.NaN)
+                    else element.optDouble("lon", Double.NaN)
+                if (lat.isFinite() && lon.isFinite() && lat in -90.0..90.0 && lon in -180.0..180.0) {
+                    listOf(GeoPoint(lat, lon))
                 } else {
-                    val lat = element.optDouble("lat", Double.NaN)
-                    val lon = element.optDouble("lon", Double.NaN)
-                    if (lat.isFinite() && lon.isFinite()) listOf(GeoPoint(lat, lon)) else emptyList()
+                    emptyList()
                 }
             }
             if (points.isEmpty()) continue
