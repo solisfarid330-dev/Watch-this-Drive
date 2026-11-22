@@ -72,6 +72,14 @@ private fun PlayingCaddyScreen(
         ?: greens.firstOrNull { it.id == selectedGreenId }
         ?: greens.firstOrNull()
     val target = selectedGreen?.let { greenCenter(it) }
+    val reconstructedHole = remember(geometry, activeHole) {
+        geometry?.let { HoleReconstructor.reconstruct(it).firstOrNull { hole -> hole.number == activeHole } }
+    }
+    val approachHazards = remember(location?.latitude, location?.longitude, target?.latitude, target?.longitude, reconstructedHole) {
+        if (location == null || target == null) emptyList()
+        else (reconstructedHole?.water.orEmpty() + reconstructedHole?.bunkers.orEmpty())
+            .filter { hazardNearShotLine(it, location, target) }
+    }
     val loading = course != null && geometry == null
     val error: String? = null
     val preferences = LocalContext.current.getSharedPreferences("watch_this_drive_caddy", Context.MODE_PRIVATE)
@@ -186,6 +194,14 @@ private fun PlayingCaddyScreen(
                         Text(recommendation?.first?.name ?: "Waiting for distance", color = Color.White, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                         Text(recommendation?.let { "Typical carry: " + it.second + " yd" } ?: "A recommendation appears when GPS and a mapped green are available.", color = caddyMuted)
                         Text("Recommendation uses carry distance only. It does not yet account for wind, slope, or pin position.", color = caddyMuted, style = MaterialTheme.typography.bodySmall)
+                        approachHazards.firstOrNull()?.let { hazard ->
+                            Text(
+                                "HAZARD AHEAD: mapped ${hazard.featureType.replace('_', ' ')} lies close to the direct line to this green. Consider a safer lay-up rather than carrying blindly at the target.",
+                                color = Color(0xFFFFC078),
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
                     }
                 }
             }
@@ -260,6 +276,23 @@ private fun PlayingCaddyScreen(
                 }
             }
         }
+    }
+}
+
+private fun hazardNearShotLine(feature: CourseFeature, start: Location, end: Location): Boolean {
+    if (feature.points.isEmpty()) return false
+    val midLat = Math.toRadians((start.latitude + end.latitude) / 2.0)
+    val scaleX = 111_320.0 * kotlin.math.cos(midLat)
+    val dx = (end.longitude - start.longitude) * scaleX
+    val dy = (end.latitude - start.latitude) * 111_320.0
+    val lengthSquared = dx * dx + dy * dy
+    if (lengthSquared < 1.0) return false
+    return feature.points.any { point ->
+        val px = (point.longitude - start.longitude) * scaleX
+        val py = (point.latitude - start.latitude) * 111_320.0
+        val t = ((px * dx + py * dy) / lengthSquared).coerceIn(0.0, 1.0)
+        if (t !in 0.08..0.96) false
+        else kotlin.math.hypot(px - t * dx, py - t * dy) <= 28.0
     }
 }
 
