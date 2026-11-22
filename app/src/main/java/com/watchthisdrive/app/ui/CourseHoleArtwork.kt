@@ -178,10 +178,10 @@ fun CourseHoleArtworkForHole(
     fallback: @Composable () -> Unit
 ) {
     val context = LocalContext.current
-    var loading by remember(course.elementType, course.id, holeNumber) { mutableStateOf(true) }
-    var bitmap by remember(course.elementType, course.id, holeNumber) { mutableStateOf<Bitmap?>(null) }
+    var loading by remember(course.elementType, course.id, holeNumber, reconstructedHole) { mutableStateOf(true) }
+    var bitmap by remember(course.elementType, course.id, holeNumber, reconstructedHole) { mutableStateOf<Bitmap?>(null) }
 
-    LaunchedEffect(course.elementType, course.id, holeNumber) {
+    LaunchedEffect(course.elementType, course.id, holeNumber, reconstructedHole) {
         loading = true
         bitmap = withContext(Dispatchers.IO) {
             val pack = CourseHoleArtworkRepository.load(context, course)
