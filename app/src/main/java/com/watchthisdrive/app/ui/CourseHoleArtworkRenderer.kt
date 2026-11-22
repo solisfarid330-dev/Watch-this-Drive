@@ -230,12 +230,12 @@ internal object CourseHoleArtworkRenderer {
         val green = polygon(hole.greenBoundary, 0xFF9DBF65.toInt(), 0xFFF0F4C8.toInt(), 11f)
         if (green != null) {
             canvas.save(); canvas.clipPath(green)
-            paint.shader = RadialGradient(WIDTH * .5f, TOP + 130f, 420f,
+            paint.shader = RadialGradient(WIDTH * .5f, TOP.toFloat() + 130f, 420f,
                 intArrayOf(0x66E1F5A4, 0x229AC65B, 0x009AC65B), null, Shader.TileMode.CLAMP)
             canvas.drawRect(full, paint); paint.shader = null
             paint.style = Paint.Style.STROKE; paint.color = 0x32718E3D; paint.strokeWidth = 2f
-            for (i in 1..5) canvas.drawOval(WIDTH * .5f - i * 30f, TOP + 90f - i * 14f,
-                WIDTH * .5f + i * 30f, TOP + 90f + i * 14f, paint)
+            for (i in 1..5) canvas.drawOval(WIDTH * .5f - i * 30f, TOP.toFloat() + 90f - i * 14f,
+                WIDTH * .5f + i * 30f, TOP.toFloat() + 90f + i * 14f, paint)
             paint.style = Paint.Style.FILL; canvas.restore()
         }
 
