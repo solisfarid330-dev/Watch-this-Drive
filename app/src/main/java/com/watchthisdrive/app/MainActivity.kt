@@ -840,7 +840,7 @@ private fun CourseDetailScreen(
             style = MaterialTheme.typography.bodyLarge
         )
 
-        CourseHoleArtworkPanel(course = course)
+        CourseHoleArtworkPanel(course = course, geometry = geometry)
 
         Card(
             colors = CardDefaults.cardColors(
