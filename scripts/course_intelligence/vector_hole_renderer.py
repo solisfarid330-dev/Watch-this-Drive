@@ -81,7 +81,7 @@ def main():
     features = review.get("features", [])
     centerline_features = [
         feature for feature in features
-        if feature.get("properties", {}).get("role") == "osm_hole_centerline"
+        if feature.get("properties", {}).get("role") in {"osm_hole_centerline", "provisional_tee_to_green_route_hypothesis"}
     ]
     if args.hole_number:
         centerline_features = [
@@ -89,7 +89,7 @@ def main():
             if str(feature.get("properties", {}).get("hole_label")) == str(args.hole_number)
         ]
     if len(centerline_features) != 1:
-        raise ValueError("Hole review must identify exactly one centerline (use --hole-number if needed)")
+        raise ValueError("Hole review must identify exactly one mapped centerline or provisional tee-to-green route (use --hole-number if needed)")
     centerline = centerline_features[0]
     hole_label = centerline.get("properties", {}).get("hole_label", "—")
     tees = [f for f in features if f.get("properties", {}).get("golf_type") == "tee"]
