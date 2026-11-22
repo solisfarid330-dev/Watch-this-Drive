@@ -137,4 +137,50 @@ class HoleReconstructorTest {
         assertEquals(5L, hole.paths.single().id)
     }
 
+    @Test
+    fun estimatedFairwayFollowsMappedDoglegCenterline() {
+        val route = listOf(
+            GeoPoint(0.0, 0.0),
+            GeoPoint(0.001, 0.0004),
+            GeoPoint(0.0012, 0.0025),
+            GeoPoint(0.004, 0.003)
+        )
+        val geometry = CourseGeometry(99, "Dogleg", listOf(
+            feature(1, "tee", 0.0, 0.0),
+            feature(2, "green", 0.004, 0.003),
+            feature(3, "hole", 0.0, 0.0, points = route)
+        ))
+
+        val hole = HoleReconstructor.reconstruct(geometry).single()
+        val directMidpoint = GeoPoint(0.002, 0.0015)
+        val routeBend = route[2]
+
+        assertEquals(route, hole.mappedCenterline?.points)
+        assertTrue(hole.fairwayEstimate.isNotEmpty())
+        // The generated corridor must preserve the dogleg bend, not collapse
+        // to the straight tee-green axis.
+        assertTrue(hole.fairwayEstimate.any { point ->
+            kotlin.math.abs(point.longitude - routeBend.longitude) < 0.0003 &&
+                kotlin.math.abs(point.latitude - routeBend.latitude) < 0.0003
+        })
+        assertTrue(kotlin.math.abs(routeBend.longitude - directMidpoint.longitude) > 0.0005)
+    }
+
+    @Test
+    fun centerlineMustConnectNearBothHoleEndpoints() {
+        val unrelated = listOf(
+            GeoPoint(0.001, 0.002),
+            GeoPoint(0.002, 0.002),
+            GeoPoint(0.003, 0.002)
+        )
+        val geometry = CourseGeometry(99, "Fixture", listOf(
+            feature(1, "tee", 0.0, 0.0),
+            feature(2, "green", 0.004, 0.004),
+            feature(3, "hole", 0.0, 0.0, points = unrelated)
+        ))
+
+        val hole = HoleReconstructor.reconstruct(geometry).single()
+        assertEquals(null, hole.mappedCenterline)
+    }
+
 }
