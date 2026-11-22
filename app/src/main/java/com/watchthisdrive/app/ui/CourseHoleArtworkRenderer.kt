@@ -33,6 +33,7 @@ internal object CourseHoleArtworkRenderer {
             append("renderer=").append(VERSION).append('|').append(cacheKey).append('|').append(hole.number)
             append('|').append(hole.tee).append('|').append(hole.green).append('|').append(hole.greenBoundary)
             append('|').append(hole.fairwayEstimate).append('|').append(hole.lengthMeters)
+            append('|').append(hole.par).append('|').append(hole.handicap)
             hole.mappedFairways.forEach { append("|f:").append(it.id).append(it.points) }
             hole.bunkers.forEach { append("|b:").append(it.id).append(it.points) }
             hole.water.forEach { append("|w:").append(it.id).append(it.points) }
@@ -56,6 +57,8 @@ internal object CourseHoleArtworkRenderer {
             addAll(hole.fairwayEstimate)
             hole.mappedFairways.forEach { addAll(it.points) }
             hole.bunkers.forEach { addAll(it.points) }
+            hole.water.forEach { addAll(it.points) }
+            (hole.rough + hole.woodland + hole.paths + hole.trees).forEach { addAll(it.points) }
         }.distinct()
         val midLat = Math.toRadians((hole.tee.latitude + hole.green.latitude) / 2.0)
         val lonScale = 111320.0 * cos(midLat)
@@ -71,11 +74,15 @@ internal object CourseHoleArtworkRenderer {
             return XY(e * vx + n * vy, e * ux + n * uy)
         }
         val projected = geographic.map(::local)
-        // Use min AND max on both axes; include the tee, green, hazards and dogleg.
-        val minX = min(0.0, projected.minOfOrNull { it.x } ?: 0.0)
-        val maxX = max(0.0, projected.maxOfOrNull { it.x } ?: 0.0)
-        val minY = min(0.0, projected.minOfOrNull { it.y } ?: 0.0)
-        val maxY = max(length, projected.maxOfOrNull { it.y } ?: length)
+        // Nearby water and landscape features belong in the viewport, but a long
+        // river or woodland boundary must not zoom the playable hole into a sliver.
+        // Keep framing focused around the tee-green axis; full feature paths are
+        // still drawn at their real coordinates and naturally clipped by canvas.
+        val framing = projected.filter { it.x in -180.0..180.0 && it.y in -100.0..(length + 100.0) }
+        val minX = min(0.0, framing.minOfOrNull { it.x } ?: 0.0)
+        val maxX = max(0.0, framing.maxOfOrNull { it.x } ?: 0.0)
+        val minY = min(0.0, framing.minOfOrNull { it.y } ?: 0.0)
+        val maxY = max(length, framing.maxOfOrNull { it.y } ?: length)
         val rangeX = (maxX - minX).coerceAtLeast(30.0)
         val rangeY = (maxY - minY).coerceAtLeast(50.0)
         val scale = min((RIGHT - LEFT) / rangeX, (BOTTOM - TOP) / rangeY) * 0.975
