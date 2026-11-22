@@ -72,6 +72,11 @@ fun CourseHoleArtworkPanel(course: GolfCourse, geometry: CourseGeometry?) {
     var image by remember(course.elementType, course.id) { mutableStateOf<Bitmap?>(null) }
     var generatedImages by remember(course.elementType, course.id) { mutableStateOf<Map<Int, File>>(emptyMap()) }
     var generating by remember(course.elementType, course.id) { mutableStateOf(false) }
+    // Reconstruction is pure but non-trivial; do it once per geometry snapshot,
+    // not on every Compose recomposition (chip selection, loading, bitmap updates).
+    val reconstructedHoles = remember(geometry) {
+        geometry?.let { HoleReconstructor.reconstruct(it) }.orEmpty()
+    }
 
     LaunchedEffect(course.elementType, course.id) {
         loading = true
@@ -82,18 +87,26 @@ fun CourseHoleArtworkPanel(course: GolfCourse, geometry: CourseGeometry?) {
         selected = loaded?.holes?.firstOrNull()?.number
         loading = false
     }
-    LaunchedEffect(course.elementType, course.id, geometry, artwork) {
-        val sourceGeometry = geometry
-        if (sourceGeometry != null) {
+    LaunchedEffect(course.elementType, course.id, geometry) {
+        if (selected == null) {
+            selected = artwork?.holes?.firstOrNull()?.number ?: reconstructedHoles.firstOrNull()?.number
+        }
+    }
+
+    // Render only the hole the golfer is viewing. Rendering an entire course at
+    // panel-open time caused a long burst of CPU and bitmap allocation on phones.
+    // The renderer's disk cache keeps revisited holes inexpensive.
+    LaunchedEffect(course.elementType, course.id, geometry, selected) {
+        val hole = reconstructedHoles.firstOrNull { it.number == selected }
+        if (hole != null && selected !in generatedImages) {
             generating = true
             try {
                 val rendered = withContext(Dispatchers.Default) {
-                    HoleReconstructor.reconstruct(sourceGeometry).associate { hole ->
-                        hole.number to CourseHoleArtworkRenderer.render(hole, context.cacheDir, course.elementType + "-" + course.id)
-                    }
+                    CourseHoleArtworkRenderer.render(
+                        hole, context.cacheDir, course.elementType + "-" + course.id
+                    )
                 }
-                generatedImages = rendered
-                if (selected == null) selected = rendered.keys.minOrNull()
+                generatedImages = generatedImages + (hole.number to rendered)
             } finally {
                 generating = false
             }
@@ -123,7 +136,11 @@ fun CourseHoleArtworkPanel(course: GolfCourse, geometry: CourseGeometry?) {
                     else "There is not enough mapped tee/green geometry to reconstruct holes for this course yet. Satellite maps and mapped course details remain available.",
                     color = Color(0xFFB6C1B9))
                 else -> {
-                    val availableNumbers = (artwork?.holes?.map { it.number }.orEmpty() + generatedImages.keys).distinct().sorted()
+                    val availableNumbers = (
+                        artwork?.holes?.map { it.number }.orEmpty() +
+                            reconstructedHoles.map { it.number } +
+                            generatedImages.keys
+                        ).distinct().sorted()
                     Text("${availableNumbers.size} hole views · ${generatedImages.size} generated on this device",
                         color = Color(0xFFB8F36B), style = MaterialTheme.typography.labelMedium)
                     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
@@ -135,9 +152,7 @@ fun CourseHoleArtworkPanel(course: GolfCourse, geometry: CourseGeometry?) {
                                 label = { Text("Hole " + label) })
                         }
                     }
-                    val selectedHole = geometry?.let { source ->
-                        HoleReconstructor.reconstruct(source).firstOrNull { it.number == selected }
-                    }
+                    val selectedHole = reconstructedHoles.firstOrNull { it.number == selected }
                     Text(
                         "HOLE ${selected ?: "—"} · ${selectedHole?.par?.let { "PAR $it" } ?: "PAR UNKNOWN"}" +
                             (selectedHole?.handicap?.let { " · HCP $it" } ?: ""),
