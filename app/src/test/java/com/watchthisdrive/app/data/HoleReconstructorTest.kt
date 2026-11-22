@@ -183,4 +183,35 @@ class HoleReconstructorTest {
         assertEquals(null, hole.mappedCenterline)
     }
 
+    @Test
+    fun centerlineThatLeavesMappedFairwayIsRejectedButFairwayIsPreserved() {
+        val fairway = listOf(
+            GeoPoint(0.0002, -0.00025),
+            GeoPoint(0.0038, -0.00025),
+            GeoPoint(0.0038, 0.00025),
+            GeoPoint(0.0002, 0.00025),
+            GeoPoint(0.0002, -0.00025)
+        )
+        // Endpoints are plausible, but the route makes a large lateral detour
+        // outside the mapped fairway between the tee and green.
+        val badRoute = listOf(
+            GeoPoint(0.0, 0.0),
+            GeoPoint(0.001, 0.0018),
+            GeoPoint(0.0025, 0.0018),
+            GeoPoint(0.004, 0.0)
+        )
+        val geometry = CourseGeometry(99, "Alignment fixture", listOf(
+            feature(1, "tee", 0.0, 0.0),
+            feature(2, "green", 0.004, 0.0),
+            feature(3, "fairway", 0.0, 0.0, points = fairway),
+            feature(4, "hole", 0.0, 0.0, points = badRoute)
+        ))
+
+        val hole = HoleReconstructor.reconstruct(geometry).single()
+
+        assertEquals(null, hole.mappedCenterline)
+        assertTrue(hole.usesMappedFairway)
+        assertEquals(fairway, hole.mappedFairways.single().points)
+    }
+
 }
