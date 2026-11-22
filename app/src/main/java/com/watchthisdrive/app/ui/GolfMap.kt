@@ -46,7 +46,8 @@ fun GolfMap(
     location: Location?,
     course: GolfCourse?,
     onLocate: () -> Unit,
-    sharedGeometry: CourseGeometry? = null
+    sharedGeometry: CourseGeometry? = null,
+    useSharedGeometry: Boolean = false
 ) {
     val context = LocalContext.current
     val mapView = remember {
@@ -55,7 +56,7 @@ fun GolfMap(
     }
     var mapReady by remember { mutableStateOf(false) }
     var geometry by remember(course?.id) {
-        mutableStateOf(sharedGeometry ?: course?.let { loadCachedGeometry(context, it) })
+        mutableStateOf(sharedGeometry ?: course?.let { loadCachedCourseGeometry(context, it) })
     }
     var geometryMessage by remember(course?.id) {
         mutableStateOf(if (geometry != null) "Saved map · checking for updates…" else null)
@@ -65,7 +66,9 @@ fun GolfMap(
     val styleUrl = if (key.isNotBlank()) "https://api.maptiler.com/maps/satellite/style.json?key=$key" else ""
 
     LaunchedEffect(course?.id, retryToken, sharedGeometry) {
-        if (sharedGeometry != null) {
+        if (useSharedGeometry && sharedGeometry == null) {
+            geometryMessage = if (geometry == null) "Loading course features…" else null
+        } else if (sharedGeometry != null) {
             geometry = sharedGeometry
             saveCachedGeometry(context, sharedGeometry)
             geometryMessage = null
@@ -221,7 +224,7 @@ private fun LegendItem(hex: String, label: String) {
 
 private fun cacheKey(courseId: Long) = "course_geometry_$courseId"
 
-private fun loadCachedGeometry(context: android.content.Context, course: GolfCourse): CourseGeometry? =
+internal fun loadCachedCourseGeometry(context: android.content.Context, course: GolfCourse): CourseGeometry? =
     runCatching {
         val raw = context.getSharedPreferences("course_geometry_cache", android.content.Context.MODE_PRIVATE)
             .getString(cacheKey(course.id), null) ?: return null
