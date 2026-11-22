@@ -351,16 +351,28 @@ object CourseGeometryLoader {
             val element = elements.getJSONObject(i)
             val tags = element.optJSONObject("tags") ?: continue
             val featureType = classify(tags) ?: continue
+            // Ways expose their path in element.geometry. Relations often expose
+            // the actual golf=hole route only through ordered member geometries.
+            // Do not silently reduce a relation centerline to its centroid.
+            val memberGeometry = element.optJSONArray("members")?.let { members ->
+                val segments = (0 until members.length()).mapNotNull { index ->
+                    val member = members.optJSONObject(index) ?: return@mapNotNull null
+                    readGeometry(member.optJSONArray("geometry")).takeIf { it.size >= 2 }
+                }
+                stitchOpenSegments(segments)
+            }.orEmpty()
             val points = readGeometry(element.optJSONArray("geometry")).ifEmpty {
-                val center = element.optJSONObject("center")
-                val lat = if (center != null) center.optDouble("lat", Double.NaN)
-                    else element.optDouble("lat", Double.NaN)
-                val lon = if (center != null) center.optDouble("lon", Double.NaN)
-                    else element.optDouble("lon", Double.NaN)
-                if (lat.isFinite() && lon.isFinite() && lat in -90.0..90.0 && lon in -180.0..180.0) {
-                    listOf(GeoPoint(lat, lon))
-                } else {
-                    emptyList()
+                memberGeometry.ifEmpty {
+                    val center = element.optJSONObject("center")
+                    val lat = if (center != null) center.optDouble("lat", Double.NaN)
+                        else element.optDouble("lat", Double.NaN)
+                    val lon = if (center != null) center.optDouble("lon", Double.NaN)
+                        else element.optDouble("lon", Double.NaN)
+                    if (lat.isFinite() && lon.isFinite() && lat in -90.0..90.0 && lon in -180.0..180.0) {
+                        listOf(GeoPoint(lat, lon))
+                    } else {
+                        emptyList()
+                    }
                 }
             }
             if (points.isEmpty()) continue
@@ -410,6 +422,28 @@ object CourseGeometryLoader {
             }
         }
         return points
+    }
+
+    /** Joins ordered relation-member ways into one continuous route, reversing
+     * a member when its nearest endpoint matches the current route end. */
+    private fun stitchOpenSegments(segments: List<List<GeoPoint>>): List<GeoPoint> {
+        if (segments.isEmpty()) return emptyList()
+        val remaining = segments.toMutableList()
+        val route = remaining.removeAt(0).toMutableList()
+        while (remaining.isNotEmpty()) {
+            val end = route.last()
+            val match = remaining.mapIndexedNotNull { index, segment ->
+                val first = haversineMeters(end.latitude, end.longitude,
+                    segment.first().latitude, segment.first().longitude)
+                val last = haversineMeters(end.latitude, end.longitude,
+                    segment.last().latitude, segment.last().longitude)
+                val distance = min(first, last)
+                if (distance <= 12.0) Triple(index, first <= last, distance) else null
+            }.minByOrNull { it.third } ?: break
+            val segment = remaining.removeAt(match.first)
+            route.addAll(if (match.second) segment.drop(1) else segment.asReversed().drop(1))
+        }
+        return route
     }
 
     /**
