@@ -15,6 +15,8 @@ import sys
 import tempfile
 from pathlib import Path
 
+from shapely.geometry import shape, Point
+
 
 def safe_name(value: str) -> str:
     value = re.sub(r"[^A-Za-z0-9_-]+", "-", str(value)).strip("-")
@@ -39,7 +41,7 @@ def main() -> None:
         "orientation": "tee_bottom_green_top",
         "generated": [],
         "skipped": [],
-        "warning": "Hole assignments and mapped geometry are provisional. Missing features are not invented; imagery-derived canopy is low-confidence context.",
+        "warning": "Hole assignments are provisional; missing anchors and fairways may be inferred from centerlines. Imagery-derived canopy is low-confidence context.",
     }
 
     with tempfile.TemporaryDirectory(prefix="hole-render-batch-") as temporary:
@@ -50,32 +52,41 @@ def main() -> None:
             associated = props.get("associated_features") or []
             tees = [item for item in associated if item.get("golf_type") == "tee" and item.get("geometry")]
             greens = [item for item in associated if item.get("golf_type") == "green" and item.get("geometry")]
-            if not tees or not greens:
-                manifest["skipped"].append({
-                    "candidate_index": index, "hole_label": label,
-                    "reason": "requires at least one associated mapped tee and one associated mapped green",
-                    "tee_count": len(tees), "green_count": len(greens),
-                })
+            centerline = shape(hole["geometry"])
+            if centerline.geom_type == "MultiLineString":
+                centerline = max(centerline.geoms, key=lambda part: part.length)
+            if centerline.geom_type != "LineString" or centerline.is_empty:
+                manifest["skipped"].append({"candidate_index": index, "hole_label": label, "reason": "no usable centerline"})
                 continue
 
-            features = [{
-                "type": "Feature", "id": hole.get("id"),
-                "geometry": hole["geometry"],
-                "properties": {"role": "osm_hole_centerline", "hole_label": label},
-            }]
-            for feature_index, item in enumerate(associated, start=1):
+            inferred = []
+            endpoints = [Point(centerline.coords[0]), Point(centerline.coords[-1])]
+            if not tees and greens:
+                anchor = shape(greens[0]["geometry"])
+                point = max(endpoints, key=lambda p: p.distance(anchor))
+                tees = [{"geometry": {"type": "Point", "coordinates": [point.x, point.y]}, "golf_type": "tee", "association_status": "inferred_centerline_endpoint"}]
+                inferred.append("tee")
+            elif tees and not greens:
+                anchor = shape(tees[0]["geometry"])
+                point = max(endpoints, key=lambda p: p.distance(anchor))
+                greens = [{"geometry": {"type": "Point", "coordinates": [point.x, point.y]}, "golf_type": "green", "association_status": "inferred_centerline_endpoint"}]
+                inferred.append("green")
+            elif not tees and not greens:
+                a, b = endpoints
+                tees = [{"geometry": {"type": "Point", "coordinates": [a.x, a.y]}, "golf_type": "tee", "association_status": "inferred_centerline_endpoint"}]
+                greens = [{"geometry": {"type": "Point", "coordinates": [b.x, b.y]}, "golf_type": "green", "association_status": "inferred_centerline_endpoint"}]
+                inferred.extend(["tee", "green"])
+
+            features = [{"type": "Feature", "id": hole.get("id"), "geometry": hole["geometry"], "properties": {"role": "osm_hole_centerline", "hole_label": label}}]
+            synthetic = [item for item in tees + greens if item.get("association_status") == "inferred_centerline_endpoint"]
+            for feature_index, item in enumerate(associated + synthetic, start=1):
                 if not item.get("geometry"):
                     continue
                 features.append({
                     "type": "Feature", "id": f"{hole.get('id')}-feature-{feature_index}",
                     "geometry": item["geometry"],
-                    "properties": {
-                        "role": "mapped_osm_feature",
-                        "golf_type": item.get("golf_type"),
-                        "association_status": item.get("association_status"),
-                    },
+                    "properties": {"role": "mapped_osm_feature", "golf_type": item.get("golf_type"), "association_status": item.get("association_status"), "inference": item.get("association_status") == "inferred_centerline_endpoint"},
                 })
-
             hole_input = temp / f"candidate-{index:03d}.geojson"
             hole_input.write_text(json.dumps({
                 "type": "FeatureCollection", "name": f"Provisional hole {label}",
@@ -106,6 +117,7 @@ def main() -> None:
                 "image": filename,
                 "tee_count": len(tees), "green_count": len(greens),
                 "fairway_count": sum(item.get("golf_type") == "fairway" for item in associated),
+                "inferred_features": inferred + (["fairway"] if not any(item.get("golf_type") == "fairway" for item in associated) else []),
                 "ambiguous_association_count": sum(
                     item.get("association_status") == "ambiguous_nearest_centerline"
                     for item in associated
