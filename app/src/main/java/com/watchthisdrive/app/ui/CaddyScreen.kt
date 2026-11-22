@@ -47,9 +47,10 @@ fun CaddyScreen(
     onFindCourse: () -> Unit,
     activeHole: Int,
     geometry: CourseGeometry?,
+    geometryError: String? = null,
     modifier: Modifier = Modifier
 ) {
-    PlayingCaddyScreen(course, location, onLocate, onFindCourse, activeHole, geometry, modifier)
+    PlayingCaddyScreen(course, location, onLocate, onFindCourse, activeHole, geometry, geometryError, modifier)
 }
 
 @Composable
@@ -60,6 +61,7 @@ private fun PlayingCaddyScreen(
     onFindCourse: () -> Unit,
     activeHole: Int,
     geometry: CourseGeometry?,
+    geometryError: String?,
     modifier: Modifier = Modifier
 ) {
     var selectedGreenId by remember(course?.id, activeHole) { mutableStateOf<Long?>(null) }
@@ -80,8 +82,8 @@ private fun PlayingCaddyScreen(
             .mapNotNull { hazard -> hazardSafeLayupYards(hazard, location, target)?.let { hazard to it } }
     }
     val safeLayupYards = approachHazards.minOfOrNull { it.second }
-    val loading = course != null && geometry == null
-    val error: String? = null
+    val loading = course != null && geometry == null && geometryError == null
+    val error: String? = geometryError
     val preferences = LocalContext.current.getSharedPreferences("watch_this_drive_caddy", Context.MODE_PRIVATE)
     var clubs by remember(course?.id) {
         mutableStateOf(defaultClubs.map { club ->
