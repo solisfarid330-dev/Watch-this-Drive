@@ -194,14 +194,18 @@ fun CourseHoleArtworkForHole(
 
     LaunchedEffect(course.elementType, course.id, holeNumber, reconstructedHole) {
         loading = true
-        bitmap = withContext(Dispatchers.IO) {
-            val pack = CourseHoleArtworkRepository.load(context, course)
-            val entry = pack?.holes?.firstOrNull { it.number == holeNumber }
-            val generated = reconstructedHole?.let { hole ->
-                val file = CourseHoleArtworkRenderer.render(hole, context.cacheDir, course.elementType + "-" + course.id)
-                BitmapFactory.decodeFile(file.absolutePath)
+        val pack = withContext(Dispatchers.IO) {
+            CourseHoleArtworkRepository.load(context, course)
+        }
+        val entry = pack?.holes?.firstOrNull { it.number == holeNumber }
+        val generatedFile = reconstructedHole?.let { hole ->
+            withContext(Dispatchers.Default) {
+                CourseHoleArtworkRenderer.render(hole, context.cacheDir, course.elementType + "-" + course.id)
             }
-            generated ?: entry?.let { CourseHoleArtworkRepository.bitmap(context, it.assetPath) }
+        }
+        bitmap = withContext(Dispatchers.IO) {
+            generatedFile?.let { BitmapFactory.decodeFile(it.absolutePath) }
+                ?: entry?.let { CourseHoleArtworkRepository.bitmap(context, it.assetPath) }
         }
         loading = false
     }
