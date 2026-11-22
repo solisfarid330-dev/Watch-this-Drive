@@ -35,6 +35,8 @@ import com.watchthisdrive.app.ui.GolfMap
 import com.watchthisdrive.app.ui.CaddyScreen
 import com.watchthisdrive.app.ui.ClubDistancesSettings
 import com.watchthisdrive.app.ui.CourseHoleArtworkPanel
+import com.watchthisdrive.app.ui.CourseHoleArtworkForHole
+import com.watchthisdrive.app.data.HoleReconstructor
 import com.watchthisdrive.app.ui.GolfTheme
 import java.util.Locale
 
@@ -51,16 +53,31 @@ private enum class Tab(val label: String) {
 
 @Composable
 private fun WatchThisDriveApp() {
+    val context = androidx.compose.ui.platform.LocalContext.current
     var selected by remember { mutableStateOf(Tab.HOME) }
     var showNearbyCourses by remember { mutableStateOf(false) }
     var selectedCourse by remember { mutableStateOf<GolfCourse?>(null) }
     var activeCourse by remember { mutableStateOf<GolfCourse?>(null) }
     var activeHole by remember(activeCourse?.id) { mutableIntStateOf(1) }
+    val scorePrefs = remember(activeCourse?.id) { context.getSharedPreferences("watch_this_drive_scorecard_${activeCourse?.id ?: 0}", android.content.Context.MODE_PRIVATE) }
+    var scores by remember(activeCourse?.id) { mutableStateOf((1..18).map { scorePrefs.getInt("strokes_$it", 0) }) }
+    var pars by remember(activeCourse?.id) { mutableStateOf((1..18).map { scorePrefs.getInt("par_$it", 4) }) }
+    var courseGeometry by remember(activeCourse?.id) { mutableStateOf<CourseGeometry?>(null) }
+    var geometryError by remember(activeCourse?.id) { mutableStateOf<String?>(null) }
+    LaunchedEffect(activeCourse?.id) {
+        courseGeometry = null
+        geometryError = null
+        activeCourse?.let { course ->
+            CourseGeometryLoader.load(course) { result ->
+                result.onSuccess { courseGeometry = it }
+                    .onFailure { geometryError = it.message ?: "Course mapping unavailable" }
+            }
+        }
+    }
     var location by remember { mutableStateOf<Location?>(null) }
     var mapTarget by remember { mutableStateOf<Location?>(null) }
     var locationMessage by remember { mutableStateOf("Location not checked yet") }
 
-    val context = androidx.compose.ui.platform.LocalContext.current
     val fused = remember { LocationServices.getFusedLocationProviderClient(context) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -216,6 +233,18 @@ private fun WatchThisDriveApp() {
                                 mapTarget = mapTarget,
                                 activeHole = activeHole,
                                 onHoleSelected = { activeHole = it },
+                                courseGeometry = courseGeometry,
+                                geometryError = geometryError,
+                                scores = scores,
+                                pars = pars,
+                                onScoreChanged = { hole, value ->
+                                    scores = scores.toMutableList().also { it[hole - 1] = value }
+                                    scorePrefs.edit().putInt("strokes_$hole", value).apply()
+                                },
+                                onParChanged = { hole, value ->
+                                    pars = pars.toMutableList().also { it[hole - 1] = value }
+                                    scorePrefs.edit().putInt("par_$hole", value).apply()
+                                },
                                 onLocate = { mapTarget = null; locate() },
                                 onFindCourse = {
                                     selectedCourse = null
@@ -225,7 +254,18 @@ private fun WatchThisDriveApp() {
                         }
                     }
 
-                    Tab.SCORE -> ScorecardScreen(course = activeCourse, activeHole = activeHole, onSelectHole = { activeHole = it })
+                    Tab.SCORE -> ScorecardScreen(
+                        course = activeCourse, activeHole = activeHole, scores = scores, pars = pars,
+                        onSelectHole = { activeHole = it },
+                        onScoreChanged = { hole, value ->
+                            scores = scores.toMutableList().also { it[hole - 1] = value }
+                            scorePrefs.edit().putInt("strokes_$hole", value).apply()
+                        },
+                        onParChanged = { hole, value ->
+                            pars = pars.toMutableList().also { it[hole - 1] = value }
+                            scorePrefs.edit().putInt("par_$hole", value).apply()
+                        }
+                    )
 
                     Tab.SETTINGS -> SettingsScreen(
                         locationMessage = locationMessage,
@@ -255,6 +295,12 @@ private fun RoundHubScreen(
     mapTarget: Location?,
     activeHole: Int,
     onHoleSelected: (Int) -> Unit,
+    courseGeometry: CourseGeometry?,
+    geometryError: String?,
+    scores: List<Int>,
+    pars: List<Int>,
+    onScoreChanged: (Int, Int) -> Unit,
+    onParChanged: (Int, Int) -> Unit,
     onLocate: () -> Unit,
     onFindCourse: () -> Unit
 ) {
@@ -270,27 +316,62 @@ private fun RoundHubScreen(
                 TextButton(onClick = { onHoleSelected((activeHole + 1).coerceAtMost(18)) }, enabled = activeHole < 18) { Text("NEXT") }
             }
         }
+        val reconstructed = remember(courseGeometry) { courseGeometry?.let { HoleReconstructor.reconstruct(it) }.orEmpty() }
+        val holeData = reconstructed.firstOrNull { it.number == activeHole }
+        Card(
+            Modifier.fillMaxWidth().padding(horizontal = 14.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF1D2A22)),
+            shape = RoundedCornerShape(18.dp)
+        ) {
+            Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Column {
+                        Text("HOLE SCORE", color = Color(0xFFB8F36B), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                        Text("Par ${pars[activeHole - 1]}  ·  ${if (scores[activeHole - 1] > 0) "${scores[activeHole - 1]} strokes" else "Not scored"}",
+                            color = Color.White, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        OutlinedButton(onClick = { onScoreChanged(activeHole, (scores[activeHole - 1] - 1).coerceAtLeast(0)) }) { Text("−") }
+                        Text(scores[activeHole - 1].takeIf { it > 0 }?.toString() ?: "—", color = Color(0xFFB8F36B), modifier = Modifier.padding(horizontal = 10.dp), fontWeight = FontWeight.Bold)
+                        Button(onClick = { onScoreChanged(activeHole, (scores[activeHole - 1] + 1).coerceAtMost(20)) }) { Text("+") }
+                    }
+                }
+                Text("Tap + or − to record this hole. Scorecard updates automatically.", color = Color(0xFFB6C1B9), style = MaterialTheme.typography.bodySmall)
+            }
+        }
         GolfMap(location = mapTarget ?: location, course = course, onLocate = onLocate)
+        CourseHoleArtworkForHole(
+            course = course,
+            holeNumber = activeHole,
+            reconstructedHole = holeData
+        ) {
+            Card(Modifier.fillMaxWidth().padding(horizontal = 14.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFF1D2A22))) {
+                Column(Modifier.padding(14.dp)) {
+                    Text("HOLE ILLUSTRATION", color = Color(0xFFB8F36B), fontWeight = FontWeight.Bold)
+                    Text(if (courseGeometry == null) "Loading course geometry…" else geometryError ?: "A detailed illustration is not available for this hole yet. The satellite map remains available.",
+                        color = Color(0xFFB6C1B9))
+                }
+            }
+        }
         CaddyScreen(
             course = course,
             location = location,
             onLocate = onLocate,
             onFindCourse = onFindCourse,
+            activeHole = activeHole,
+            geometry = courseGeometry,
             modifier = Modifier.weight(1f)
         )
     }
 }
 
 @Composable
-private fun ScorecardScreen(course: GolfCourse?, activeHole: Int, onSelectHole: (Int) -> Unit) {
-    val context = androidx.compose.ui.platform.LocalContext.current
-    val prefs = remember(course?.id) { context.getSharedPreferences("watch_this_drive_scorecard_${course?.id ?: 0}", android.content.Context.MODE_PRIVATE) }
-    var scores by remember(course?.id) { mutableStateOf((1..18).map { hole ->
-        prefs.getInt("strokes_$hole", 0)
-    }) }
-    var pars by remember(course?.id) { mutableStateOf((1..18).map { hole ->
-        prefs.getInt("par_$hole", if (hole in listOf(1, 4, 7, 10, 13, 16)) 4 else 4)
-    }) }
+private fun ScorecardScreen(
+    course: GolfCourse?, activeHole: Int, scores: List<Int>, pars: List<Int>,
+    onSelectHole: (Int) -> Unit,
+    onScoreChanged: (Int, Int) -> Unit,
+    onParChanged: (Int, Int) -> Unit
+) {
     val played = scores.count { it > 0 }
     val total = scores.filter { it > 0 }.sum()
     val playedPar = scores.indices.filter { scores[it] > 0 }.sumOf { pars[it] }
@@ -317,22 +398,18 @@ private fun ScorecardScreen(course: GolfCourse?, activeHole: Int, onSelectHole: 
                             Text("Par ${pars[index]}", color = Color(0xFFB6C1B9), style = MaterialTheme.typography.bodySmall)
                         }
                         TextButton(onClick = {
-                            pars = pars.toMutableList().also { it[index] = (it[index] - 1).coerceIn(3, 5) }
-                            prefs.edit().putInt("par_$hole", pars[index]).apply()
+                            onParChanged(hole, (pars[index] - 1).coerceIn(3, 5))
                         }) { Text("−") }
                         Text("${pars[index]}", color = Color.White)
                         TextButton(onClick = {
-                            pars = pars.toMutableList().also { it[index] = (it[index] + 1).coerceIn(3, 5) }
-                            prefs.edit().putInt("par_$hole", pars[index]).apply()
+                            onParChanged(hole, (pars[index] + 1).coerceIn(3, 5))
                         }) { Text("+") }
                         TextButton(onClick = {
-                            scores = scores.toMutableList().also { it[index] = (it[index] - 1).coerceAtLeast(0) }
-                            prefs.edit().putInt("strokes_$hole", scores[index]).apply()
+                            onScoreChanged(hole, (scores[index] - 1).coerceAtLeast(0))
                         }) { Text("−") }
                         Text("${scores[index].takeIf { it > 0 } ?: "—"}", color = Color(0xFFB8F36B), fontWeight = FontWeight.Bold)
                         TextButton(onClick = {
-                            scores = scores.toMutableList().also { it[index] = (it[index] + 1).coerceAtMost(20) }
-                            prefs.edit().putInt("strokes_$hole", scores[index]).apply()
+                            onScoreChanged(hole, (scores[index] + 1).coerceAtMost(20))
                         }) { Text("+") }
                     }
                 }
