@@ -16,6 +16,7 @@ on:
       - "scripts/build_lake_arlington_candidate_review_atlas.py"
       - "scripts/build_lake_arlington_hole_visual_review_atlas.py"
       - "scripts/build_lake_arlington_hole_reconstruction_draft.py"
+      - "scripts/build_lake_arlington_centerline_hole_review.py"
       - ".github/workflows/discover-naip.yml"
 
 permissions:
@@ -63,6 +64,9 @@ jobs:
 
       - name: Build tee-to-green hole visual review atlas
         run: python scripts/build_lake_arlington_hole_visual_review_atlas.py
+
+      - name: Build centerline-led single-hole imagery review
+        run: PYTHONPATH=. python scripts/build_lake_arlington_centerline_hole_review.py
 
       - name: Upload imagery candidate metadata
         if: always()
