@@ -91,8 +91,8 @@ private fun PlayingCaddyScreen(
         })
     }
     var selectedClubName by remember(course?.id, activeHole) { mutableStateOf<String?>(null) }
-    var shotStart by remember(course?.id) { mutableStateOf<Location?>(null) }
-    var shotMessage by remember(course?.id) { mutableStateOf<String?>(null) }
+    var shotStart by remember(course?.id, activeHole) { mutableStateOf<Location?>(null) }
+    var shotMessage by remember(course?.id, activeHole) { mutableStateOf<String?>(null) }
 
     val distanceYards = if (location != null && target != null) {
         val meters = FloatArray(1)
