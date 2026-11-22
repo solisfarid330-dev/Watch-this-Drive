@@ -94,10 +94,18 @@ object CourseGeometryLoader {
         val bounds = boundary.second ?: fallbackBounds(course)
         val featureElements = fetchFeatures(bounds.expanded())
         val parsed = parseFeatures(featureElements)
+        val boundaryRings = stitchBoundaryRings(boundary.first)
+        // The expanded rectangle is only a retrieval envelope. Use the actual
+        // selected course outline to reject neighboring-course features.
+        val scoped = if (boundaryRings.isNotEmpty()) {
+            parsed.filter { belongsToCourse(it, boundaryRings) }
+        } else {
+            parsed
+        }
 
         // Keep the selected boundary in the result so downstream reconstruction
         // can distinguish the course footprint from nearby golf features.
-        val combined = (boundary.first + parsed)
+        val combined = (boundary.first + scoped)
             .distinctBy { Triple(it.elementType, it.id, it.featureType) }
 
         if (combined.none { it.featureType != "course_boundary" }) {
@@ -384,6 +392,82 @@ object CourseGeometryLoader {
             }
         }
         return points
+    }
+
+    /**
+     * OSM course relations commonly describe an outline as several outer ways.
+     * Stitch their endpoints into closed rings before doing spatial filtering.
+     * A small endpoint tolerance handles coordinate rounding in server output.
+     */
+    private fun stitchBoundaryRings(boundaries: List<CourseFeature>): List<List<GeoPoint>> {
+        val remaining = boundaries.map { it.points }.filter { it.size >= 2 }.toMutableList()
+        val rings = mutableListOf<List<GeoPoint>>()
+        while (remaining.isNotEmpty()) {
+            val ring = remaining.removeAt(0).toMutableList()
+            var joined = true
+            while (joined && haversineMeters(
+                    ring.first().latitude, ring.first().longitude,
+                    ring.last().latitude, ring.last().longitude
+                ) > 5.0
+            ) {
+                joined = false
+                val end = ring.last()
+                val matchIndex = remaining.indexOfFirst { segment ->
+                    haversineMeters(end.latitude, end.longitude,
+                        segment.first().latitude, segment.first().longitude) <= 5.0 ||
+                    haversineMeters(end.latitude, end.longitude,
+                        segment.last().latitude, segment.last().longitude) <= 5.0
+                }
+                if (matchIndex >= 0) {
+                    val segment = remaining.removeAt(matchIndex)
+                    val forward = haversineMeters(end.latitude, end.longitude,
+                        segment.first().latitude, segment.first().longitude) <= 5.0
+                    ring.addAll(if (forward) segment.drop(1) else segment.asReversed().drop(1))
+                    joined = true
+                }
+            }
+            if (ring.size >= 4 && haversineMeters(
+                    ring.first().latitude, ring.first().longitude,
+                    ring.last().latitude, ring.last().longitude
+                ) <= 5.0
+            ) {
+                ring[ring.lastIndex] = ring.first()
+                rings.add(ring)
+            }
+        }
+        return rings
+    }
+
+    private fun belongsToCourse(
+        feature: CourseFeature,
+        rings: List<List<GeoPoint>>
+    ): Boolean {
+        if (feature.points.isEmpty()) return false
+        return feature.points.any { point -> rings.any { pointInRing(point, it) } } ||
+            pointInRing(
+                GeoPoint(
+                    feature.points.map { it.latitude }.average(),
+                    feature.points.map { it.longitude }.average()
+                ),
+                rings.firstOrNull() ?: return false
+            )
+    }
+
+    private fun pointInRing(point: GeoPoint, ring: List<GeoPoint>): Boolean {
+        var inside = false
+        var j = ring.lastIndex
+        for (i in ring.indices) {
+            val a = ring[i]
+            val b = ring[j]
+            val crosses = (a.latitude > point.latitude) != (b.latitude > point.latitude) &&
+                point.longitude < (b.longitude - a.longitude) *
+                (point.latitude - a.latitude) /
+                ((b.latitude - a.latitude).takeIf { kotlin.math.abs(it) > 1e-12 } ?: 1e-12) +
+                a.longitude
+            if (crosses) inside = !inside
+            j = i
+        }
+        return inside
     }
 
     private fun boundsFrom(points: List<GeoPoint>): Bounds? {
