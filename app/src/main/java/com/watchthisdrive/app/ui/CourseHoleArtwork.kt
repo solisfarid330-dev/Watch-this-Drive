@@ -2,6 +2,9 @@ package com.watchthisdrive.app.ui
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.location.Location
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
@@ -22,6 +25,7 @@ import com.watchthisdrive.app.data.GolfCourse
 import com.watchthisdrive.app.data.CourseGeometry
 import com.watchthisdrive.app.data.HoleReconstructor
 import com.watchthisdrive.app.data.ReconstructedHole
+import com.watchthisdrive.app.data.GeoPoint
 import java.io.File
 import org.json.JSONObject
 
@@ -186,9 +190,18 @@ fun CourseHoleArtworkForHole(
     course: GolfCourse,
     holeNumber: Int,
     reconstructedHole: ReconstructedHole? = null,
+    playerLocation: Location? = null,
     fallback: @Composable () -> Unit
 ) {
     val context = LocalContext.current
+    val playerMarker = remember(playerLocation?.latitude, playerLocation?.longitude, reconstructedHole) {
+        if (playerLocation != null && reconstructedHole != null) {
+            CourseHoleArtworkRenderer.project(
+                reconstructedHole,
+                GeoPoint(playerLocation.latitude, playerLocation.longitude)
+            )
+        } else null
+    }
     var loading by remember(course.elementType, course.id, holeNumber, reconstructedHole) { mutableStateOf(true) }
     var bitmap by remember(course.elementType, course.id, holeNumber, reconstructedHole) { mutableStateOf<Bitmap?>(null) }
 
@@ -228,12 +241,27 @@ fun CourseHoleArtworkForHole(
                     (reconstructedHole?.handicap?.let { " · HCP $it" } ?: ""),
                 color = Color.White, style = MaterialTheme.typography.titleMedium
             )
-            Image(
-                bitmap = bitmap!!.asImageBitmap(),
-                contentDescription = "Illustrated view of hole $holeNumber",
-                modifier = Modifier.fillMaxWidth().aspectRatio(2f / 3f).clip(RoundedCornerShape(14.dp)),
-                contentScale = ContentScale.FillBounds
-            )
+            Box(
+                Modifier.fillMaxWidth().aspectRatio(2f / 3f).clip(RoundedCornerShape(14.dp))
+            ) {
+                Image(
+                    bitmap = bitmap!!.asImageBitmap(),
+                    contentDescription = "Illustrated view of hole $holeNumber",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.FillBounds
+                )
+                playerMarker?.let { marker ->
+                    Canvas(Modifier.fillMaxSize()) {
+                        val center = Offset(marker.first * size.width, marker.second * size.height)
+                        drawCircle(Color.White, radius = 14.dp.toPx(), center = center)
+                        drawCircle(Color(0xFFB8F36B), radius = 8.dp.toPx(), center = center)
+                        drawCircle(Color(0xFF173D2B), radius = 3.dp.toPx(), center = center)
+                    }
+                }
+            }
+            if (playerLocation != null && playerMarker == null) {
+                Text("Your GPS position is outside this hole's illustrated view.", color = Color(0xFFB6C1B9), style = MaterialTheme.typography.bodySmall)
+            }
             Text(
                 "Tee at bottom · Green at top",
                 color = Color(0xFFB6C1B9),
