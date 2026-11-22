@@ -18,7 +18,7 @@ import kotlin.math.*
 
 /** Rich tee-bottom/green-top artwork, fitted to the complete reconstructed hole. */
 internal object CourseHoleArtworkRenderer {
-    private const val VERSION = 6
+    private const val VERSION = 7
     private const val WIDTH = 1200
     private const val HEIGHT = 1800
     private const val LEFT = 48.0
@@ -200,24 +200,6 @@ internal object CourseHoleArtworkRenderer {
             }
         }
 
-        // Water bodies, with soft shore outlines and ripples.
-        hole.water.forEach { feature ->
-            val path = polygon(feature.points, 0xFF247D9E.toInt(), 0xFF91D5DF.toInt(), 8f)
-            if (path != null) {
-                canvas.save(); canvas.clipPath(path)
-                paint.style = Paint.Style.STROKE; paint.strokeWidth = 3f; paint.color = 0x347DE0E8
-                for (i in 0..12) {
-                    val y = 240f + i * 112f
-                    canvas.drawArc(-120f, y, 1320f, y + 90f, 0f, 180f, false, paint)
-                }
-                paint.style = Paint.Style.FILL; canvas.restore()
-            } else feature.points.forEach { point ->
-                val q = xy(point); paint.color = 0xFF247D9E.toInt(); canvas.drawCircle(q.first, q.second, 22f, paint)
-                paint.color = 0xFF91D5DF.toInt(); paint.style = Paint.Style.STROKE
-                paint.strokeWidth = 4f; canvas.drawCircle(q.first, q.second, 22f, paint); paint.style = Paint.Style.FILL
-            }
-        }
-
         // Mapped fairway polygons retain their exact footprint; inferred corridor is softer.
         val fairways = if (hole.usesMappedFairway) hole.mappedFairways.map { it.points } else listOf(hole.fairwayEstimate)
         fairways.forEach { points ->
@@ -248,6 +230,24 @@ internal object CourseHoleArtworkRenderer {
                 // A crisp perimeter reinforces the mapped shape after texturing.
                 paint.style = Paint.Style.STROKE; paint.color = 0x88EAF0C9.toInt()
                 paint.strokeWidth = 3f; canvas.drawPath(path, paint); paint.style = Paint.Style.FILL
+            }
+        }
+
+        // Water bodies, with soft shore outlines and ripples.
+        hole.water.forEach { feature ->
+            val path = polygon(feature.points, 0xFF247D9E.toInt(), 0xFF91D5DF.toInt(), 8f)
+            if (path != null) {
+                canvas.save(); canvas.clipPath(path)
+                paint.style = Paint.Style.STROKE; paint.strokeWidth = 3f; paint.color = 0x347DE0E8
+                for (i in 0..12) {
+                    val y = 240f + i * 112f
+                    canvas.drawArc(-120f, y, 1320f, y + 90f, 0f, 180f, false, paint)
+                }
+                paint.style = Paint.Style.FILL; canvas.restore()
+            } else feature.points.forEach { point ->
+                val q = xy(point); paint.color = 0xFF247D9E.toInt(); canvas.drawCircle(q.first, q.second, 22f, paint)
+                paint.color = 0xFF91D5DF.toInt(); paint.style = Paint.Style.STROKE
+                paint.strokeWidth = 4f; canvas.drawCircle(q.first, q.second, 22f, paint); paint.style = Paint.Style.FILL
             }
         }
 
