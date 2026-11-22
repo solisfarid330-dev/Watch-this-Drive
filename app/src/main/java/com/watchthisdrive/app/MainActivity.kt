@@ -340,11 +340,11 @@ private fun HomeScreen(
     onFindCourses: () -> Unit
 ) {
     Column(
-        Modifier.fillMaxSize().padding(22.dp),
-        verticalArrangement = Arrangement.spacedBy(18.dp)
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(22.dp),
+        verticalArrangement = Arrangement.spacedBy(22.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
                 Text(
                     "WATCH THIS DRIVE",
                     color = Color(0xFFB8F36B),
@@ -352,43 +352,55 @@ private fun HomeScreen(
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    "Your golf companion.",
+                    "Every hole. Every shot.",
                     color = Color.White,
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold
                 )
+                Text(
+                    "Your course, your game, one place.",
+                    color = Color(0xFFB6C1B9),
+                    style = MaterialTheme.typography.bodyMedium
+                )
             }
             Icon(
                 Icons.Filled.SportsGolf,
-                null,
+                contentDescription = null,
                 tint = Color(0xFFB8F36B),
-                modifier = Modifier.size(42.dp)
+                modifier = Modifier.size(48.dp)
             )
         }
 
         Card(
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF1D2A22)),
-            shape = RoundedCornerShape(22.dp)
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF24372A)),
+            shape = RoundedCornerShape(24.dp),
+            modifier = Modifier.fillMaxWidth()
         ) {
             Column(
-                Modifier.padding(18.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                Modifier.fillMaxWidth().padding(22.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
+                Icon(
+                    Icons.Filled.Explore,
+                    contentDescription = null,
+                    tint = Color(0xFFB8F36B),
+                    modifier = Modifier.size(30.dp)
+                )
                 Text(
-                    "READY FOR THE COURSE?",
+                    "FIND YOUR COURSE",
                     color = Color(0xFFB8F36B),
-                    style = MaterialTheme.typography.labelMedium,
+                    style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    "Find a golf course near you.",
+                    "Where are we playing?",
                     color = Color.White,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.SemiBold
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold
                 )
                 Text(
-                    "We'll search nearby mapped golf courses using your current location.",
-                    color = Color(0xFFB6C1B9),
+                    "Search by course name, city or ZIP code, or discover mapped courses near you.",
+                    color = Color(0xFFD0D9D2),
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Button(
@@ -397,30 +409,42 @@ private fun HomeScreen(
                         containerColor = Color(0xFFB8F36B),
                         contentColor = Color(0xFF101713)
                     ),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth().height(52.dp),
+                    shape = RoundedCornerShape(14.dp)
                 ) {
-                    Icon(Icons.Filled.Search, null)
-                    Spacer(Modifier.width(8.dp))
-                    Text("FIND NEARBY COURSES", fontWeight = FontWeight.Bold)
+                    Icon(Icons.Filled.Search, contentDescription = null)
+                    Spacer(Modifier.width(9.dp))
+                    Text("SEARCH GOLF COURSES", fontWeight = FontWeight.Bold)
                 }
             }
         }
 
-        Text(
-            "YOUR ROUND, YOUR GAME",
-            color = Color(0xFFB8F36B),
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.Bold
-        )
-
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            FeatureTile("GPS distances", Icons.Filled.NearMe, Modifier.weight(1f))
-            FeatureTile("Smart caddy", Icons.Filled.AutoAwesome, Modifier.weight(1f))
-        }
-
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            FeatureTile("Scorekeeping", Icons.Filled.Scoreboard, Modifier.weight(1f))
-            FeatureTile("Round stats", Icons.Filled.QueryStats, Modifier.weight(1f))
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Card(
+                modifier = Modifier.weight(1f),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF1D2A22)),
+                shape = RoundedCornerShape(18.dp)
+            ) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                    Icon(Icons.Filled.Map, null, tint = Color(0xFFB8F36B))
+                    Text("LIVE COURSE VIEW", color = Color.White, fontWeight = FontWeight.SemiBold)
+                    Text("Maps, hole artwork and GPS together.", color = Color(0xFFB6C1B9), style = MaterialTheme.typography.bodySmall)
+                }
+            }
+            Card(
+                modifier = Modifier.weight(1f),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF1D2A22)),
+                shape = RoundedCornerShape(18.dp)
+            ) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                    Icon(Icons.Filled.AutoAwesome, null, tint = Color(0xFFB8F36B))
+                    Text("SMART CADDY", color = Color.White, fontWeight = FontWeight.SemiBold)
+                    Text("Club advice based on your carry distances.", color = Color(0xFFB6C1B9), style = MaterialTheme.typography.bodySmall)
+                }
+            }
         }
     }
 }
