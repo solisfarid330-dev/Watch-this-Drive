@@ -70,7 +70,6 @@ private fun PlayingCaddyScreen(
     val selectedGreen = numberedGreens.firstOrNull { it.id == selectedGreenId }
         ?: numberedGreens.firstOrNull()
         ?: greens.firstOrNull { it.id == selectedGreenId }
-        ?: greens.firstOrNull()
     val target = selectedGreen?.let { greenCenter(it) }
     val reconstructedHole = remember(geometry, activeHole) {
         geometry?.let { HoleReconstructor.reconstruct(it).firstOrNull { hole -> hole.number == activeHole } }
@@ -147,9 +146,9 @@ private fun PlayingCaddyScreen(
                             greens.isEmpty() -> Text("No greens are mapped for this course yet. We won't guess a target or show a made-up distance.", color = caddyMuted)
                             else -> {
                                 var expanded by remember { mutableStateOf(false) }
-                                val index = greens.indexOfFirst { it.id == selectedGreen?.id }.let { if (it < 0) 0 else it }
+                                val index = greens.indexOfFirst { it.id == selectedGreen?.id }.coerceAtLeast(0)
                                 OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) {
-                                    Text(greenLabel(greens[index], index))
+                                    Text(selectedGreen?.let { greenLabel(it, index) } ?: "SELECT GREEN FOR HOLE $activeHole")
                                 }
                                 DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                                     greens.forEachIndexed { i, green ->
