@@ -47,6 +47,7 @@ fun GolfMap(
     course: GolfCourse?,
     onLocate: () -> Unit,
     sharedGeometry: CourseGeometry? = null,
+    sharedGeometryError: String? = null,
     useSharedGeometry: Boolean = false,
     modifier: Modifier = Modifier
 ) {
@@ -66,9 +67,14 @@ fun GolfMap(
     val key = BuildConfig.MAPTILER_API_KEY
     val styleUrl = if (key.isNotBlank()) "https://api.maptiler.com/maps/satellite/style.json?key=$key" else ""
 
-    LaunchedEffect(course?.id, retryToken, sharedGeometry) {
+    LaunchedEffect(course?.id, retryToken, sharedGeometry, sharedGeometryError) {
         if (useSharedGeometry && sharedGeometry == null) {
-            geometryMessage = if (geometry == null) "Loading course features…" else null
+            geometryMessage = when {
+                sharedGeometryError != null && geometry != null -> "Saved map shown · refresh failed"
+                sharedGeometryError != null -> "Course features couldn't be loaded: $sharedGeometryError"
+                geometry == null -> "Loading course features…"
+                else -> null
+            }
         } else if (sharedGeometry != null) {
             geometry = sharedGeometry
             saveCachedGeometry(context, sharedGeometry)
