@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feature/hybrid-course-intelligence-foundation
+      - feature/full-course-geometry-reconstruction
     paths:
       - "scripts/course_intelligence/**"
       - "tests/test_*.py"
