@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import sys
+import time
 from collections import Counter
 from pathlib import Path
 
@@ -52,15 +53,27 @@ def fetch_osm_features(polygon: dict) -> dict:
 out body geom;
 """
     last_error = None
-    for endpoint in OVERPASS_ENDPOINTS:
-        try:
-            response = requests.post(
-                endpoint, data={"data": query}, headers=HEADERS, timeout=180
+    # Overpass public instances are intermittently overloaded. Retry each
+    # endpoint with backoff before failing the imagery workflow.
+    for attempt in range(3):
+        for endpoint in OVERPASS_ENDPOINTS:
+            try:
+                response = requests.post(
+                    endpoint, data={"data": query}, headers=HEADERS, timeout=180
+                )
+                response.raise_for_status()
+                return response.json()
+            except Exception as exc:
+                last_error = exc
+        if attempt < 2:
+            delay = 8 * (2 ** attempt)
+            print(
+                f"Overpass attempt {attempt + 1} failed; retrying all endpoints "
+                f"in {delay}s: {last_error}",
+                file=sys.stderr,
+                flush=True,
             )
-            response.raise_for_status()
-            return response.json()
-        except Exception as exc:
-            last_error = exc
+            time.sleep(delay)
     raise RuntimeError(f"All Overpass endpoints failed: {last_error}")
 
 
