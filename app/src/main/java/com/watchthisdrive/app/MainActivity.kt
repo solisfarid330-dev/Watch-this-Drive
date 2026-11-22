@@ -45,6 +45,8 @@ import com.watchthisdrive.app.ui.CourseHoleArtworkForHole
 import com.watchthisdrive.app.data.HoleReconstructor
 import com.watchthisdrive.app.ui.GolfTheme
 import java.util.Locale
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -68,13 +70,19 @@ private fun WatchThisDriveApp() {
     val scorePrefs = remember(activeCourse?.id) { context.getSharedPreferences("watch_this_drive_scorecard_${activeCourse?.id ?: 0}", android.content.Context.MODE_PRIVATE) }
     var scores by remember(activeCourse?.id) { mutableStateOf((1..18).map { scorePrefs.getInt("strokes_$it", 0) }) }
     var pars by remember(activeCourse?.id) { mutableStateOf((1..18).map { scorePrefs.getInt("par_$it", 4) }) }
-    var courseGeometry by remember(activeCourse?.id) { mutableStateOf(activeCourse?.let { loadCachedCourseGeometry(context, it) }) }
+    var courseGeometry by remember(activeCourse?.id) { mutableStateOf<CourseGeometry?>(null) }
     var geometryError by remember(activeCourse?.id) { mutableStateOf<String?>(null) }
     LaunchedEffect(activeCourse?.id) {
         courseGeometry = null
         geometryError = null
         activeCourse?.let { course ->
             val requestedCourseId = course.id
+            val cached = withContext(Dispatchers.IO) {
+                loadCachedCourseGeometry(context, course)
+            }
+            if (activeCourse?.id == requestedCourseId && cached != null) {
+                courseGeometry = cached
+            }
             CourseGeometryLoader.load(course) { result ->
                 if (activeCourse?.id == requestedCourseId) {
                     result.onSuccess { courseGeometry = it }
