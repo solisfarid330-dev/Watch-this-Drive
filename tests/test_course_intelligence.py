@@ -57,3 +57,35 @@ class GenericGeometryTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class FullCourseGeometryAssociationTests(unittest.TestCase):
+    def test_polygon_hole_outline_is_retained_as_distinct_geometry(self):
+        from shapely.geometry import Polygon
+        line = LineString([(0.0, 0.0), (0.0, 0.01)])
+        outline = Polygon([
+            (-0.0005, -0.0005), (0.0005, -0.0005),
+            (0.0005, 0.0105), (-0.0005, 0.0105),
+        ])
+        features = [
+            {"type": "Feature", "id": "way/center", "geometry": {"type": "LineString", "coordinates": list(line.coords)},
+             "properties": {"golf": "hole", "tags": {"ref": "7"}}, "_shape": line},
+            {"type": "Feature", "id": "way/outline", "geometry": {"type": "Polygon", "coordinates": [list(outline.exterior.coords)]},
+             "properties": {"golf": "hole", "tags": {"ref": "7"}}, "_shape": outline},
+        ]
+        holes, summary = associate_features_to_holes(features)
+        attached = holes[0]["properties"]["associated_features"]
+        self.assertEqual(summary["hole_outlines_found"], 1)
+        self.assertEqual(attached[0]["golf_type"], "hole_outline")
+        self.assertEqual(attached[0]["association_status"], "explicit_hole_reference")
+
+    def test_explicit_hole_reference_beats_nearest_centerline(self):
+        hole_a = {"type": "Feature", "id": "a", "geometry": {"type": "LineString", "coordinates": [[0, 0], [0, .01]]},
+                  "properties": {"golf": "hole", "tags": {"ref": "1"}}, "_shape": LineString([(0, 0), (0, .01)])}
+        hole_b = {"type": "Feature", "id": "b", "geometry": {"type": "LineString", "coordinates": [[.001, 0], [.001, .01]]},
+                  "properties": {"golf": "hole", "tags": {"ref": "2"}}, "_shape": LineString([(.001, 0), (.001, .01)])}
+        green = {"type": "Feature", "id": "g", "geometry": {"type": "Point", "coordinates": [.0001, .005]},
+                 "properties": {"golf": "green", "tags": {"ref:hole": "2"}}, "_shape": Point(.0001, .005)}
+        holes, _ = associate_features_to_holes([hole_a, hole_b, green], max_distance_m=200)
+        self.assertEqual(holes[1]["properties"]["associated_features"][0]["association_status"], "explicit_hole_reference")
+        self.assertEqual(holes[0]["properties"]["associated_feature_count"], 0)
