@@ -18,7 +18,7 @@ import kotlin.math.*
 
 /** Rich tee-bottom/green-top artwork, fitted to the complete reconstructed hole. */
 internal object CourseHoleArtworkRenderer {
-    private const val VERSION = 7
+    private const val VERSION = 8
     private const val WIDTH = 1200
     private const val HEIGHT = 1800
     private const val LEFT = 48.0
@@ -252,17 +252,18 @@ internal object CourseHoleArtworkRenderer {
         }
 
         // Green is distinct from fairway, with subtle contours and a soft highlight.
+        val greenCenter = xy(hole.green)
         val green = polygon(hole.greenBoundary, 0xFF9DBF65.toInt(), 0xFFF0F4C8.toInt(), 11f)
         if (green != null) {
             canvas.save(); canvas.clipPath(green)
-            paint.shader = RadialGradient(WIDTH * .5f, TOP.toFloat() + 130f, 420f,
+            paint.shader = RadialGradient(greenCenter.first, greenCenter.second, 420f,
                 intArrayOf(0x66E1F5A4, 0x229AC65B, 0x009AC65B), null, Shader.TileMode.CLAMP)
             canvas.drawRect(full, paint); paint.shader = null
             // Subtle concentric contours suggest green undulation without
             // inventing a slope direction or moving the mapped green boundary.
             paint.style = Paint.Style.STROKE; paint.color = 0x3C718E3D; paint.strokeWidth = 2.5f
-            for (i in 1..6) canvas.drawOval(WIDTH * .5f - i * 27f, TOP.toFloat() + 90f - i * 13f,
-                WIDTH * .5f + i * 27f, TOP.toFloat() + 90f + i * 13f, paint)
+            for (i in 1..6) canvas.drawOval(greenCenter.first - i * 27f, greenCenter.second - i * 13f,
+                greenCenter.first + i * 27f, greenCenter.second + i * 13f, paint)
             paint.style = Paint.Style.FILL; canvas.restore()
             paint.style = Paint.Style.STROKE; paint.color = 0x99F0F4C8.toInt()
             paint.strokeWidth = 3f; canvas.drawPath(green, paint); paint.style = Paint.Style.FILL
