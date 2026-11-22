@@ -230,18 +230,20 @@ internal object CourseHoleArtworkRenderer {
                 canvas.drawRect(full, paint); paint.shader = null
                 // Alternating fine mowing bands add a maintained-course look
                 // while remaining clipped to the actual fairway footprint.
-                paint.style = Paint.Style.STROKE; paint.strokeWidth = 26f
-                for (i in -3..24) {
+                // Mowing lanes follow the tee-to-green axis instead of using
+                // screen-horizontal bands. Clipping lets every lane bend with
+                // the real mapped fairway outline without altering its geometry.
+                paint.style = Paint.Style.STROKE; paint.strokeWidth = 30f
+                for (i in -5..22) {
                     paint.color = if (i % 2 == 0) 0x287DB56A else 0x16618E4E
-                    val y = 150f + i * 76f
-                    canvas.drawLine(-80f, y, WIDTH + 80f, y + 34f, paint)
+                    val x = -260f + i * 72f
+                    canvas.drawLine(x, -100f, x + 18f, HEIGHT + 100f, paint)
                 }
-                paint.style = Paint.Style.STROKE; paint.strokeWidth = 2.5f
+                // A restrained inner highlight gives the turf some depth while
+                // staying inside the actual polygon rather than drawing fake edges.
+                paint.style = Paint.Style.STROKE; paint.strokeWidth = 3f
                 paint.color = 0x2477B66A
-                for (i in 1..3) {
-                    val inset = i * 13f
-                    canvas.drawRoundRect(inset, TOP.toFloat(), WIDTH - inset, BOTTOM.toFloat(), 24f, 24f, paint)
-                }
+                canvas.drawPath(path, paint)
                 paint.style = Paint.Style.FILL; canvas.restore()
                 // A crisp perimeter reinforces the mapped shape after texturing.
                 paint.style = Paint.Style.STROKE; paint.color = 0x88EAF0C9.toInt()
