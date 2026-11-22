@@ -258,6 +258,9 @@ private fun greenCenter(feature: CourseFeature): Location? {
 }
 
 @Composable
+fun ClubDistancesSettings() = ClubManagementScreen()
+
+@Composable
 private fun ClubManagementScreen() {
     val context = LocalContext.current
     val preferences = remember { context.getSharedPreferences("watch_this_drive_caddy", Context.MODE_PRIVATE) }
