@@ -27,6 +27,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.LocationCallback
+import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.LocationResult
+import com.google.android.gms.location.Priority
+import android.os.Looper
 import com.watchthisdrive.app.data.CourseDiscovery
 import com.watchthisdrive.app.data.CourseGeometry
 import com.watchthisdrive.app.data.CourseGeometryLoader
@@ -76,6 +81,12 @@ private fun WatchThisDriveApp() {
         }
     }
     var location by remember { mutableStateOf<Location?>(null) }
+    var hasLocationPermission by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
+                ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        )
+    }
     var mapTarget by remember { mutableStateOf<Location?>(null) }
     var locationMessage by remember { mutableStateOf("Location not checked yet") }
 
@@ -89,6 +100,7 @@ private fun WatchThisDriveApp() {
             result[Manifest.permission.ACCESS_COARSE_LOCATION] == true
 
         if (granted) {
+            hasLocationPermission = true
             try {
                 fused.lastLocation.addOnSuccessListener { found ->
                     location = found
@@ -102,6 +114,7 @@ private fun WatchThisDriveApp() {
                 locationMessage = "Location permission unavailable"
             }
         } else {
+            hasLocationPermission = false
             locationMessage = "Location permission was not granted"
         }
     }
@@ -123,6 +136,7 @@ private fun WatchThisDriveApp() {
                 )
             )
         } else {
+            hasLocationPermission = true
             try {
                 fused.lastLocation.addOnSuccessListener { found ->
                     location = found
@@ -135,6 +149,51 @@ private fun WatchThisDriveApp() {
             } catch (_: SecurityException) {
                 locationMessage = "Location permission unavailable"
             }
+        }
+    }
+
+    DisposableEffect(hasLocationPermission, selected, activeCourse?.id) {
+        if (hasLocationPermission && selected == Tab.PLAY && activeCourse != null) {
+            val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 3_000L)
+                .setMinUpdateIntervalMillis(1_500L)
+                .setWaitForAccurateLocation(false)
+                .build()
+            val callback = object : LocationCallback() {
+                override fun onLocationResult(result: LocationResult) {
+                    result.lastLocation?.let {
+                        location = it
+                        locationMessage = "Live GPS tracking active"
+                    }
+                }
+            }
+            try {
+                fused.requestLocationUpdates(request, callback, Looper.getMainLooper())
+            } catch (_: SecurityException) {
+                locationMessage = "Location permission unavailable"
+            }
+            onDispose { fused.removeLocationUpdates(callback) }
+        } else {
+            onDispose { }
+        }
+    }
+
+    LaunchedEffect(courseGeometry, activeCourse?.id) {
+        val geometry = courseGeometry ?: return@LaunchedEffect
+        val reconstructed = HoleReconstructor.reconstruct(geometry)
+        val updated = pars.toMutableList()
+        var changed = false
+        val editor = scorePrefs.edit()
+        reconstructed.forEach { hole ->
+            val index = hole.number - 1
+            if (index in 0..17 && hole.par != null && !scorePrefs.contains("par_${hole.number}")) {
+                updated[index] = hole.par
+                editor.putInt("par_${hole.number}", hole.par)
+                changed = true
+            }
+        }
+        if (changed) {
+            editor.apply()
+            pars = updated
         }
     }
 
