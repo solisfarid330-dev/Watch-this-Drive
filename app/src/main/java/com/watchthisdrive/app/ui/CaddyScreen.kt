@@ -242,8 +242,10 @@ private fun PlayingCaddyScreen(
                             onClick = {
                                 if (location == null) {
                                     shotMessage = "A GPS fix is required to record a shot."
-                                } else if (location.accuracy > 25f) {
-                                    shotMessage = "GPS accuracy is too low right now. Wait for a more accurate fix."
+                                } else if (System.currentTimeMillis() - location.time > 15_000L) {
+                                    shotMessage = "Waiting for a fresh GPS fix. Keep the Play screen open for a moment."
+                                } else if (location.accuracy > 15f || (shotStart?.accuracy ?: 0f) > 15f) {
+                                    shotMessage = "GPS accuracy must be within 15 metres at both shot points. Wait for a clearer fix."
                                 } else if (shotStart == null) {
                                     shotStart = Location(location)
                                     shotMessage = "Start saved. Tap again at the ball's first landing point."
