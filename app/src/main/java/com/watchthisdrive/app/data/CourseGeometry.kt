@@ -210,11 +210,26 @@ object CourseGeometryLoader {
         val candidates = (0 until elements.length()).map { elements.getJSONObject(it) }
             .filter { it.optJSONArray("geometry")?.length()?.let { n -> n >= 4 } == true ||
                 it.optJSONArray("members")?.length()?.let { n -> n > 0 } == true }
+        // A course marker may sit close to the edge of its own boundary.
+        // Rank candidates by distance to their actual outline, not only by the
+        // polygon centroid (which can be hundreds of metres away).
         val chosen = candidates.minByOrNull { element ->
-            val center = element.optJSONObject("center")
-            val lat = center?.optDouble("lat", course.latitude) ?: course.latitude
-            val lon = center?.optDouble("lon", course.longitude) ?: course.longitude
-            haversineMeters(course.latitude, course.longitude, lat, lon)
+            val outline = readGeometry(element.optJSONArray("geometry")) +
+                (element.optJSONArray("members")?.let { members ->
+                    (0 until members.length()).flatMap { index ->
+                        readGeometry(members.optJSONObject(index)?.optJSONArray("geometry"))
+                    }
+                } ?: emptyList())
+            if (outline.isNotEmpty()) {
+                outline.minOf { point ->
+                    haversineMeters(course.latitude, course.longitude, point.latitude, point.longitude)
+                }
+            } else {
+                val center = element.optJSONObject("center")
+                val lat = center?.optDouble("lat", course.latitude) ?: course.latitude
+                val lon = center?.optDouble("lon", course.longitude) ?: course.longitude
+                haversineMeters(course.latitude, course.longitude, lat, lon)
+            }
         } ?: return null
 
         val points = mutableListOf<GeoPoint>()
