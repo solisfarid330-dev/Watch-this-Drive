@@ -157,6 +157,9 @@ class HoleReconstructorTest {
 
         assertEquals(route, hole.mappedCenterline?.points)
         assertTrue(hole.fairwayEstimate.isNotEmpty())
+        // Dogleg yardage follows the trusted mapped route, not the shorter
+        // straight-line distance between tee and green.
+        assertTrue(hole.lengthMeters > 600.0)
         // The generated corridor must preserve the dogleg bend, not collapse
         // to the straight tee-green axis.
         assertTrue(hole.fairwayEstimate.any { point ->
