@@ -145,9 +145,29 @@ def main():
             local_geometry(shapely_transform(to_source, shape(feature["geometry"])))
             for feature in fairways
         ]
+        # A golf=hole polygon is a playable-hole outline, not a fairway.
+        # Keep it separate and use it only as a spatial constraint.
+        hole_outlines = [
+            local_geometry(shapely_transform(to_source, shape(feature["geometry"])))
+            for feature in features
+            if feature.get("properties", {}).get("golf_type") == "hole_outline"
+            and feature.get("geometry")
+        ]
+        hole_outline = None
+        if hole_outlines:
+            from shapely.ops import unary_union
+            hole_outline = unary_union(hole_outlines)
         inferred_fairway = not local_fairways
         if inferred_fairway:
-            local_fairways = [local_centerline.buffer(17.0, cap_style=1, join_style=1)]
+            # Follow the complete curved centerline. If an OSM hole outline is
+            # available, constrain the estimate to that footprint rather than
+            # drawing a constant-width corridor outside the hole.
+            inferred = local_centerline.buffer(17.0, cap_style=1, join_style=1)
+            if hole_outline is not None and not hole_outline.is_empty:
+                constrained = inferred.intersection(hole_outline)
+                if not constrained.is_empty:
+                    inferred = constrained
+            local_fairways = [inferred]
 
         # Portrait crop: enough lateral context to show neighboring landscape.
         _, line_min_y, _, line_max_y = local_centerline.bounds
@@ -262,9 +282,18 @@ def main():
             properties = feature.get("properties", {})
             tags = properties.get("tags", {})
             kind = properties.get("golf") or tags.get("golf")
+            # Normalize common OSM representations so the whole course context
+            # is not restricted to the small set used by the first prototype.
+            if kind in {"cart_path", "golf_cart_path"} or tags.get("highway") in {"path", "track", "service"}:
+                kind = "path"
+            if kind is None and tags.get("natural") in {"wood", "tree_row"}:
+                kind = "tree"
+            if kind is None and tags.get("landuse") in {"grass", "meadow", "forest"}:
+                kind = "rough" if tags.get("landuse") != "forest" else "tree"
             if kind not in {
-                "fairway", "green", "bunker", "water_hazard",
-                "lateral_water_hazard", "path", "cartpath", "tee",
+                "fairway", "green", "green_area", "bunker", "water_hazard",
+                "lateral_water_hazard", "path", "cartpath", "tee", "tee_area",
+                "rough", "tree", "hole", "out_of_bounds",
             }:
                 continue
             try:
@@ -289,8 +318,18 @@ def main():
                     )
             elif kind == "fairway":
                 draw_polygon(draw, geometry, (145, 181, 111))
-            elif kind == "green":
+            elif kind in {"green", "green_area"}:
                 draw_polygon(draw, geometry, (115, 174, 112))
+            elif kind in {"rough", "tree"}:
+                draw_polygon(draw, geometry, COLORS["tree"] if kind == "tree" else (139, 164, 105))
+            elif kind == "hole":
+                # Polygonal golf=hole outlines provide context only; they do
+                # not overwrite the active fairway or imply playable surface.
+                if geometry.geom_type in {"Polygon", "MultiPolygon"}:
+                    for polygon in polygon_parts(geometry):
+                        points = [pixel(point) for point in polygon.exterior.coords]
+                        if len(points) >= 3:
+                            draw.line(points + [points[0]], fill=(104, 132, 89), width=2)
 
         # Emphasize the active hole's actual mapped fairway polygon(s).
         for geometry in local_fairways:
