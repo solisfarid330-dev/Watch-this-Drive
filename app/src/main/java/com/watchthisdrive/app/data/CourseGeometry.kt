@@ -22,7 +22,9 @@ data class CourseFeature(
     val featureType: String,
     val holeNumber: String?,
     val name: String?,
-    val points: List<GeoPoint>
+    val points: List<GeoPoint>,
+    val par: Int? = null,
+    val handicap: Int? = null
 )
 
 data class CourseGeometry(
@@ -380,13 +382,21 @@ object CourseGeometryLoader {
             val hole = tags.optString("ref").takeIf { it.isNotBlank() }
                 ?: tags.optString("golf:hole").takeIf { it.isNotBlank() }
             val name = tags.optString("name").takeIf { it.isNotBlank() }
+            // Preserve explicit hole metadata from OSM. Missing or malformed
+            // values remain unknown; downstream UI must never infer a par.
+            val par = tags.optString("par").toIntOrNull()?.takeIf { it in 3..6 }
+            val handicap = sequenceOf("handicap", "stroke_index", "golf:handicap")
+                .mapNotNull { key -> tags.optString(key).toIntOrNull() }
+                .firstOrNull()?.takeIf { it in 1..36 }
             features.add(CourseFeature(
                 id = element.optLong("id"),
                 elementType = element.optString("type"),
                 featureType = featureType,
                 holeNumber = hole,
                 name = name,
-                points = points
+                points = points,
+                par = par,
+                handicap = handicap
             ))
         }
         return features.distinctBy { Triple(it.elementType, it.id, it.featureType) }
