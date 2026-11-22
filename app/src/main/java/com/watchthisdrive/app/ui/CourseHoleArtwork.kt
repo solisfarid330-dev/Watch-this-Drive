@@ -5,6 +5,11 @@ import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -14,7 +19,6 @@ import kotlinx.coroutines.withContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.watchthisdrive.app.data.GolfCourse
@@ -85,13 +89,17 @@ fun CourseHoleArtworkPanel(course: GolfCourse, geometry: CourseGeometry?) {
         val sourceGeometry = geometry
         if (sourceGeometry != null && artwork?.holes.isNullOrEmpty()) {
             generating = true
-            generatedImages = withContext(Dispatchers.Default) {
-                HoleReconstructor.reconstruct(sourceGeometry).associate { hole ->
-                    hole.number to CourseHoleArtworkRenderer.render(hole, context.cacheDir, course.elementType + "-" + course.id)
+            try {
+                val rendered = withContext(Dispatchers.Default) {
+                    HoleReconstructor.reconstruct(sourceGeometry).associate { hole ->
+                        hole.number to CourseHoleArtworkRenderer.render(hole, context.cacheDir, course.elementType + "-" + course.id)
+                    }
                 }
+                generatedImages = rendered
+                if (selected == null) selected = rendered.keys.minOrNull()
+            } finally {
+                generating = false
             }
-            if (selected == null) selected = generatedImages.keys.minOrNull()
-            generating = false
         }
     }
 
@@ -133,8 +141,8 @@ fun CourseHoleArtworkPanel(course: GolfCourse, geometry: CourseGeometry?) {
                     if (image != null) {
                         Image(bitmap = image!!.asImageBitmap(),
                             contentDescription = "Illustrated view of hole " + selected,
-                            modifier = Modifier.fillMaxWidth().heightIn(min = 260.dp, max = 520.dp),
-                            contentScale = ContentScale.Fit)
+                            modifier = Modifier.fillMaxWidth().aspectRatio(2f / 3f).clip(RoundedCornerShape(14.dp)),
+                            contentScale = ContentScale.FillBounds)
                         Text("Tee at bottom · Green at top",
                             color = Color(0xFFB6C1B9), style = MaterialTheme.typography.bodySmall)
                     } else {
@@ -194,8 +202,8 @@ fun CourseHoleArtworkForHole(
             Image(
                 bitmap = bitmap!!.asImageBitmap(),
                 contentDescription = "Illustrated view of hole $holeNumber",
-                modifier = Modifier.fillMaxWidth().heightIn(min = 260.dp, max = 520.dp),
-                contentScale = ContentScale.Fit
+                modifier = Modifier.fillMaxWidth().aspectRatio(2f / 3f).clip(RoundedCornerShape(14.dp)),
+                contentScale = ContentScale.FillBounds
             )
             Text(
                 "Tee at bottom · Green at top",
