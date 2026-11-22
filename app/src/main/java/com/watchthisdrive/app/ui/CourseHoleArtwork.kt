@@ -19,7 +19,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.watchthisdrive.app.data.GolfCourse
 import com.watchthisdrive.app.data.CourseGeometry
-import com.watchthisdrive.app.data.HoleReconstruction
+import com.watchthisdrive.app.data.HoleReconstructor
+import com.watchthisdrive.app.data.ReconstructedHole
 import java.io.File
 import org.json.JSONObject
 
@@ -172,6 +173,7 @@ fun CourseHoleArtworkPanel(course: GolfCourse, geometry: CourseGeometry?) {
 fun CourseHoleArtworkForHole(
     course: GolfCourse,
     holeNumber: Int,
+    reconstructedHole: ReconstructedHole? = null,
     fallback: @Composable () -> Unit
 ) {
     val context = LocalContext.current
@@ -183,7 +185,11 @@ fun CourseHoleArtworkForHole(
         bitmap = withContext(Dispatchers.IO) {
             val pack = CourseHoleArtworkRepository.load(context, course)
             val entry = pack?.holes?.firstOrNull { it.number == holeNumber }
-            entry?.let { CourseHoleArtworkRepository.bitmap(context, it.assetPath) }
+            val packaged = entry?.let { CourseHoleArtworkRepository.bitmap(context, it.assetPath) }
+            if (packaged != null) packaged else reconstructedHole?.let { hole ->
+                val file = CourseHoleArtworkRenderer.render(hole, context.cacheDir, course.elementType + "-" + course.id)
+                BitmapFactory.decodeFile(file.absolutePath)
+            }
         }
         loading = false
     }
