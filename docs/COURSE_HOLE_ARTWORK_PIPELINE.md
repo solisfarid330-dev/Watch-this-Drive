@@ -9,11 +9,11 @@ The same generated artwork package is consumed by **Illustrated Holes** and **Pl
 ## Current implementation status
 
 - Android course acquisition now starts from the selected OSM boundary, retrieves mapped course/landscape features within its bounds, and spatially filters against stitched outer boundary rings when available. If no usable boundary exists, it falls back to a bounded coordinate search; that fallback has weaker isolation guarantees.
-- Hole reconstruction now prefers explicit hole numbers when associating tee clusters and greens, uses mapped fairway polygons when available, and only draws a synthetic corridor when no mapped fairway is associated. Mapped fairways remain separate from inferred geometry.
-- Bunkers and water are associated with the reconstructed tee-to-green corridor and nearby mapped fairway geometry. This is a first-pass spatial association, not a fully solved routing/graph problem.
-- The reconstructed-hole UI renders mapped fairway polygons and labels the fallback corridor as estimated.
-- Android Illustrated Holes still loads packaged artwork assets. It does not yet generate and cache a new course's illustrations on the device.
-- The Caddy screen uses the shared artwork repository when a packaged illustration exists and otherwise falls back to its reconstructed GPS-aware map.
+- Hole reconstruction prefers explicit hole numbers, uses mapped OSM hole centerlines to retain dogleg routes, and follows connected fairway sections where available. If no mapped route/fairway exists, it draws a clearly identified estimated corridor.
+- Bunkers and water are associated with mapped fairways or centerlines first, then with a direct tee-to-green fallback when mapped route data is absent. This remains a spatial approximation, not survey-grade routing.
+- Reconstruction tests cover explicit tee/green matching, cross-hole mismatch rejection, mapped fairway preservation, and estimated-corridor fallback.
+- Android now includes a vector renderer that creates tee-bottom/green-top PNG illustrations from reconstructed geometry on-device and caches them in app-private storage. The cache key includes source geometry so changed geometry produces a new image.
+- Illustrated Holes and Playing Caddy share the same renderer and local artwork cache. Packaged pilot images remain supported as a backward-compatible first choice; Caddy retains its reconstructed GPS-aware map as fallback.
 - The regular APK workflow no longer runs or packages the Lake Arlington-specific artwork pilot. Lake Arlington remains only a potential test fixture.
 - Python geometry/rendering scripts are prototypes/reference tools, not a production runtime dependency. A universal on-device renderer and local generated-artwork cache are not yet implemented.
 
@@ -87,6 +87,6 @@ Use multiple fixtures with different mapping completeness, layout, hemisphere, a
 - a course with tees/greens but no centerlines;
 - a sparse course where generation must return a partial package or a useful failure, not fabricate a complete atlas.
 
-Tests must verify route orientation, hole association, ambiguity handling, valid PNG dimensions, manifest provenance, cache invalidation, and graceful partial results. Run Python tests and Android builds. Device testing must confirm the same generated hole appears in Illustrated Holes and Caddy, with Caddy GPS behavior still available when no image is ready.
+Tests must verify route orientation, hole association, ambiguity handling, valid PNG dimensions, manifest provenance, cache invalidation, and graceful partial results. Run Python tests, Android reconstruction unit tests, and Android builds. Device testing must confirm the same generated hole appears in Illustrated Holes and Caddy, with Caddy GPS behavior still available when no image is ready.
 
 **Completion criterion:** selecting a previously unseen course generates or retrieves its artwork without code changes, per-course constants, manual asset packaging, or an APK rebuild. Lake Arlington is one test fixture only.
