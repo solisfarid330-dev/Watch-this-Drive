@@ -553,8 +553,37 @@ object CourseGeometryLoader {
             feature.points.map { it.latitude }.average(),
             feature.points.map { it.longitude }.average()
         )
-        return feature.points.any { point -> rings.any { pointInRing(point, it) } } ||
+        val contained = feature.points.any { point -> rings.any { pointInRing(point, it) } } ||
             rings.any { ring -> pointInRing(centroid, ring) }
+        if (contained) return true
+
+        // Retain mapped features whose geometry crosses the selected course
+        // outline even when every sampled vertex and the centroid lie outside.
+        return feature.points.zipWithNext().any { (a, b) ->
+            rings.any { ring ->
+                ring.zipWithNext().any { (c, d) -> segmentsIntersect(a, b, c, d) }
+            }
+        }
+    }
+
+    private fun segmentsIntersect(a: GeoPoint, b: GeoPoint, c: GeoPoint, d: GeoPoint): Boolean {
+        fun orient(p: GeoPoint, q: GeoPoint, r: GeoPoint): Double =
+            (q.longitude - p.longitude) * (r.latitude - p.latitude) -
+                (q.latitude - p.latitude) * (r.longitude - p.longitude)
+        fun onSegment(p: GeoPoint, q: GeoPoint, r: GeoPoint): Boolean =
+            q.longitude >= min(p.longitude, r.longitude) - 1e-12 &&
+                q.longitude <= max(p.longitude, r.longitude) + 1e-12 &&
+                q.latitude >= min(p.latitude, r.latitude) - 1e-12 &&
+                q.latitude <= max(p.latitude, r.latitude) + 1e-12
+        val o1 = orient(a, b, c); val o2 = orient(a, b, d)
+        val o3 = orient(c, d, a); val o4 = orient(c, d, b)
+        val epsilon = 1e-12
+        if (((o1 > epsilon && o2 < -epsilon) || (o1 < -epsilon && o2 > epsilon)) &&
+            ((o3 > epsilon && o4 < -epsilon) || (o3 < -epsilon && o4 > epsilon))) return true
+        return (kotlin.math.abs(o1) <= epsilon && onSegment(a, c, b)) ||
+            (kotlin.math.abs(o2) <= epsilon && onSegment(a, d, b)) ||
+            (kotlin.math.abs(o3) <= epsilon && onSegment(c, a, d)) ||
+            (kotlin.math.abs(o4) <= epsilon && onSegment(c, b, d))
     }
 
     private fun pointInRing(point: GeoPoint, ring: List<GeoPoint>): Boolean {
