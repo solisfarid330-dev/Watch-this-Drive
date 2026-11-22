@@ -18,7 +18,7 @@ import kotlin.math.*
 
 /** Rich tee-bottom/green-top artwork, fitted to the complete reconstructed hole. */
 internal object CourseHoleArtworkRenderer {
-    private const val VERSION = 5
+    private const val VERSION = 6
     private const val WIDTH = 1200
     private const val HEIGHT = 1800
     private const val LEFT = 48.0
@@ -115,12 +115,12 @@ internal object CourseHoleArtworkRenderer {
         fun shape(points: List<GeoPoint>): Path? {
             if (points.size < 3) return null
             val p = points.map(::xy)
+            // Follow the mapped vertices rather than smoothing every corner
+            // with quadratic curves. Smoothing can visibly move narrow fairways,
+            // bunker lips and water edges away from their actual mapped footprint.
             return Path().apply {
-                moveTo((p.first().first + p.last().first) / 2f, (p.first().second + p.last().second) / 2f)
-                for (i in p.indices) {
-                    val a = p[i]; val b = p[(i + 1) % p.size]
-                    quadTo(a.first, a.second, (a.first + b.first) / 2f, (a.second + b.second) / 2f)
-                }
+                moveTo(p.first().first, p.first().second)
+                for (i in 1 until p.size) lineTo(p[i].first, p[i].second)
                 close()
             }
         }
@@ -221,15 +221,24 @@ internal object CourseHoleArtworkRenderer {
                 paint.shader = LinearGradient(0f, 0f, WIDTH.toFloat(), 0f,
                     intArrayOf(0x286BE078, 0x006BE078, 0x286BE078), null, Shader.TileMode.CLAMP)
                 canvas.drawRect(full, paint); paint.shader = null
-                paint.style = Paint.Style.STROKE; paint.strokeWidth = 20f
-                for (i in -2..20) {
-                    paint.color = if (i % 2 == 0) 0x286EA85B else 0x16618E4E
-                    val y = 180f + i * 94f
-                    canvas.drawLine(0f, y, WIDTH.toFloat(), y + 24f, paint)
+                // Alternating fine mowing bands add a maintained-course look
+                // while remaining clipped to the actual fairway footprint.
+                paint.style = Paint.Style.STROKE; paint.strokeWidth = 26f
+                for (i in -3..24) {
+                    paint.color = if (i % 2 == 0) 0x287DB56A else 0x16618E4E
+                    val y = 150f + i * 76f
+                    canvas.drawLine(-80f, y, WIDTH + 80f, y + 34f, paint)
+                }
+                paint.style = Paint.Style.STROKE; paint.strokeWidth = 2.5f
+                paint.color = 0x2477B66A
+                for (i in 1..3) {
+                    val inset = i * 13f
+                    canvas.drawRoundRect(inset, TOP.toFloat(), WIDTH - inset, BOTTOM.toFloat(), 24f, 24f, paint)
                 }
                 paint.style = Paint.Style.FILL; canvas.restore()
-                paint.style = Paint.Style.STROKE; paint.color = 0x66F0F4C9
-                paint.strokeWidth = 2f; canvas.drawPath(path, paint); paint.style = Paint.Style.FILL
+                // A crisp perimeter reinforces the mapped shape after texturing.
+                paint.style = Paint.Style.STROKE; paint.color = 0x88EAF0C9.toInt()
+                paint.strokeWidth = 3f; canvas.drawPath(path, paint); paint.style = Paint.Style.FILL
             }
         }
 
@@ -240,10 +249,14 @@ internal object CourseHoleArtworkRenderer {
             paint.shader = RadialGradient(WIDTH * .5f, TOP.toFloat() + 130f, 420f,
                 intArrayOf(0x66E1F5A4, 0x229AC65B, 0x009AC65B), null, Shader.TileMode.CLAMP)
             canvas.drawRect(full, paint); paint.shader = null
-            paint.style = Paint.Style.STROKE; paint.color = 0x32718E3D; paint.strokeWidth = 2f
-            for (i in 1..5) canvas.drawOval(WIDTH * .5f - i * 30f, TOP.toFloat() + 90f - i * 14f,
-                WIDTH * .5f + i * 30f, TOP.toFloat() + 90f + i * 14f, paint)
+            // Subtle concentric contours suggest green undulation without
+            // inventing a slope direction or moving the mapped green boundary.
+            paint.style = Paint.Style.STROKE; paint.color = 0x3C718E3D; paint.strokeWidth = 2.5f
+            for (i in 1..6) canvas.drawOval(WIDTH * .5f - i * 27f, TOP.toFloat() + 90f - i * 13f,
+                WIDTH * .5f + i * 27f, TOP.toFloat() + 90f + i * 13f, paint)
             paint.style = Paint.Style.FILL; canvas.restore()
+            paint.style = Paint.Style.STROKE; paint.color = 0x99F0F4C8.toInt()
+            paint.strokeWidth = 3f; canvas.drawPath(green, paint); paint.style = Paint.Style.FILL
         }
 
         // Bunkers: warm sand, sculpted lip and fine rake texture.
@@ -296,6 +309,9 @@ internal object CourseHoleArtworkRenderer {
         text("HOLE " + hole.number, 56f, 73f, 0xFFF7F4E9.toInt(), 48f, Paint.Align.LEFT)
         text((hole.lengthMeters * 1.0936133).roundToInt().toString() + " YDS", 56f, 124f, 0xFFD1E3C7.toInt(), 29f, Paint.Align.LEFT)
         text("TEE  →  GREEN", WIDTH - 56f, 76f, 0xFFB8D4B4.toInt(), 22f, Paint.Align.RIGHT)
+        val parLabel = hole.par?.let { "PAR $it" } ?: "PAR UNKNOWN"
+        val handicapLabel = hole.handicap?.let { "  ·  HCP $it" } ?: ""
+        text(parLabel + handicapLabel, WIDTH - 56f, 124f, 0xFFE2EACF.toInt(), 25f, Paint.Align.RIGHT)
         val scaleMeters = niceScaleMeters(150.0 / scale)
         val scalePixels = (scaleMeters * scale).toFloat()
         val sx = WIDTH - 66f; val sy = HEIGHT - 68f
