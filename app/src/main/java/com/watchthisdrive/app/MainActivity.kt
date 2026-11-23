@@ -91,6 +91,10 @@ private fun WatchThisDriveApp() {
             }
         }
     }
+    LaunchedEffect(selected, activeCourse?.id) {
+        if (selected == Tab.PLAY && activeCourse != null && location == null) locate()
+    }
+
     LaunchedEffect(courseGeometry, activeCourse?.id) {
         val geometry = courseGeometry ?: return@LaunchedEffect
         val courseId = activeCourse?.id ?: return@LaunchedEffect
@@ -131,6 +135,7 @@ private fun WatchThisDriveApp() {
                     val found = result.lastLocation
                     if (found != null) {
                         location = found
+                        mapTarget = found
                         locationMessage = "Location fix received · accuracy " + found.accuracy.toInt() + " m"
                         locationError = null
                     } else locationMessage = "No GPS fix received yet. Check location services and try outdoors."
