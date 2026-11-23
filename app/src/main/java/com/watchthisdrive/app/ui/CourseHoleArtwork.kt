@@ -28,6 +28,7 @@ import com.watchthisdrive.app.data.HoleReconstructor
 import com.watchthisdrive.app.data.ReconstructedHole
 import com.watchthisdrive.app.data.GeoPoint
 import com.watchthisdrive.app.data.NaipImageryRepository
+import com.watchthisdrive.app.data.NdviBoundaryAnalyzer
 import java.io.File
 import org.json.JSONObject
 
@@ -38,7 +39,8 @@ private data class AerialReference(
     val bitmap: Bitmap,
     val ndviBitmap: Bitmap?,
     val bounds: NaipImageryRepository.Bounds,
-    val cacheToken: String
+    val cacheToken: String,
+    val ndviEvidence: List<Pair<String, NdviBoundaryAnalyzer.Result>> = emptyList()
 )
 
 private data class NdviReference(val bitmap: Bitmap, val cacheToken: String)
@@ -59,6 +61,26 @@ private suspend fun loadAerialReference(
         throw cancelled
     } catch (_: Exception) {
         null
+    }
+}
+
+private suspend fun analyzeNdviEvidence(
+    bitmap: Bitmap,
+    bounds: NaipImageryRepository.Bounds,
+    hole: ReconstructedHole
+): List<Pair<String, NdviBoundaryAnalyzer.Result>> = withContext(Dispatchers.Default) {
+    if (bitmap.isRecycled || bitmap.width < 2 || bitmap.height < 2) return@withContext emptyList()
+    val pixels = IntArray(bitmap.width * bitmap.height)
+    bitmap.getPixels(pixels, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
+    buildList {
+        hole.mappedFairways.forEachIndexed { index, feature ->
+            NdviBoundaryAnalyzer.evaluate(pixels, bitmap.width, bitmap.height, bounds, feature.points)
+                ?.let { add("Fairway ${index + 1}" to it) }
+        }
+        if (hole.greenBoundary.size >= 3) {
+            NdviBoundaryAnalyzer.evaluate(pixels, bitmap.width, bitmap.height, bounds, hole.greenBoundary)
+                ?.let { add("Green" to it) }
+        }
     }
 }
 
@@ -150,9 +172,11 @@ fun CourseHoleArtworkPanel(
         if (baseReference != null && hole != null) {
             val ndvi = loadNdviReference(context, course, hole)
             if (ndvi != null && aerialReference?.cacheToken == baseReference.cacheToken) {
+                val evidence = analyzeNdviEvidence(ndvi.bitmap, baseReference.bounds, hole)
                 aerialReference = baseReference.copy(
                     ndviBitmap = ndvi.bitmap,
-                    cacheToken = baseReference.cacheToken + ndvi.cacheToken
+                    cacheToken = baseReference.cacheToken + ndvi.cacheToken,
+                    ndviEvidence = evidence
                 )
             }
         }
@@ -277,6 +301,18 @@ fun CourseHoleArtworkPanel(
                             (selectedHole?.handicap?.let { " · HCP $it" } ?: ""),
                         color = Color.White, style = MaterialTheme.typography.titleMedium
                     )
+                    aerialReference?.ndviEvidence?.takeIf { it.isNotEmpty() }?.let { evidence ->
+                        val strong = evidence.count { it.second.label == "strong" }
+                        val weak = evidence.count { it.second.label == "weak" }
+                        Text(
+                            "NAIP vegetation evidence · $strong strong, ${evidence.size - strong - weak} mixed, $weak weak",
+                            color = Color(0xFFB6C1B9), style = MaterialTheme.typography.bodySmall
+                        )
+                        Text(
+                            "Evidence compares mapped feature interiors with nearby pixels; it does not alter or certify feature boundaries.",
+                            color = Color(0xFF8F9D93), style = MaterialTheme.typography.bodySmall
+                        )
+                    }
                     if (image != null) {
                         Image(bitmap = image!!.asImageBitmap(),
                             contentDescription = "Illustrated view of hole " + selected,
