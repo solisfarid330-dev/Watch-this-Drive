@@ -1,0 +1,125 @@
+{
+  "course_hole_osm_id": 1209483110,
+  "source": "Texas NAIP 2022 RGBIR 4-band orthophotography",
+  "band_order_assumption": [
+    "red",
+    "green",
+    "blue",
+    "near_infrared"
+  ],
+  "tiff_mode": "RGBA",
+  "tiff_dimensions": [
+    1600,
+    556
+  ],
+  "ndvi_formula": "(NIR - Red) / (NIR + Red)",
+  "weak_seed_label_warning": "OSM polygons may be incomplete, generalized, misclassified, or offset. Pixel samples are spatially correlated and are not independent ground truth.",
+  "class_samples": {
+    "fairway": {
+      "ndvi": {
+        "pixels": 133893,
+        "p10": 0.1293,
+        "p25": 0.1497,
+        "median": 0.1706,
+        "p75": 0.1919,
+        "p90": 0.2132
+      },
+      "excess_green": {
+        "pixels": 133893,
+        "p10": 0.1373,
+        "p25": 0.1529,
+        "median": 0.1686,
+        "p75": 0.1882,
+        "p90": 0.2157
+      }
+    },
+    "rough": {
+      "ndvi": {
+        "pixels": 0
+      },
+      "excess_green": {
+        "pixels": 0
+      }
+    },
+    "green": {
+      "ndvi": {
+        "pixels": 15411,
+        "p10": 0.1754,
+        "p25": 0.1848,
+        "median": 0.1976,
+        "p75": 0.2083,
+        "p90": 0.2169
+      },
+      "excess_green": {
+        "pixels": 15411,
+        "p10": 0.2039,
+        "p25": 0.2157,
+        "median": 0.2235,
+        "p75": 0.2353,
+        "p90": 0.2431
+      }
+    },
+    "bunker": {
+      "ndvi": {
+        "pixels": 12715,
+        "p10": -0.1653,
+        "p25": -0.1331,
+        "median": -0.1053,
+        "p75": -0.0762,
+        "p90": -0.0417
+      },
+      "excess_green": {
+        "pixels": 12715,
+        "p10": 0.0118,
+        "p25": 0.0235,
+        "median": 0.0353,
+        "p75": 0.0471,
+        "p90": 0.0706
+      }
+    },
+    "water_hazard": {
+      "ndvi": {
+        "pixels": 25593,
+        "p10": -0.5,
+        "p25": -0.4819,
+        "median": -0.415,
+        "p75": -0.2566,
+        "p90": 0.1082
+      },
+      "excess_green": {
+        "pixels": 25593,
+        "p10": -0.0039,
+        "p25": 0.0235,
+        "median": 0.1059,
+        "p75": 0.1255,
+        "p90": 0.149
+      }
+    },
+    "tee": {
+      "ndvi": {
+        "pixels": 6871,
+        "p10": -0.0365,
+        "p25": 0.1882,
+        "median": 0.225,
+        "p75": 0.2407,
+        "p90": 0.2523
+      },
+      "excess_green": {
+        "pixels": 6871,
+        "p10": 0.0275,
+        "p25": 0.1412,
+        "median": 0.2,
+        "p75": 0.2157,
+        "p90": 0.2314
+      }
+    }
+  },
+  "fairway_vs_rough_ndvi_separability": {
+    "status": "insufficient mapped fairway or rough seed pixels"
+  },
+  "interpretation": "Spectral separability is exploratory only. NDVI alone does not identify fairway boundaries; compare seed distributions and the preview with the aerial image.",
+  "files": [
+    "ndvi-preview.png",
+    "spectral-summary.json"
+  ]
+}

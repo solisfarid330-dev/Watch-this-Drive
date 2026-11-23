@@ -150,8 +150,10 @@
   ],
   "files": [
     "hole-1-naip-2022.png",
+    "hole-1-naip-2022-rgbir.tif",
     "hole-1-osm-overlay.png"
   ],
+  "source_band_order": "RGB + near infrared (band IDs 0,1,2,3; verify from image service metadata)",
   "limitations": [
     "Visual overlay only; not a ground-truth accuracy measurement.",
     "Nearby features are candidates by distance, not confirmed hole assignments.",
