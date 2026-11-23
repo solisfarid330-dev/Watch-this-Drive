@@ -196,6 +196,26 @@ class ZommaGeoJsonParserTest {
     }
 
     @Test
+    fun retainsAValidCourseOutlineEvenWhenNoHoleFeaturesAreMapped() {
+        val json = """
+            {
+              "type": "FeatureCollection",
+              "features": [{
+                "type": "Feature",
+                "id": "course-outline",
+                "properties": {"tags": {"leisure": "golf_course"}},
+                "geometry": {"type": "Polygon", "coordinates": [[
+                  [-97.0,32.0],[-96.999,32.0],[-96.999,32.001],[-97.0,32.0]
+                ]]}
+              }]
+            }
+        """.trimIndent()
+        val parsed = ZommaGeoJsonParser.parse(json)
+        assertEquals(1, parsed.size)
+        assertEquals("course_boundary", parsed.single().featureType)
+    }
+
+    @Test
     fun ignoresUnknownAndInvalidFeaturesWithoutInventingGeometry() {
         val json = """
             {
