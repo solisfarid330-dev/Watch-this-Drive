@@ -471,6 +471,7 @@ private fun RoundHubScreen(
             course = course,
             holeNumber = activeHole,
             reconstructedHole = holeData,
+            geometry = courseGeometry,
             playerLocation = location
         ) {
             Card(Modifier.fillMaxWidth().padding(horizontal = 14.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFF1D2A22))) {
