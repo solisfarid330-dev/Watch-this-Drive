@@ -35,9 +35,10 @@ Repeat with another course simply by changing the two input arguments.
 ## Current scope and known limitations
 
 This is a **data-discovery and audit prototype**, not the final reconstruction
-engine. It does not yet rebuild multipolygon rings, infer hole membership,
-repair incomplete boundaries, download aerial imagery, or claim that mapped
-features match the real course.
+engine. It now assembles the tested OSM multipolygon relations into GeoJSON, including
+inner rings (for example, greens cut out of fairway polygons). It does not yet
+infer hole membership for unnumbered features, repair incomplete boundaries,
+download aerial imagery, or claim that mapped features match the real course.
 
 The prototype intentionally refuses to treat an arbitrary geocoder result or
 an OSM node as a usable course boundary. It reports uncertainty instead of
@@ -64,7 +65,19 @@ and ambiguity reporting.
 
 ## Promotion criteria
 
-Do not port this prototype to Android until it has been exercised on multiple
-unrelated courses, its candidate selection and boundary retrieval are verified,
-and its output semantics (especially relation geometry and hole associations)
-are covered by tests.
+The current research branch has live retrieval snapshots for South Padre Island
+Golf Club and Cottonwood Creek Country Club. South Padre returned 183 golf-tagged
+OSM elements (18 hole lines, 18 greens, 49 tee elements, 42 bunker elements,
+17 fairway elements, 2 water-hazard elements, plus rough/cart paths). Cottonwood
+Creek returned only 9 hole lines and 9 pin nodes, demonstrating why the app must
+report mapping coverage rather than assume every course is equally mapped.
+
+South Padre relation conversion currently yields 183 GeoJSON features with no
+omitted relations: 142 polygons and 41 lines. Offline tests cover course-boundary
+query construction, node rejection, inventory counting, multipolygon outer/inner
+rings, segmented-ring stitching, open hole lines, and GeoJSON ring winding.
+
+Do not port this prototype to Android until a third unrelated course is tested,
+relation handling is validated on more complex multipolygons, and geometry is
+compared with aerial imagery. The present prototype proves data discovery and
+serialization, not reconstruction accuracy or on-device performance.
