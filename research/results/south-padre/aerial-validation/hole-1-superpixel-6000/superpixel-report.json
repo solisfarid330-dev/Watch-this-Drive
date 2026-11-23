@@ -41,9 +41,11 @@
     "Output remains a candidate mask; no independently traced fairway reference is available.",
     "No feature is assigned to a hole by proximity alone."
   ],
+  "candidate_geojson": "hole-1-fairway-candidate.geojson",
   "files": [
     "hole-1-superpixel-fairway-candidate.png",
     "hole-1-superpixel-fairway-candidate.jpg",
+    "hole-1-fairway-candidate.geojson",
     "superpixel-report.json"
   ]
 }
