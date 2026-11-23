@@ -214,25 +214,122 @@ def inventory(payload: dict) -> dict:
 
 
 
-def to_geojson(payload: dict) -> dict:
-    """Export only geometries whose shape can be read without guessing.
+def _ring_area(ring: list[list[float]]) -> float:
+    return 0.5 * sum(
+        ring[i][0] * ring[i + 1][1] - ring[i + 1][0] * ring[i][1]
+        for i in range(len(ring) - 1)
+    )
 
-    Closed OSM ways are emitted as Polygon rings; open ways as LineStrings;
-    nodes as Points. Relations are retained in source-response.json and are
-    deliberately omitted here until their outer/inner member rings can be
-    assembled and validated.
+
+def _point_in_ring(point: list[float], ring: list[list[float]]) -> bool:
+    x, y = point
+    inside = False
+    for i in range(len(ring) - 1):
+        x1, y1 = ring[i]
+        x2, y2 = ring[i + 1]
+        if (y1 > y) != (y2 > y):
+            crossing_x = (x2 - x1) * (y - y1) / (y2 - y1) + x1
+            if x < crossing_x:
+                inside = not inside
+    return inside
+
+
+def _assemble_member_rings(members: list[dict], role: str) -> tuple[list[list[list[float]]], list[str]]:
+    segments = []
+    errors = []
+    for member in members:
+        if member.get("role") != role:
+            continue
+        if member.get("type") != "way":
+            errors.append(f"{role} member is not a way: {member.get('type')}")
+            continue
+        coords = [
+            [float(point["lon"]), float(point["lat"])]
+            for point in (member.get("geometry") or [])
+            if "lon" in point and "lat" in point
+        ]
+        if len(coords) < 2:
+            errors.append(f"{role} member way/{member.get('ref')} has no usable geometry")
+            continue
+        segments.append(coords)
+
+    rings = []
+    while segments:
+        ring = segments.pop(0)
+        while ring[-1] != ring[0]:
+            match_index = None
+            match_segment = None
+            reverse_segment = False
+            for index, segment in enumerate(segments):
+                if segment[0] == ring[-1]:
+                    match_index, match_segment = index, segment
+                    break
+                if segment[-1] == ring[-1]:
+                    match_index, match_segment = index, list(reversed(segment))
+                    reverse_segment = True
+                    break
+            if match_index is None:
+                errors.append(f"Could not close a {role} ring from relation members")
+                break
+            segments.pop(match_index)
+            ring.extend(match_segment[1:])
+        if ring[-1] == ring[0] and len(ring) >= 4:
+            rings.append(ring)
+    return rings, errors
+
+
+def _relation_multipolygon_geometry(element: dict) -> tuple[dict | None, list[str]]:
+    members = element.get("members") or []
+    outers, outer_errors = _assemble_member_rings(members, "outer")
+    inners, inner_errors = _assemble_member_rings(members, "inner")
+    errors = outer_errors + inner_errors
+    if not outers:
+        return None, errors + ["Multipolygon has no complete outer ring"]
+
+    polygons = [[outer] for outer in outers]
+    for inner in inners:
+        containing = [
+            index for index, outer in enumerate(outers)
+            if _point_in_ring(inner[0], outer)
+        ]
+        if not containing:
+            errors.append("An inner ring could not be assigned to an outer ring")
+            continue
+        owner = min(containing, key=lambda index: abs(_ring_area(outers[index])))
+        polygons[owner].append(inner)
+
+    if any("inner ring could not be assigned" in error for error in errors):
+        return None, errors
+
+    # RFC 7946 winding: outer rings counter-clockwise, holes clockwise.
+    for polygon in polygons:
+        if _ring_area(polygon[0]) < 0:
+            polygon[0].reverse()
+        for hole in polygon[1:]:
+            if _ring_area(hole) > 0:
+                hole.reverse()
+
+    if len(polygons) == 1:
+        return {"type": "Polygon", "coordinates": polygons[0]}, errors
+    return {"type": "MultiPolygon", "coordinates": polygons}, errors
+
+
+def to_geojson(payload: dict) -> dict:
+    """Export nodes, ways, and assembled multipolygon relations.
+
+    Relation outer/inner member rings are stitched and validated. If a relation
+    cannot be assembled without guessing, it is omitted from this preview and
+    the reason is recorded in metadata; its complete raw source remains saved.
     """
     features = []
-    skipped_relations = []
+    skipped = []
+    relation_count = 0
+
     for element in payload.get("elements", []):
         tags = element.get("tags") or {}
         if not tags.get("golf"):
             continue
-        coords = [
-            [float(p["lon"]), float(p["lat"])]
-            for p in (element.get("geometry") or [])
-            if "lon" in p and "lat" in p
-        ]
+
         geometry = None
         if element.get("type") == "node":
             if "lon" in element and "lat" in element:
@@ -240,21 +337,44 @@ def to_geojson(payload: dict) -> dict:
                     "type": "Point",
                     "coordinates": [float(element["lon"]), float(element["lat"])],
                 }
-        elif len(coords) >= 2:
-            closed = len(coords) >= 4 and coords[0] == coords[-1]
-            if closed:
-                geometry = {"type": "Polygon", "coordinates": [coords]}
-            else:
-                geometry = {"type": "LineString", "coordinates": coords}
+        elif element.get("type") == "way":
+            coords = [
+                [float(point["lon"]), float(point["lat"])]
+                for point in (element.get("geometry") or [])
+                if "lon" in point and "lat" in point
+            ]
+            if len(coords) >= 2:
+                closed = len(coords) >= 4 and coords[0] == coords[-1]
+                geometry = (
+                    {"type": "Polygon", "coordinates": [coords]}
+                    if closed else {"type": "LineString", "coordinates": coords}
+                )
         elif element.get("type") == "relation":
-            skipped_relations.append({
-                "osm_type": "relation",
-                "osm_id": element.get("id"),
-                "reason": "Member outer/inner rings require assembly; raw relation retained separately.",
-            })
+            relation_count += 1
+            if tags.get("type") == "multipolygon":
+                geometry, errors = _relation_multipolygon_geometry(element)
+                if geometry is None:
+                    skipped.append({
+                        "osm_type": "relation",
+                        "osm_id": element.get("id"),
+                        "reason": "; ".join(errors) or "Multipolygon geometry could not be assembled",
+                    })
+            else:
+                skipped.append({
+                    "osm_type": "relation",
+                    "osm_id": element.get("id"),
+                    "reason": "Relation is not tagged as a supported multipolygon",
+                })
 
         if geometry is None:
+            if element.get("type") != "relation":
+                skipped.append({
+                    "osm_type": element.get("type"),
+                    "osm_id": element.get("id"),
+                    "reason": "No usable direct geometry",
+                })
             continue
+
         features.append({
             "type": "Feature",
             "id": f"{element.get('type')}/{element.get('id')}",
@@ -265,17 +385,19 @@ def to_geojson(payload: dict) -> dict:
                 **tags,
             },
         })
+
     return {
         "type": "FeatureCollection",
-        "name": "OSM golf features (direct geometries only)",
+        "name": "OSM golf features (assembled direct and relation geometries)",
         "features": features,
         "metadata": {
             "coordinate_order": "longitude, latitude (EPSG:4326)",
-            "relations_omitted": skipped_relations,
+            "relation_count": relation_count,
+            "relations_or_features_omitted": skipped,
             "warning": (
-                "This is a partial geometry export, not a complete course model. "
-                "Relation multipolygons are preserved in source-response.json and "
-                "must be assembled before use."
+                "Multipolygon relations are included only when all outer rings "
+                "can be assembled and every inner ring can be assigned. Review "
+                "the omission list and compare the result with aerial imagery."
             ),
         },
     }
