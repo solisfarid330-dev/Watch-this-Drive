@@ -342,4 +342,33 @@ class HoleReconstructorTest {
         assertTrue(hole.usesMappedFairway)
     }
 
+    @Test
+    fun centerlineWithSustainedLateralFairwayDepartureIsRejected() {
+        val fairway = listOf(
+            GeoPoint(0.0002, -0.00025),
+            GeoPoint(0.0038, -0.00025),
+            GeoPoint(0.0038, 0.00025),
+            GeoPoint(0.0002, 0.00025),
+            GeoPoint(0.0002, -0.00025)
+        )
+        val route = listOf(
+            GeoPoint(0.0, 0.0),
+            GeoPoint(0.001, 0.0008),
+            GeoPoint(0.003, 0.0008),
+            GeoPoint(0.004, 0.0)
+        )
+        val geometry = CourseGeometry(99, "Moderate offset fixture", listOf(
+            feature(1, "tee", 0.0, 0.0),
+            feature(2, "green", 0.004, 0.0),
+            feature(3, "fairway", 0.0, 0.0, points = fairway),
+            feature(4, "hole", 0.0, 0.0, points = route)
+        ))
+
+        val hole = HoleReconstructor.reconstruct(geometry).single()
+
+        assertEquals(null, hole.mappedCenterline)
+        assertTrue(hole.usesMappedFairway)
+        assertEquals(fairway, hole.mappedFairways.single().points)
+    }
+
 }
