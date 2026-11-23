@@ -206,6 +206,7 @@ object CourseCatalogSources {
                 postalCode = best.postalCode ?: group.firstNotNullOfOrNull { it.postalCode },
                 holes = best.holes ?: group.firstNotNullOfOrNull { it.holes },
                 par = best.par ?: group.firstNotNullOfOrNull { it.par },
+                totalYardage = best.totalYardage ?: group.firstNotNullOfOrNull { it.totalYardage },
                 courseType = best.courseType ?: group.firstNotNullOfOrNull { it.courseType },
                 website = best.website ?: group.firstNotNullOfOrNull { it.website },
                 phone = best.phone ?: group.firstNotNullOfOrNull { it.phone },
@@ -331,6 +332,7 @@ object CourseCatalogSources {
             countryCode = country,
             holes = item.optIntOrNull("holes"),
             par = item.optIntOrNull("par"),
+            totalYardage = item.firstInt("total_yardage", "yardage"),
             courseType = item.optString("course_type").takeIf { it.isNotBlank() },
             teeTimeId = id,
             sourceNames = setOf("TeeTime.AI")
@@ -361,6 +363,7 @@ object CourseCatalogSources {
             postalCode = item.optString("postal_code").takeIf { it.isNotBlank() },
             holes = item.firstInt("holes", "hole_count"),
             par = item.firstInt("par_total", "par"),
+            totalYardage = item.firstInt("total_yardage", "yardage"),
             courseType = item.firstString("course_type", "type"),
             website = item.optString("website").takeIf { it.isNotBlank() },
             phone = item.optString("phone").takeIf { it.isNotBlank() },
@@ -446,6 +449,7 @@ object CourseCatalogSources {
                     put("country", course.countryCode)
                     put("holes", course.holes)
                     put("par", course.par)
+                    put("totalYardage", course.totalYardage)
                     put("type", course.courseType)
                     put("address", course.address)
                     put("postal", course.postalCode)
@@ -489,6 +493,7 @@ object CourseCatalogSources {
             region = item.optString("region").takeIf { it.isNotBlank() },
             countryCode = item.optString("country").takeIf { it.isNotBlank() },
             holes = item.optIntOrNull("holes"), par = item.optIntOrNull("par"),
+            totalYardage = item.optIntOrNull("totalYardage"),
             courseType = item.optString("type").takeIf { it.isNotBlank() },
             address = item.optString("address").takeIf { it.isNotBlank() },
             postalCode = item.optString("postal").takeIf { it.isNotBlank() },
