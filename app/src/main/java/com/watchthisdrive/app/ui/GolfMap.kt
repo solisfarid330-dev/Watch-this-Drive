@@ -20,6 +20,10 @@ import com.watchthisdrive.app.data.GolfCourse
 import com.watchthisdrive.app.data.GeoPoint
 import org.json.JSONArray
 import org.json.JSONObject
+import java.io.File
+import java.util.zip.GZIPInputStream
+import java.util.zip.GZIPOutputStream
+import kotlin.concurrent.thread
 import org.maplibre.android.MapLibre
 import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.geometry.LatLng
@@ -243,12 +247,22 @@ private fun LegendItem(hex: String, label: String) {
     }
 }
 
-private fun cacheKey(courseId: Long) = "course_geometry_$courseId"
+private fun cacheKey(elementType: String, courseId: Long): String =
+    "course_geometry_${elementType.lowercase()}_$courseId"
+
+private fun cacheFile(context: android.content.Context, elementType: String, courseId: Long): File =
+    File(context.filesDir, cacheKey(elementType, courseId) + ".json.gz")
 
 internal fun loadCachedCourseGeometry(context: android.content.Context, course: GolfCourse): CourseGeometry? =
     runCatching {
-        val raw = context.getSharedPreferences("course_geometry_cache", android.content.Context.MODE_PRIVATE)
-            .getString(cacheKey(course.id), null) ?: return null
+        val file = cacheFile(context, course.elementType, course.id)
+        val raw = if (file.exists()) {
+            GZIPInputStream(file.inputStream()).bufferedReader().use { it.readText() }
+        } else {
+            // One-time compatibility with the old SharedPreferences cache.
+            context.getSharedPreferences("course_geometry_cache", android.content.Context.MODE_PRIVATE)
+                .getString("course_geometry_${course.id}", null) ?: return null
+        }
         val root = JSONObject(raw)
         val array = root.getJSONArray("features")
         val features = mutableListOf<CourseFeature>()
@@ -271,34 +285,53 @@ internal fun loadCachedCourseGeometry(context: android.content.Context, course: 
                 handicap = item.optInt("handicap", Int.MIN_VALUE).takeIf { it != Int.MIN_VALUE }
             ))
         }
-        CourseGeometry(course.id, course.name, features)
+        CourseGeometry(
+            courseId = course.id,
+            courseName = root.optString("courseName", course.name),
+            features = features,
+            courseElementType = root.optString("courseElementType", course.elementType)
+        )
     }.getOrNull()
 
 private fun saveCachedGeometry(context: android.content.Context, geometry: CourseGeometry) {
-    runCatching {
-        val features = JSONArray()
-        geometry.features.forEach { feature ->
-            val points = JSONArray()
-            feature.points.forEach { point ->
-                points.put(JSONObject().put("lat", point.latitude).put("lon", point.longitude))
+    // Geometry can be several megabytes. Compress it off the main thread instead
+    // of serializing a large SharedPreferences string during map composition.
+    thread(name = "course-geometry-cache") {
+        runCatching {
+            val features = JSONArray()
+            geometry.features.forEach { feature ->
+                val points = JSONArray()
+                feature.points.forEach { point ->
+                    points.put(JSONObject().put("lat", point.latitude).put("lon", point.longitude))
+                }
+                features.put(JSONObject()
+                    .put("id", feature.id)
+                    .put("elementType", feature.elementType)
+                    .put("featureType", feature.featureType)
+                    .put("holeNumber", feature.holeNumber ?: "")
+                    .put("name", feature.name ?: "")
+                    .put("points", points).apply {
+                        feature.par?.let { put("par", it) }
+                        feature.handicap?.let { put("handicap", it) }
+                    })
             }
-            features.put(JSONObject()
-                .put("id", feature.id)
-                .put("elementType", feature.elementType)
-                .put("featureType", feature.featureType)
-                .put("holeNumber", feature.holeNumber ?: "")
-                .put("name", feature.name ?: "")
-                .put("points", points).apply {
-                    feature.par?.let { put("par", it) }
-                    feature.handicap?.let { put("handicap", it) }
-                })
+            val root = JSONObject()
+                .put("courseId", geometry.courseId)
+                .put("courseName", geometry.courseName)
+                .put("courseElementType", geometry.courseElementType)
+                .put("features", features)
+            val file = cacheFile(context, geometry.courseElementType, geometry.courseId)
+            val temp = File(file.parentFile, file.name + ".tmp")
+            GZIPOutputStream(temp.outputStream().buffered()).bufferedWriter().use {
+                it.write(root.toString())
+            }
+            if (!temp.renameTo(file)) {
+                file.outputStream().use { output ->
+                    temp.inputStream().use { input -> input.copyTo(output) }
+                }
+                temp.delete()
+            }
         }
-        val root = JSONObject()
-            .put("courseId", geometry.courseId)
-            .put("courseName", geometry.courseName)
-            .put("features", features)
-        context.getSharedPreferences("course_geometry_cache", android.content.Context.MODE_PRIVATE)
-            .edit().putString(cacheKey(geometry.courseId), root.toString()).apply()
     }
 }
 
