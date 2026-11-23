@@ -94,8 +94,7 @@ private fun PlayingCaddyScreen(
         val valid = clubs.mapNotNull { club ->
             club.carryYards.toIntOrNull()?.takeIf { it > 0 }?.let { club to it }
         }.sortedBy { it.second }
-        if (safeLayupYards != null) valid.lastOrNull { it.second <= safeLayupYards }
-        else valid.firstOrNull { it.second >= yards } ?: valid.lastOrNull()
+        valid.firstOrNull { it.second >= yards } ?: valid.lastOrNull()
     }
 
     LazyColumn(
@@ -204,27 +203,6 @@ private fun PlayingCaddyScreen(
 
         }
     }
-}
-
-private fun hazardSafeLayupYards(feature: CourseFeature, start: Location, end: Location): Int? {
-    if (feature.points.isEmpty()) return null
-    val midLat = Math.toRadians((start.latitude + end.latitude) / 2.0)
-    val scaleX = 111_320.0 * kotlin.math.cos(midLat)
-    val dx = (end.longitude - start.longitude) * scaleX
-    val dy = (end.latitude - start.latitude) * 111_320.0
-    val lengthSquared = dx * dx + dy * dy
-    if (lengthSquared < 1.0) return null
-    val lengthMeters = kotlin.math.sqrt(lengthSquared)
-    val hazardFront = feature.points.mapNotNull { point ->
-        val px = (point.longitude - start.longitude) * scaleX
-        val py = (point.latitude - start.latitude) * 111_320.0
-        val t = (px * dx + py * dy) / lengthSquared
-        if (t !in 0.08..0.96) null
-        else if (kotlin.math.hypot(px - t * dx, py - t * dy) <= 28.0) t * lengthMeters
-        else null
-    }.minOrNull() ?: return null
-    // Leave a 15-yard buffer before the nearest mapped hazard boundary.
-    return (hazardFront * 1.0936133 - 15.0).roundToInt().coerceAtLeast(0)
 }
 
 private fun greenLabel(green: CourseFeature, index: Int): String =
