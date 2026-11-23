@@ -32,8 +32,7 @@ jobs:
         run: |
           mkdir -p app/src/main/assets
           curl --fail --location --retry 3 \
-            -H "Accept: application/octet-stream" \
-            https://api.github.com/repos/opengolfapi/data/releases/assets/400987846 \
+            https://github.com/opengolfapi/data/releases/download/v2.1.0/opengolfapi-us.geojson.gz \
             -o app/src/main/assets/opengolfapi-us.geojson.gz
           sha256sum app/src/main/assets/opengolfapi-us.geojson.gz
           gzip --test app/src/main/assets/opengolfapi-us.geojson.gz
