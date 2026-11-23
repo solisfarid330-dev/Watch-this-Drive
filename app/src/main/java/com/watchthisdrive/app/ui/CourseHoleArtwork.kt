@@ -36,6 +36,7 @@ private data class CourseArtworkPackage(val holes: List<HoleArtwork>)
 
 private data class AerialReference(
     val bitmap: Bitmap,
+    val ndviBitmap: Bitmap?,
     val bounds: NaipImageryRepository.Bounds,
     val cacheToken: String
 )
@@ -49,8 +50,17 @@ private suspend fun loadAerialReference(
         val file = NaipImageryRepository.loadOrFetchForHole(context, course, hole)
             ?: return@runCatching null
         val bounds = NaipImageryRepository.boundsForHole(hole) ?: return@runCatching null
-        val bitmap = BitmapFactory.decodeFile(file.absolutePath) ?: return@runCatching null
-        AerialReference(bitmap, bounds, file.name + ":" + file.lastModified() + ":" + file.length())
+        val rgbOptions = BitmapFactory.Options().apply { inSampleSize = 2 }
+        val bitmap = BitmapFactory.decodeFile(file.absolutePath, rgbOptions) ?: return@runCatching null
+        val ndviFile = NaipImageryRepository.loadOrFetchNdviForHole(context, course, hole)
+        val ndviBitmap = ndviFile?.let {
+            BitmapFactory.decodeFile(it.absolutePath, BitmapFactory.Options().apply { inSampleSize = 4 })
+        }
+        val token = buildString {
+            append(file.name).append(':').append(file.lastModified()).append(':').append(file.length())
+            ndviFile?.let { append("|ndvi:").append(it.lastModified()).append(':').append(it.length()) }
+        }
+        AerialReference(bitmap, ndviBitmap, bounds, token)
     }.getOrNull()
 }
 
@@ -164,7 +174,8 @@ fun CourseHoleArtworkPanel(
                 val rendered = withContext(Dispatchers.Default) {
                     CourseHoleArtworkRenderer.render(
                         hole, context.cacheDir, course.elementType + "-" + course.id,
-                        aerialReference?.bitmap, aerialReference?.bounds, aerialReference?.cacheToken.orEmpty()
+                        aerialReference?.bitmap, aerialReference?.ndviBitmap,
+                        aerialReference?.bounds, aerialReference?.cacheToken.orEmpty()
                     )
                 }
                 generatedImages = generatedImages + (hole.number to rendered)
@@ -289,7 +300,8 @@ fun CourseHoleArtworkForHole(
                 withContext(Dispatchers.Default) {
                     CourseHoleArtworkRenderer.render(
                         hole, context.cacheDir, course.elementType + "-" + course.id,
-                        aerialReference?.bitmap, aerialReference?.bounds, aerialReference?.cacheToken.orEmpty()
+                        aerialReference?.bitmap, aerialReference?.ndviBitmap,
+                        aerialReference?.bounds, aerialReference?.cacheToken.orEmpty()
                     )
                 }
             }
