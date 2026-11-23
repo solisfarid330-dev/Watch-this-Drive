@@ -1,6 +1,6 @@
 {
   "type": "FeatureCollection",
-  "name": "OSM golf features (direct geometries only)",
+  "name": "OSM golf features (assembled direct and relation geometries)",
   "features": [
     {
       "type": "Feature",
@@ -368,7 +368,8 @@
   ],
   "metadata": {
     "coordinate_order": "longitude, latitude (EPSG:4326)",
-    "relations_omitted": [],
-    "warning": "This is a partial geometry export, not a complete course model. Relation multipolygons are preserved in source-response.json and must be assembled before use."
+    "relation_count": 0,
+    "relations_or_features_omitted": [],
+    "warning": "Multipolygon relations are included only when all outer rings can be assembled and every inner ring can be assigned. Review the omission list and compare the result with aerial imagery."
   }
 }
