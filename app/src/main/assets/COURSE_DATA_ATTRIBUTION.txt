@@ -13,6 +13,13 @@ https://teetime.ai/data
 https://opendatacommons.org/licenses/odbl/1-0/
 https://creativecommons.org/licenses/by-sa/4.0/
 
+Zomma Golf
+Supplemental course geometry may be retrieved from Zomma Golf public GeoJSON exports when available.
+Zomma states that its course geometry is available under the Open Database License (ODbL) 1.0; attribution and applicable share-alike obligations must be observed. Its source data may include OpenStreetMap-derived geometry and model-predicted outlines, so it is not an independent ground-truth survey.
+https://zommagolf.com/data-sources
+https://zommagolf.com/coverage
+https://opendatacommons.org/licenses/odbl/1-0/
+
 OpenStreetMap
 Mapped course features and geographic data are © OpenStreetMap contributors.
 License: Open Database License (ODbL) 1.0.
