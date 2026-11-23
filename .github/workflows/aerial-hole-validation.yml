@@ -39,6 +39,13 @@ jobs:
           else
             echo "Using committed Westwood NAIP imagery cache."
           fi
+      - name: South Padre Hole 2 imagery and overlay
+        run: |
+          if [ ! -s research/results/south-padre/aerial-validation/hole-2-naip-2022.png ] || [ ! -s research/results/south-padre/aerial-validation/hole-2-naip-2022-rgbir.tif ]; then
+            python research/aerial_validation.py --geojson research/results/south-padre/features.geojson --hole-ref 2 --out research/results/south-padre/aerial-validation
+          else
+            echo "Using committed South Padre Hole 2 NAIP imagery cache."
+          fi
       - name: Cottonwood Creek Hole 1 imagery and overlay
         run: |
           mkdir -p research/results/cottonwood-creek/aerial-validation
@@ -60,6 +67,13 @@ jobs:
             --metadata research/results/westwood/aerial-validation/hole-1-validation.json \
             --tiff research/results/westwood/aerial-validation/hole-1-naip-2022-rgbir.tif \
             --out research/results/westwood/aerial-validation/spectral-experiment
+      - name: Run RGBIR spectral experiment for South Padre Hole 2
+        run: |
+          python research/naip_spectral_experiment.py \
+            --geojson research/results/south-padre/features.geojson \
+            --metadata research/results/south-padre/aerial-validation/hole-2-validation.json \
+            --tiff research/results/south-padre/aerial-validation/hole-2-naip-2022-rgbir.tif \
+            --out research/results/south-padre/aerial-validation/hole-2-spectral-experiment
       - name: Run South Padre seed-trained fairway experiment
         run: |
           python research/naip_fairway_classifier.py \
@@ -80,6 +94,17 @@ jobs:
             --metadata research/results/westwood/aerial-validation/hole-1-validation.json \
             --tiff research/results/westwood/aerial-validation/hole-1-naip-2022-rgbir.tif \
             --out research/results/westwood/aerial-validation/fairway-experiment
+      - name: Apply South Padre Hole 1 classifier to South Padre Hole 2
+        run: |
+          python research/naip_fairway_classifier.py \
+            --train-geojson research/results/south-padre/features.geojson \
+            --train-metadata research/results/south-padre/aerial-validation/hole-1-validation.json \
+            --train-tiff research/results/south-padre/aerial-validation/hole-1-naip-2022-rgbir.tif \
+            --geojson research/results/south-padre/features.geojson \
+            --metadata research/results/south-padre/aerial-validation/hole-2-validation.json \
+            --tiff research/results/south-padre/aerial-validation/hole-2-naip-2022-rgbir.tif \
+            --hole-ref 2 \
+            --out research/results/south-padre/aerial-validation/hole-2-fairway-experiment
       - name: Run per-course unsupervised turf clustering for South Padre
         run: |
           python research/naip_unsupervised_turf.py \
@@ -94,6 +119,14 @@ jobs:
             --metadata research/results/westwood/aerial-validation/hole-1-validation.json \
             --tiff research/results/westwood/aerial-validation/hole-1-naip-2022-rgbir.tif \
             --out research/results/westwood/aerial-validation/unsupervised-experiment
+      - name: Run per-course unsupervised turf clustering for South Padre Hole 2
+        run: |
+          python research/naip_unsupervised_turf.py \
+            --geojson research/results/south-padre/features.geojson \
+            --metadata research/results/south-padre/aerial-validation/hole-2-validation.json \
+            --tiff research/results/south-padre/aerial-validation/hole-2-naip-2022-rgbir.tif \
+            --hole-ref 2 \
+            --out research/results/south-padre/aerial-validation/hole-2-unsupervised-experiment
       - name: Test 25m corridor candidate extraction at South Padre
         run: |
           python research/naip_unsupervised_turf.py \
