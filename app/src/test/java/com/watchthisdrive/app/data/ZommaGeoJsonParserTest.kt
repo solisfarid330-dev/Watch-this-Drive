@@ -49,6 +49,55 @@ class ZommaGeoJsonParserTest {
     }
 
     @Test
+    fun preservesPredictedGeometryProvenanceAndNormalizesLayerNames() {
+        val json = """
+            {
+              "type": "FeatureCollection",
+              "features": [
+                {
+                  "type": "Feature",
+                  "id": "predicted-fairway",
+                  "properties": {
+                    "layer": "Fairway",
+                    "source": "SatlasPretrain model prediction",
+                    "confidence": "medium",
+                    "predicted": true,
+                    "hole": 4
+                  },
+                  "geometry": {
+                    "type": "Polygon",
+                    "coordinates": [[
+                      [-97.0, 32.0], [-96.999, 32.0],
+                      [-96.999, 32.001], [-97.0, 32.0]
+                    ]]
+                  }
+                },
+                {
+                  "type": "Feature",
+                  "id": "rough",
+                  "properties": {"layer": "Rough / in play"},
+                  "geometry": {
+                    "type": "Polygon",
+                    "coordinates": [[
+                      [-97.0, 32.0], [-96.999, 32.0],
+                      [-96.999, 32.001], [-97.0, 32.0]
+                    ]]
+                  }
+                }
+              ]
+            }
+        """.trimIndent()
+
+        val parsed = ZommaGeoJsonParser.parse(json)
+        val fairway = parsed.first { it.id < 0 && it.featureType == "fairway" }
+        assertTrue(fairway.isPredicted)
+        assertEquals("SatlasPretrain model prediction", fairway.source)
+        assertEquals("medium", fairway.confidence)
+        assertEquals("4", fairway.holeNumber)
+        assertTrue(parsed.any { it.featureType == "rough" })
+    }
+
+    @Test
     fun ignoresUnknownAndInvalidFeaturesWithoutInventingGeometry() {
         val json = """
             {
