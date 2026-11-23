@@ -161,6 +161,7 @@ object CourseDiscovery {
                     postalCode = catalog.postalCode,
                     holes = catalog.holes,
                     par = catalog.par,
+                    totalYardage = catalog.totalYardage,
                     courseType = catalog.courseType,
                     website = catalog.website,
                     phone = catalog.phone,
