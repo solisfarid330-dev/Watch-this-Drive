@@ -38,6 +38,7 @@ import com.watchthisdrive.app.data.CourseGeometry
 import com.watchthisdrive.app.data.CourseGeometryLoader
 import com.watchthisdrive.app.data.GolfCourse
 import com.watchthisdrive.app.ui.GolfMap
+import com.watchthisdrive.app.ui.NaipCourseAerialPreview
 import com.watchthisdrive.app.ui.loadCachedCourseGeometry
 import com.watchthisdrive.app.ui.CaddyScreen
 import com.watchthisdrive.app.ui.ClubDistancesSettings
@@ -1198,6 +1199,7 @@ private fun CourseDetailScreen(
         }
 
         CourseHoleArtworkPanel(course = course, geometry = geometry)
+        NaipCourseAerialPreview(course = course, geometry = geometry)
 
         Card(
             colors = CardDefaults.cardColors(
