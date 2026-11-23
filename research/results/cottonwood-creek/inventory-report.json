@@ -1,0 +1,334 @@
+{
+  "metadata": {
+    "requested_course": "Cottonwood Creek Country Club",
+    "requested_location": "Harlingen, Texas, USA",
+    "discovered_course": {
+      "osm_type": "way",
+      "osm_id": 1337838568,
+      "name": "Cottonwood Creek Country Club",
+      "display_name": "Cottonwood Creek Country Club, 1001, South Ed Carey Drive, Harlingen, Cameron County, Texas, 78552, United States",
+      "lat": 26.1471385,
+      "lon": -97.6890337,
+      "score": 2.15,
+      "alternatives": []
+    },
+    "nominatim_result": {
+      "place_id": 315717846,
+      "licence": "Data \u00a9 OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+      "osm_type": "way",
+      "osm_id": 1337838568,
+      "lat": "26.1471385",
+      "lon": "-97.6890337",
+      "category": "leisure",
+      "type": "golf_course",
+      "place_rank": 30,
+      "importance": 5.4788281071137825e-05,
+      "addresstype": "leisure",
+      "name": "Cottonwood Creek Country Club",
+      "display_name": "Cottonwood Creek Country Club, 1001, South Ed Carey Drive, Harlingen, Cameron County, Texas, 78552, United States",
+      "address": {
+        "leisure": "Cottonwood Creek Country Club",
+        "house_number": "1001",
+        "road": "South Ed Carey Drive",
+        "city": "Harlingen",
+        "county": "Cameron County",
+        "state": "Texas",
+        "ISO3166-2-lvl4": "US-TX",
+        "postcode": "78552",
+        "country": "United States",
+        "country_code": "us"
+      },
+      "extratags": {
+        "website": "https://www.cottonwoodcreekcountryclub.com/"
+      },
+      "namedetails": {
+        "name": "Cottonwood Creek Country Club"
+      },
+      "boundingbox": [
+        "26.1448891",
+        "26.1517332",
+        "-97.6910770",
+        "-97.6856747"
+      ]
+    },
+    "overpass_endpoint": "https://ovp.dresel.systems/api-na/interpreter",
+    "overpass_query": "[out:json][timeout:75];\nway(1337838568);\nmap_to_area -> .courseArea;\n(\n  nwr(area.courseArea)[\"golf\"];\n);\nout body geom;\n",
+    "retrieved_at_utc": "2026-11-23T19:47:29Z",
+    "osm_copyright": "\u00a9 OpenStreetMap contributors; data available under ODbL"
+  },
+  "inventory": {
+    "element_count": 18,
+    "golf_feature_count": 18,
+    "counts_by_golf_tag": {
+      "hole": 9,
+      "pin": 9
+    },
+    "counts_by_element_and_tag": {
+      "hole:way": 9,
+      "pin:node": 9
+    },
+    "features_missing_direct_geometry": {},
+    "hole_reference_counts": {
+      "hole:1": 1,
+      "hole:2": 1,
+      "hole:3": 1,
+      "hole:4": 1,
+      "hole:5": 1,
+      "hole:6": 1,
+      "hole:7": 1,
+      "hole:9": 1
+    },
+    "features": [
+      {
+        "osm_type": "node",
+        "osm_id": 12374869535,
+        "golf": "pin",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 0,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "pin"
+        }
+      },
+      {
+        "osm_type": "node",
+        "osm_id": 12374869538,
+        "golf": "pin",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 0,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "pin"
+        }
+      },
+      {
+        "osm_type": "node",
+        "osm_id": 12374869540,
+        "golf": "pin",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 0,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "pin"
+        }
+      },
+      {
+        "osm_type": "node",
+        "osm_id": 12374869542,
+        "golf": "pin",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 0,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "pin"
+        }
+      },
+      {
+        "osm_type": "node",
+        "osm_id": 12374869544,
+        "golf": "pin",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 0,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "pin"
+        }
+      },
+      {
+        "osm_type": "node",
+        "osm_id": 12374869546,
+        "golf": "pin",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 0,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "pin"
+        }
+      },
+      {
+        "osm_type": "node",
+        "osm_id": 12374869548,
+        "golf": "pin",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 0,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "pin"
+        }
+      },
+      {
+        "osm_type": "node",
+        "osm_id": 12374869551,
+        "golf": "pin",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 0,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "pin"
+        }
+      },
+      {
+        "osm_type": "node",
+        "osm_id": 12374869553,
+        "golf": "pin",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 0,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "pin"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1337838559,
+        "golf": "hole",
+        "name": null,
+        "ref": "1",
+        "golf:hole": null,
+        "geometry_vertex_count": 3,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "hole",
+          "ref": "1"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1337838560,
+        "golf": "hole",
+        "name": null,
+        "ref": "2",
+        "golf:hole": null,
+        "geometry_vertex_count": 3,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "hole",
+          "ref": "2"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1337838561,
+        "golf": "hole",
+        "name": null,
+        "ref": "3",
+        "golf:hole": null,
+        "geometry_vertex_count": 2,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "hole",
+          "ref": "3"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1337838562,
+        "golf": "hole",
+        "name": null,
+        "ref": "4",
+        "golf:hole": null,
+        "geometry_vertex_count": 2,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "hole",
+          "ref": "4"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1337838563,
+        "golf": "hole",
+        "name": null,
+        "ref": "5",
+        "golf:hole": null,
+        "geometry_vertex_count": 2,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "hole",
+          "ref": "5"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1337838564,
+        "golf": "hole",
+        "name": null,
+        "ref": "6",
+        "golf:hole": null,
+        "geometry_vertex_count": 2,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "hole",
+          "ref": "6"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1337838565,
+        "golf": "hole",
+        "name": null,
+        "ref": "9",
+        "golf:hole": null,
+        "geometry_vertex_count": 2,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "hole",
+          "ref": "9"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1337838566,
+        "golf": "hole",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 3,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "hole",
+          "handicap": "8"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1337838567,
+        "golf": "hole",
+        "name": null,
+        "ref": "7",
+        "golf:hole": null,
+        "geometry_vertex_count": 2,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "hole",
+          "ref": "7"
+        }
+      }
+    ],
+    "limitations": [
+      "OSM feature counts are element counts, not guaranteed counts of physical objects.",
+      "A relation may represent a multipolygon or grouped feature; member rings must be reconstructed before measuring its footprint.",
+      "A feature without an explicit hole reference is not automatically assigned to a hole.",
+      "Missing OSM features are unknown, not evidence that the real course lacks them.",
+      "A successful HTTP response and valid JSON do not establish real-world geometric accuracy."
+    ]
+  }
+}

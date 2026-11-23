@@ -1,0 +1,374 @@
+{
+  "type": "FeatureCollection",
+  "name": "OSM golf features (direct geometries only)",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "node/12374869535",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.6866157,
+          26.1498889
+        ]
+      },
+      "properties": {
+        "osm_type": "node",
+        "osm_id": 12374869535,
+        "golf": "pin"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "node/12374869538",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.6876692,
+          26.1485247
+        ]
+      },
+      "properties": {
+        "osm_type": "node",
+        "osm_id": 12374869538,
+        "golf": "pin"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "node/12374869540",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.6884905,
+          26.1474983
+        ]
+      },
+      "properties": {
+        "osm_type": "node",
+        "osm_id": 12374869540,
+        "golf": "pin"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "node/12374869542",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.6893118,
+          26.1464777
+        ]
+      },
+      "properties": {
+        "osm_type": "node",
+        "osm_id": 12374869542,
+        "golf": "pin"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "node/12374869544",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.6906298,
+          26.1453638
+        ]
+      },
+      "properties": {
+        "osm_type": "node",
+        "osm_id": 12374869544,
+        "golf": "pin"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "node/12374869546",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.6893466,
+          26.1472894
+        ]
+      },
+      "properties": {
+        "osm_type": "node",
+        "osm_id": 12374869546,
+        "golf": "pin"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "node/12374869548",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.6869691,
+          26.1508382
+        ]
+      },
+      "properties": {
+        "osm_type": "node",
+        "osm_id": 12374869548,
+        "golf": "pin"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "node/12374869551",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.6874458,
+          26.1500316
+        ]
+      },
+      "properties": {
+        "osm_type": "node",
+        "osm_id": 12374869551,
+        "golf": "pin"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "node/12374869553",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.6885832,
+          26.1484014
+        ]
+      },
+      "properties": {
+        "osm_type": "node",
+        "osm_id": 12374869553,
+        "golf": "pin"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "way/1337838559",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -97.6866019,
+            26.1507801
+          ],
+          [
+            -97.6865277,
+            26.1502074
+          ],
+          [
+            -97.6866157,
+            26.1498889
+          ]
+        ]
+      },
+      "properties": {
+        "osm_type": "way",
+        "osm_id": 1337838559,
+        "golf": "hole",
+        "ref": "1"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "way/1337838560",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -97.6866868,
+            26.1493487
+          ],
+          [
+            -97.6872344,
+            26.1488601
+          ],
+          [
+            -97.6876692,
+            26.1485247
+          ]
+        ]
+      },
+      "properties": {
+        "osm_type": "way",
+        "osm_id": 1337838560,
+        "golf": "hole",
+        "ref": "2"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "way/1337838561",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -97.6877787,
+            26.1482067
+          ],
+          [
+            -97.6884905,
+            26.1474983
+          ]
+        ]
+      },
+      "properties": {
+        "osm_type": "way",
+        "osm_id": 1337838561,
+        "golf": "hole",
+        "ref": "3"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "way/1337838562",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -97.6886483,
+            26.1470791
+          ],
+          [
+            -97.6893118,
+            26.1464777
+          ]
+        ]
+      },
+      "properties": {
+        "osm_type": "way",
+        "osm_id": 1337838562,
+        "golf": "hole",
+        "ref": "4"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "way/1337838563",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -97.689423,
+            26.1461816
+          ],
+          [
+            -97.6906298,
+            26.1453638
+          ]
+        ]
+      },
+      "properties": {
+        "osm_type": "way",
+        "osm_id": 1337838563,
+        "golf": "hole",
+        "ref": "5"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "way/1337838564",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -97.690475,
+            26.145598
+          ],
+          [
+            -97.6893466,
+            26.1472894
+          ]
+        ]
+      },
+      "properties": {
+        "osm_type": "way",
+        "osm_id": 1337838564,
+        "golf": "hole",
+        "ref": "6"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "way/1337838565",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -97.686953,
+            26.1498784
+          ],
+          [
+            -97.6869691,
+            26.1508382
+          ]
+        ]
+      },
+      "properties": {
+        "osm_type": "way",
+        "osm_id": 1337838565,
+        "golf": "hole",
+        "ref": "9"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "way/1337838566",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -97.6886117,
+            26.1486323
+          ],
+          [
+            -97.6881512,
+            26.1492799
+          ],
+          [
+            -97.6874458,
+            26.1500316
+          ]
+        ]
+      },
+      "properties": {
+        "osm_type": "way",
+        "osm_id": 1337838566,
+        "golf": "hole",
+        "handicap": "8"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "way/1337838567",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -97.6891996,
+            26.1475558
+          ],
+          [
+            -97.6885832,
+            26.1484014
+          ]
+        ]
+      },
+      "properties": {
+        "osm_type": "way",
+        "osm_id": 1337838567,
+        "golf": "hole",
+        "ref": "7"
+      }
+    }
+  ],
+  "metadata": {
+    "coordinate_order": "longitude, latitude (EPSG:4326)",
+    "relations_omitted": [],
+    "warning": "This is a partial geometry export, not a complete course model. Relation multipolygons are preserved in source-response.json and must be assembled before use."
+  }
+}
