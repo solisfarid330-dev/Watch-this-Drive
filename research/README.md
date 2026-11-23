@@ -69,8 +69,8 @@ and ambiguity reporting.
 
 The current research branch has live retrieval snapshots for three unrelated
 courses discovered by name and location, with no course IDs or coordinates
-hardcoded in the extractor. It also has first-pass aerial validation for Hole 1
-at South Padre and Westwood. The aerial workflow uses the Texas NAIP 2022
+hardcoded in the extractor. It also has first-pass aerial validation for South Padre Holes 1 and 2,
+Westwood Hole 1, and Cottonwood Creek Hole 1. The aerial workflow uses the Texas NAIP 2022
 four-band ImageServer and commits source imagery, RGBIR TIFFs, OSM overlays,
 and diagnostic reports to this branch. The source service identifies its bands
 as Red, Green, Blue, and Infrared and reports 0.6 m source pixels.
@@ -100,8 +100,10 @@ Actions test workflow has passed.
 ### Aerial validation milestone
 
 The branch now contains repeatable NAIP 2022 RGB and four-band RGBIR exports,
-OSM overlays, spectral previews, and fairway-candidate experiments for Hole 1
-at South Padre Island Golf Club and Westwood Country Club. See
+OSM overlays, spectral previews, and fairway-candidate experiments for South
+Padre Holes 1 and 2 and Westwood Hole 1. Cottonwood Creek Hole 1 adds a sparse
+third-course imagery test with a hole line and pin candidates but no mapped
+fairway or hazard polygons. See
 [GEOMETRY_VALIDATION.md](GEOMETRY_VALIDATION.md) for the method and findings.
 
 Key findings:
@@ -113,15 +115,20 @@ Key findings:
   consistent with visible aerial features; assignments remain proximity
   candidates, not confirmed per-hole relationships.
 - A South Padre-trained spectral classifier performs poorly when transferred
-  to Westwood (only 7.5% of mapped fairway seed pixels classified as fairway).
-- Per-course unsupervised clustering captures many mapped fairway seed pixels,
-  but the resulting boundaries are still broad/noisy and cannot be promoted
-  as accepted geometry.
+  to Westwood (7.5% of mapped fairway seed pixels recognized) and degrades on
+  South Padre Hole 2 (59.5% fairway-seed recognition, 10.2% rough false positives).
+- Per-course unsupervised clustering captures some mapped fairway seed pixels,
+  but its Hole 2 F1 falls to 0.574 from 0.734 on Hole 1, and corridor-width
+  changes trade recall for precision. The resulting boundaries remain broad/noisy
+  and cannot be promoted as accepted geometry.
+- Cottonwood demonstrates sparse source coverage: its nine hole lines and nine
+  pins are mapped, but no fairway/tee/green/bunker polygons are present. The
+  extractor reports that absence rather than inventing those features.
 
 Do not port the reconstruction engine to Android yet. The research prototype
 proves generic discovery, relation serialization, imagery retrieval, and a
 repeatable visual/spectral experiment. It does **not** yet prove generic
 fairway reconstruction, reliable hole-feature assignment, accuracy across
-many holes, or on-device performance. The next research stage is to improve
-spatially constrained region extraction and validate it against more holes
-before making a go/no-go decision on the reconstruction approach.
+many holes, or on-device performance. The next research stage is to improve spatially constrained region extraction
+and validate it against independently traced reference boundaries before
+making a go/no-go decision on the reconstruction approach.
