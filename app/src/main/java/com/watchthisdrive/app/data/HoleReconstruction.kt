@@ -525,18 +525,16 @@ object HoleReconstructor {
      * shift small green/tee polygons toward whichever corner starts the ring.
      */
     private fun center(points: List<GeoPoint>): GeoPoint {
-        if (points.size < 3) {
+        val closed = isClosedPolygon(points)
+        // Open LineStrings are not polygon rings. Their simple vertex mean is
+        // a safer fallback than inventing a filled polygon by closing the line.
+        if (points.size < 3 || !closed) {
             return GeoPoint(
                 points.map { it.latitude }.average(),
                 points.map { it.longitude }.average()
             )
         }
-        val closed = isClosedPolygon(points)
-        val count = if (closed) points.size - 1 else points.size
-        if (count < 3) return GeoPoint(
-            points.map { it.latitude }.average(),
-            points.map { it.longitude }.average()
-        )
+        val count = points.size - 1
         val originLat = points.first().latitude
         val originLon = points.first().longitude
         var twiceArea = 0.0
