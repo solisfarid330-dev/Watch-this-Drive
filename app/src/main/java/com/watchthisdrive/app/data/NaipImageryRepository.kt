@@ -55,6 +55,16 @@ object NaipImageryRepository {
         NDVI(".ndvi.png", "png", "BandArithmetic")
     }
 
+    // The USGS NAIP ImageServer documents bands as Red, Green, Blue, NIR.
+    // Export NDVI as a single grayscale U8 layer scaled from [-1, 1] to [0, 255]
+    // so Android can sample vegetation evidence without relying on a color map.
+    internal fun ndviRenderingRule(): JSONObject = JSONObject()
+        .put("rasterFunction", "BandArithmetic")
+        .put("rasterFunctionArguments", JSONObject()
+            .put("Method", 0)
+            .put("BandIndexes", "((B4-B1)/(B4+B1)+1)*127.5"))
+        .put("outputPixelType", "U8")
+
     private data class CachedSelection(
         val cachedAtEpochMs: Long,
         val validForMs: Long,
@@ -211,13 +221,7 @@ object NaipImageryRepository {
             "pixelType" to "U8",
             "compressionQuality" to "95",
             "renderingRule" to if (product == Product.NDVI) {
-                JSONObject()
-                    .put("rasterFunction", "BandArithmetic")
-                    .put("rasterFunctionArguments", JSONObject()
-                        .put("Method", 0)
-                        .put("BandIndexes", "((B4-B1)/(B4+B1)+1)*127.5"))
-                    .put("outputPixelType", "U8")
-                    .toString()
+                ndviRenderingRule().toString()
             } else JSONObject().put("rasterFunction", product.rasterFunction).toString(),
             "f" to "image"
         )
