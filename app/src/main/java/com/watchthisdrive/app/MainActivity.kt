@@ -122,7 +122,6 @@ private fun WatchThisDriveApp() {
     val fused = remember { LocationServices.getFusedLocationProviderClient(context) }
 
     fun requestCurrentLocation() {
-        if (!hasLocationPermission) return
         locationMessage = "Getting a fresh location…"
         locationError = null
         try {
@@ -356,7 +355,8 @@ private fun WatchThisDriveApp() {
                     Tab.SETTINGS -> SettingsScreen(
                         locationMessage = locationMessage,
                         location = location,
-                        onLocate = { locate() }
+                        onLocate = { locate() },
+                        locationError = locationError
                     )
                 }
             }
@@ -511,7 +511,7 @@ private fun ScorecardScreen(
 }
 
 @Composable
-private fun SettingsScreen(locationMessage: String, location: Location?, onLocate: () -> Unit) {
+private fun SettingsScreen(locationMessage: String, location: Location?, onLocate: () -> Unit, locationError: String?) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(18.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Text("SETTINGS", color = Color(0xFFB8F36B), style = MaterialTheme.typography.labelLarge)
@@ -520,6 +520,7 @@ private fun SettingsScreen(locationMessage: String, location: Location?, onLocat
             Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("GPS STATUS", color = Color(0xFFB8F36B), fontWeight = FontWeight.Bold)
                 Text(locationMessage, color = Color.White)
+                locationError?.let { Text(it, color = Color(0xFFFFB4AB), style = MaterialTheme.typography.bodySmall) }
                 location?.let { Text("${"%.5f".format(Locale.US, it.latitude)}, ${"%.5f".format(Locale.US, it.longitude)}", color = Color(0xFFB6C1B9)) }
                 OutlinedButton(onClick = onLocate, modifier = Modifier.fillMaxWidth()) { Text("CHECK MY LOCATION") }
             }
