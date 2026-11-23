@@ -18,6 +18,7 @@ import com.watchthisdrive.app.data.CourseFeature
 import com.watchthisdrive.app.data.CourseGeometry
 import com.watchthisdrive.app.data.GolfCourse
 import com.watchthisdrive.app.data.HoleReconstructor
+import com.watchthisdrive.app.data.ReconstructedHole
 
 private data class ClubDistance(val name: String, val carryYards: String)
 
@@ -45,9 +46,10 @@ fun CaddyScreen(
     activeHole: Int,
     geometry: CourseGeometry?,
     geometryError: String? = null,
+    reconstructedHoles: List<ReconstructedHole>? = null,
     modifier: Modifier = Modifier
 ) {
-    PlayingCaddyScreen(course, location, locationError, onLocate, onFindCourse, activeHole, geometry, geometryError, modifier)
+    PlayingCaddyScreen(course, location, locationError, onLocate, onFindCourse, activeHole, geometry, geometryError, reconstructedHoles, modifier)
 }
 
 @Composable
@@ -60,6 +62,7 @@ private fun PlayingCaddyScreen(
     activeHole: Int,
     geometry: CourseGeometry?,
     geometryError: String?,
+    reconstructedHoles: List<ReconstructedHole>?,
     modifier: Modifier = Modifier
 ) {
     var selectedGreenId by remember(course?.id, activeHole) { mutableStateOf<Long?>(null) }
@@ -67,8 +70,9 @@ private fun PlayingCaddyScreen(
         .filter { it.featureType.equals("green", ignoreCase = true) }
         .sortedWith(compareBy<CourseFeature> { it.holeNumber?.toIntOrNull() ?: Int.MAX_VALUE }.thenBy { it.id })
     val numberedGreens = greens.filter { it.holeNumber?.trim()?.toIntOrNull() == activeHole }
-    val reconstructedHole = remember(geometry, activeHole) {
-        geometry?.let { HoleReconstructor.reconstruct(it).firstOrNull { hole -> hole.number == activeHole } }
+    val reconstructedHole = remember(reconstructedHoles, geometry, activeHole) {
+        (reconstructedHoles ?: geometry?.let { HoleReconstructor.reconstruct(it) }.orEmpty())
+            .firstOrNull { hole -> hole.number == activeHole }
     }
     val selectedGreen = greens.firstOrNull { it.id == selectedGreenId }
         ?: numberedGreens.firstOrNull()
