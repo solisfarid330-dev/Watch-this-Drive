@@ -348,7 +348,7 @@ fun CourseHoleArtworkForHole(
     val context = LocalContext.current
     var aerialReference by remember(course.elementType, course.id) { mutableStateOf<AerialReference?>(null) }
     var aerialLoading by remember(course.elementType, course.id, holeNumber, reconstructedHole) {
-        mutableStateOf(false)
+        mutableStateOf(reconstructedHole != null)
     }
     LaunchedEffect(course.elementType, course.id, geometry, reconstructedHole) {
         aerialReference = null
