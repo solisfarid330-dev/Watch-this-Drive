@@ -206,6 +206,73 @@ def inventory(payload: dict) -> dict:
     }
 
 
+
+def to_geojson(payload: dict) -> dict:
+    """Export only geometries whose shape can be read without guessing.
+
+    Closed OSM ways are emitted as Polygon rings; open ways as LineStrings;
+    nodes as Points. Relations are retained in source-response.json and are
+    deliberately omitted here until their outer/inner member rings can be
+    assembled and validated.
+    """
+    features = []
+    skipped_relations = []
+    for element in payload.get("elements", []):
+        tags = element.get("tags") or {}
+        if not tags.get("golf"):
+            continue
+        coords = [
+            [float(p["lon"]), float(p["lat"])]
+            for p in (element.get("geometry") or [])
+            if "lon" in p and "lat" in p
+        ]
+        geometry = None
+        if element.get("type") == "node":
+            if "lon" in element and "lat" in element:
+                geometry = {
+                    "type": "Point",
+                    "coordinates": [float(element["lon"]), float(element["lat"])],
+                }
+        elif len(coords) >= 2:
+            closed = len(coords) >= 4 and coords[0] == coords[-1]
+            if closed:
+                geometry = {"type": "Polygon", "coordinates": [coords]}
+            else:
+                geometry = {"type": "LineString", "coordinates": coords}
+        elif element.get("type") == "relation":
+            skipped_relations.append({
+                "osm_type": "relation",
+                "osm_id": element.get("id"),
+                "reason": "Member outer/inner rings require assembly; raw relation retained separately.",
+            })
+
+        if geometry is None:
+            continue
+        features.append({
+            "type": "Feature",
+            "id": f"{element.get('type')}/{element.get('id')}",
+            "geometry": geometry,
+            "properties": {
+                "osm_type": element.get("type"),
+                "osm_id": element.get("id"),
+                **tags,
+            },
+        })
+    return {
+        "type": "FeatureCollection",
+        "name": "OSM golf features (direct geometries only)",
+        "features": features,
+        "metadata": {
+            "coordinate_order": "longitude, latitude (EPSG:4326)",
+            "relations_omitted": skipped_relations,
+            "warning": (
+                "This is a partial geometry export, not a complete course model. "
+                "Relation multipolygons are preserved in source-response.json and "
+                "must be assembled before use."
+            ),
+        },
+    }
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--course", required=True, help="Golf course name")
@@ -247,6 +314,11 @@ def main():
     )
     (out / "inventory-report.json").write_text(
         json.dumps({"metadata": metadata, "inventory": report}, indent=2),
+        encoding="utf-8",
+    )
+    geojson = to_geojson(payload)
+    (out / "features.geojson").write_text(
+        json.dumps(geojson, indent=2),
         encoding="utf-8",
     )
 
