@@ -55,6 +55,10 @@ def geometry_distance(point,geometry,lat0):
     return float("inf")
 
 def line_distance_to_geometry(line,geometry,lat0):
+    if geometry.get("type")=="Point":
+        p=project(geometry["coordinates"],lat0)
+        projected=[project(q,lat0) for q in line]
+        return min((point_segment_distance(p,a,b) for a,b in zip(projected,projected[1:])),default=float("inf"))
     return min(geometry_distance(point,geometry,lat0) for point in line)
 
 def analyze(collection, endpoint_limit_m=30.0, pin_limit_m=20.0, corridor_limit_m=45.0):
