@@ -508,9 +508,14 @@ private fun ScorecardScreen(
                     Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f).clickable { onSelectHole(hole) }) {
                             Text(if (hole == activeHole) "Hole $hole · CURRENT" else "Hole $hole", color = if (hole == activeHole) Color(0xFFB8F36B) else Color.White, fontWeight = FontWeight.Bold)
-                            val handicap = course?.scorecard?.firstOrNull { it.number == hole }?.handicap
+                            val holeInfo = course?.scorecard?.firstOrNull { it.number == hole }
+                            val holeDetails = buildList {
+                                add("Par ${pars[index]}")
+                                holeInfo?.handicap?.let { add("HCP $it") }
+                                holeInfo?.yardage?.let { add("$it yd") }
+                            }.joinToString(" · ")
                             Text(
-                                "Par ${pars[index]}" + (handicap?.let { " · HCP $it" } ?: ""),
+                                holeDetails,
                                 color = Color(0xFFB6C1B9),
                                 style = MaterialTheme.typography.bodySmall
                             )
