@@ -5,6 +5,7 @@ on:
     paths:
       - "research/aerial_validation.py"
       - "research/naip_spectral_experiment.py"
+      - "research/naip_fairway_classifier.py"
       - ".github/workflows/aerial-hole-validation.yml"
   workflow_dispatch:
 permissions:
@@ -41,6 +42,26 @@ jobs:
             --metadata research/results/westwood/aerial-validation/hole-1-validation.json \
             --tiff research/results/westwood/aerial-validation/hole-1-naip-2022-rgbir.tif \
             --out research/results/westwood/aerial-validation/spectral-experiment
+      - name: Run South Padre seed-trained fairway experiment
+        run: |
+          python research/naip_fairway_classifier.py \
+            --train-geojson research/results/south-padre/features.geojson \
+            --train-metadata research/results/south-padre/aerial-validation/hole-1-validation.json \
+            --train-tiff research/results/south-padre/aerial-validation/hole-1-naip-2022-rgbir.tif \
+            --geojson research/results/south-padre/features.geojson \
+            --metadata research/results/south-padre/aerial-validation/hole-1-validation.json \
+            --tiff research/results/south-padre/aerial-validation/hole-1-naip-2022-rgbir.tif \
+            --out research/results/south-padre/aerial-validation/fairway-experiment
+      - name: Apply South Padre classifier to Westwood
+        run: |
+          python research/naip_fairway_classifier.py \
+            --train-geojson research/results/south-padre/features.geojson \
+            --train-metadata research/results/south-padre/aerial-validation/hole-1-validation.json \
+            --train-tiff research/results/south-padre/aerial-validation/hole-1-naip-2022-rgbir.tif \
+            --geojson research/results/westwood/features.geojson \
+            --metadata research/results/westwood/aerial-validation/hole-1-validation.json \
+            --tiff research/results/westwood/aerial-validation/hole-1-naip-2022-rgbir.tif \
+            --out research/results/westwood/aerial-validation/fairway-experiment
       - name: Commit imagery and overlays
         run: |
           git config user.name "github-actions[bot]"
