@@ -281,11 +281,52 @@ object CourseGeometryLoader {
 
     private fun featureCentersWithin(first: CourseFeature, second: CourseFeature, meters: Double): Boolean {
         if (first.points.isEmpty() || second.points.isEmpty()) return false
-        val aLat = first.points.map { it.latitude }.average()
-        val aLon = first.points.map { it.longitude }.average()
-        val bLat = second.points.map { it.latitude }.average()
-        val bLon = second.points.map { it.longitude }.average()
-        return haversineMeters(aLat, aLon, bLat, bLon) <= meters
+        val a = featureCenter(first.points)
+        val b = featureCenter(second.points)
+        return haversineMeters(a.latitude, a.longitude, b.latitude, b.longitude) <= meters
+    }
+
+    private fun featureCenter(points: List<GeoPoint>): GeoPoint {
+        if (points.size < 4 ||
+            haversineMeters(
+                points.first().latitude, points.first().longitude,
+                points.last().latitude, points.last().longitude
+            ) > 5.0
+        ) {
+            return GeoPoint(
+                points.map { it.latitude }.average(),
+                points.map { it.longitude }.average()
+            )
+        }
+        // A closed polygon's vertex average depends on which corner is first
+        // (that corner is duplicated). Use its area centroid so reversed OSM
+        // and GeoJSON rings still compare as the same physical feature.
+        val count = points.size - 1
+        val origin = points.first()
+        var twiceArea = 0.0
+        var cx = 0.0
+        var cy = 0.0
+        for (index in 0 until count) {
+            val next = (index + 1) % count
+            val ax = points[index].longitude - origin.longitude
+            val ay = points[index].latitude - origin.latitude
+            val bx = points[next].longitude - origin.longitude
+            val by = points[next].latitude - origin.latitude
+            val cross = ax * by - bx * ay
+            twiceArea += cross
+            cx += (ax + bx) * cross
+            cy += (ay + by) * cross
+        }
+        if (kotlin.math.abs(twiceArea) < 1e-14) {
+            return GeoPoint(
+                points.take(count).map { it.latitude }.average(),
+                points.take(count).map { it.longitude }.average()
+            )
+        }
+        return GeoPoint(
+            origin.latitude + cy / (3.0 * twiceArea),
+            origin.longitude + cx / (3.0 * twiceArea)
+        )
     }
 
     /**
