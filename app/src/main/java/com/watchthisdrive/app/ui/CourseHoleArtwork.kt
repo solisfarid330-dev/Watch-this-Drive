@@ -27,11 +27,31 @@ import com.watchthisdrive.app.data.CourseGeometry
 import com.watchthisdrive.app.data.HoleReconstructor
 import com.watchthisdrive.app.data.ReconstructedHole
 import com.watchthisdrive.app.data.GeoPoint
+import com.watchthisdrive.app.data.NaipImageryRepository
 import java.io.File
 import org.json.JSONObject
 
 private data class HoleArtwork(val number: Int, val label: String, val assetPath: String)
 private data class CourseArtworkPackage(val holes: List<HoleArtwork>)
+
+private data class AerialReference(
+    val bitmap: Bitmap,
+    val bounds: NaipImageryRepository.Bounds,
+    val cacheToken: String
+)
+
+private suspend fun loadAerialReference(
+    context: android.content.Context,
+    course: GolfCourse,
+    geometry: CourseGeometry?
+): AerialReference? = withContext(Dispatchers.IO) {
+    runCatching {
+        val file = NaipImageryRepository.loadOrFetch(context, course, geometry) ?: return@runCatching null
+        val bounds = NaipImageryRepository.boundsFor(course, geometry) ?: return@runCatching null
+        val bitmap = BitmapFactory.decodeFile(file.absolutePath) ?: return@runCatching null
+        AerialReference(bitmap, bounds, file.name + ":" + file.lastModified() + ":" + file.length())
+    }.getOrNull()
+}
 
 /** Generic asset contract: course_holes/<OSM-type>-<OSM-id>/manifest.json plus its PNGs. */
 private object CourseHoleArtworkRepository {
@@ -82,6 +102,11 @@ fun CourseHoleArtworkPanel(
     var generatedImages by remember(course.elementType, course.id) { mutableStateOf<Map<Int, File>>(emptyMap()) }
     var generating by remember(course.elementType, course.id) { mutableStateOf(false) }
     var renderError by remember(course.elementType, course.id) { mutableStateOf<String?>(null) }
+    var aerialReference by remember(course.elementType, course.id) { mutableStateOf<AerialReference?>(null) }
+
+    LaunchedEffect(course.elementType, course.id, geometry) {
+        aerialReference = loadAerialReference(context, course, geometry)
+    }
     // Hole reconstruction can be CPU-heavy on large OSM courses. Keep it
     // off the main thread and share the result with the panel's render effect.
     var reconstructedHoles by remember(course.elementType, course.id) {
@@ -129,14 +154,15 @@ fun CourseHoleArtworkPanel(
     // Render only the hole the golfer is viewing. Rendering an entire course at
     // panel-open time caused a long burst of CPU and bitmap allocation on phones.
     // The renderer's disk cache keeps revisited holes inexpensive.
-    LaunchedEffect(course.elementType, course.id, geometry, selected, reconstructedHoles) {
+    LaunchedEffect(course.elementType, course.id, geometry, selected, reconstructedHoles, aerialReference) {
         val hole = reconstructedHoles.firstOrNull { it.number == selected }
         if (hole != null && selected !in generatedImages) {
             generating = true
             try {
                 val rendered = withContext(Dispatchers.Default) {
                     CourseHoleArtworkRenderer.render(
-                        hole, context.cacheDir, course.elementType + "-" + course.id
+                        hole, context.cacheDir, course.elementType + "-" + course.id,
+                        aerialReference?.bitmap, aerialReference?.bounds, aerialReference?.cacheToken.orEmpty()
                     )
                 }
                 generatedImages = generatedImages + (hole.number to rendered)
@@ -229,10 +255,15 @@ fun CourseHoleArtworkForHole(
     course: GolfCourse,
     holeNumber: Int,
     reconstructedHole: ReconstructedHole? = null,
+    geometry: CourseGeometry? = null,
     playerLocation: Location? = null,
     fallback: @Composable () -> Unit
 ) {
     val context = LocalContext.current
+    var aerialReference by remember(course.elementType, course.id) { mutableStateOf<AerialReference?>(null) }
+    LaunchedEffect(course.elementType, course.id, geometry) {
+        aerialReference = loadAerialReference(context, course, geometry)
+    }
     val playerMarker = remember(playerLocation?.latitude, playerLocation?.longitude, reconstructedHole) {
         if (playerLocation != null && reconstructedHole != null) {
             CourseHoleArtworkRenderer.project(
@@ -244,7 +275,7 @@ fun CourseHoleArtworkForHole(
     var loading by remember(course.elementType, course.id, holeNumber, reconstructedHole) { mutableStateOf(true) }
     var bitmap by remember(course.elementType, course.id, holeNumber, reconstructedHole) { mutableStateOf<Bitmap?>(null) }
 
-    LaunchedEffect(course.elementType, course.id, holeNumber, reconstructedHole) {
+    LaunchedEffect(course.elementType, course.id, holeNumber, reconstructedHole, aerialReference) {
         loading = true
         bitmap = null
         try {
@@ -255,7 +286,8 @@ fun CourseHoleArtworkForHole(
             val generatedFile = reconstructedHole?.let { hole ->
                 withContext(Dispatchers.Default) {
                     CourseHoleArtworkRenderer.render(
-                        hole, context.cacheDir, course.elementType + "-" + course.id
+                        hole, context.cacheDir, course.elementType + "-" + course.id,
+                        aerialReference?.bitmap, aerialReference?.bounds, aerialReference?.cacheToken.orEmpty()
                     )
                 }
             }
