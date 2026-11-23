@@ -22,6 +22,7 @@ object NaipImageryRepository {
     private const val IMAGE_SERVER =
         "https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer"
     private const val CACHE_MAX_AGE_MS = 180L * 24L * 60L * 60L * 1000L
+    private const val FAILED_SELECTION_RETRY_MS = 15L * 60L * 1000L
     private const val MAX_EXPORT_DIMENSION = 4_000
     private const val MAX_IMAGE_BYTES = 24 * 1024 * 1024
     private const val MAX_METADATA_BYTES = 512 * 1024
@@ -54,7 +55,11 @@ object NaipImageryRepository {
         NDVI(".ndvi.png", "png", "BandArithmetic")
     }
 
-    private data class CachedSelection(val cachedAtEpochMs: Long, val value: ImagerySelection)
+    private data class CachedSelection(
+        val cachedAtEpochMs: Long,
+        val validForMs: Long,
+        val value: ImagerySelection
+    )
     private val selectionCache = ConcurrentHashMap<String, CachedSelection>()
     internal data class RasterRecord(
         val id: Long,
@@ -286,7 +291,7 @@ object NaipImageryRepository {
     private fun selectionFor(bounds: Bounds, key: String, metadataFile: File): ImagerySelection {
         val now = System.currentTimeMillis()
         selectionCache[key]?.let { cached ->
-            if (now - cached.cachedAtEpochMs < CACHE_MAX_AGE_MS) return cached.value
+            if (now - cached.cachedAtEpochMs < cached.validForMs) return cached.value
             selectionCache.remove(key, cached)
         }
         if (metadataFile.exists() && metadataFile.length() <= MAX_METADATA_BYTES &&
@@ -304,13 +309,14 @@ object NaipImageryRepository {
                         resolutionMeters = json.optDouble("resolutionMeters").takeIf { it.isFinite() && it > 0 },
                         bandCount = json.optInt("bandCount", 4)
                     )
-                    selectionCache[key] = CachedSelection(now, restored)
+                    selectionCache[key] = CachedSelection(now, CACHE_MAX_AGE_MS, restored)
                     return restored
                 }
             }
         }
         val queried = queryBestImagery(bounds) ?: ImagerySelection(emptyList(), null, null, null, 4)
-        selectionCache[key] = CachedSelection(now, queried)
+        val cacheFor = if (queried.rasterIds.isEmpty()) FAILED_SELECTION_RETRY_MS else CACHE_MAX_AGE_MS
+        selectionCache[key] = CachedSelection(now, cacheFor, queried)
         return queried
     }
 
