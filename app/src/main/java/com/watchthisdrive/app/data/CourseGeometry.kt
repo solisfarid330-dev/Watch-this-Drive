@@ -263,7 +263,7 @@ object CourseGeometryLoader {
                 existing.featureType == candidate.featureType &&
                     (existing.holeNumber == null || candidate.holeNumber == null ||
                         existing.holeNumber == candidate.holeNumber) &&
-                    featureCentersWithin(existing, candidate, 14.0)
+                    featuresCoincide(existing, candidate, 14.0)
             }
             if (duplicateIndex < 0) {
                 result += candidate
@@ -279,12 +279,32 @@ object CourseGeometryLoader {
         return result.distinctBy { Triple(it.elementType, it.id, it.featureType) }
     }
 
-    private fun featureCentersWithin(first: CourseFeature, second: CourseFeature, meters: Double): Boolean {
+    private fun featuresCoincide(first: CourseFeature, second: CourseFeature, centerToleranceMeters: Double): Boolean {
         if (first.points.isEmpty() || second.points.isEmpty()) return false
         val a = featureCenter(first.points)
         val b = featureCenter(second.points)
-        return haversineMeters(a.latitude, a.longitude, b.latitude, b.longitude) <= meters
+        if (haversineMeters(a.latitude, a.longitude, b.latitude, b.longitude) > centerToleranceMeters) {
+            return false
+        }
+        val firstPolygon = isClosedRing(first.points)
+        val secondPolygon = isClosedRing(second.points)
+        // Point/line features have no filled footprint, so proximity is the
+        // best available duplicate signal. For polygons, require actual
+        // footprint overlap; nearby bunkers must not collapse into one.
+        if (!firstPolygon || !secondPolygon) return true
+        if (first.points.any { pointInRing(it, second.points) } ||
+            second.points.any { pointInRing(it, first.points) }
+        ) return true
+        return first.points.zipWithNext().any { (a1, a2) ->
+            second.points.zipWithNext().any { (b1, b2) -> segmentsIntersect(a1, a2, b1, b2) }
+        }
     }
+
+    private fun isClosedRing(points: List<GeoPoint>): Boolean =
+        points.size >= 4 && haversineMeters(
+            points.first().latitude, points.first().longitude,
+            points.last().latitude, points.last().longitude
+        ) <= 5.0
 
     private fun featureCenter(points: List<GeoPoint>): GeoPoint {
         if (points.size < 4 ||
@@ -767,10 +787,7 @@ object CourseGeometryLoader {
         rings: List<List<GeoPoint>>
     ): Boolean {
         if (feature.points.isEmpty()) return false
-        val centroid = GeoPoint(
-            feature.points.map { it.latitude }.average(),
-            feature.points.map { it.longitude }.average()
-        )
+        val centroid = featureCenter(feature.points)
         val contained = feature.points.any { point -> rings.any { pointInRing(point, it) } } ||
             rings.any { ring -> pointInRing(centroid, ring) } ||
             (feature.points.size >= 4 && rings.any { ring ->
