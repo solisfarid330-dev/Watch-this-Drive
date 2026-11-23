@@ -35,15 +35,19 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 @Composable
-fun NaipCourseAerialPreview(course: GolfCourse, geometry: CourseGeometry?) {
+fun NaipCourseAerialPreview(
+    course: GolfCourse,
+    geometry: CourseGeometry?,
+    courseGeometryLoading: Boolean = false
+) {
     val context = LocalContext.current
     var bitmap by remember(course.elementType, course.id) { mutableStateOf<Bitmap?>(null) }
     var loading by remember(course.elementType, course.id) { mutableStateOf(false) }
 
-    LaunchedEffect(course.elementType, course.id, geometry) {
-        // Wait for the selected course outline so the request is clipped to the
-        // course instead of downloading an arbitrary rectangle around its point.
-        if (geometry == null) return@LaunchedEffect
+    LaunchedEffect(course.elementType, course.id, geometry, courseGeometryLoading) {
+        // Prefer the mapped course outline. If OSM fails, use a conservative
+        // point-centered preview rather than suppressing NAIP entirely.
+        if (geometry == null && courseGeometryLoading) return@LaunchedEffect
         loading = true
         bitmap = null
         try {
