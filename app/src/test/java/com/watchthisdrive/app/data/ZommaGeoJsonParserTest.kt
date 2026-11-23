@@ -193,6 +193,37 @@ class ZommaGeoJsonParserTest {
     }
 
     @Test
+    fun providerMergeKeepsDistinctNearbyBunkersSeparate() {
+        val first = listOf(
+            GeoPoint(32.0, -97.0),
+            GeoPoint(32.0, -96.999955),
+            GeoPoint(32.000045, -96.999955),
+            GeoPoint(32.000045, -97.0),
+            GeoPoint(32.0, -97.0)
+        )
+        val second = listOf(
+            GeoPoint(32.0, -96.99991),
+            GeoPoint(32.0, -96.999865),
+            GeoPoint(32.000045, -96.999865),
+            GeoPoint(32.000045, -96.99991),
+            GeoPoint(32.0, -96.99991)
+        )
+        val firstBunker = CourseFeature(
+            id = -21, elementType = "zomma", featureType = "bunker",
+            holeNumber = "2", name = null, points = first, isPredicted = true
+        )
+        val secondBunker = CourseFeature(
+            id = 22, elementType = "way", featureType = "bunker",
+            holeNumber = "2", name = null, points = second
+        )
+
+        val merged = CourseGeometryLoader.mergeProviderFeatures(listOf(firstBunker), listOf(secondBunker))
+
+        assertEquals(2, merged.size)
+        assertEquals(setOf(-21L, 22L), merged.map { it.id }.toSet())
+    }
+
+    @Test
     fun providerMergeRecognizesSamePolygonWithReversedRingStartAndDirection() {
         val firstRing = listOf(
             GeoPoint(32.0, -97.0),
