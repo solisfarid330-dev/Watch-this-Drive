@@ -44,29 +44,35 @@ jobs:
 
       - name: Verify offline course catalog is packaged
         run: |
-          echo "Source assets:"
-          find app/src/main/assets -maxdepth 1 -type f -printf '%p %s bytes\\n'
-          echo "Build asset directories:"
-          find app/build -type d -iname '*asset*' -print
-          echo "Catalog copies in build outputs:"
-          find app/build -type f -name 'opengolfapi-us.geojson.gz' -printf '%p %s bytes\\n'
           apk="app/build/outputs/apk/debug/app-debug.apk"
-          echo "Packaged APK assets:"
-          unzip -l "$apk" | grep 'assets/' || true
+          test -s "$apk"
           unzip -l "$apk" | grep -q "assets/opengolfapi-us.geojson"
           catalog_sha=$(unzip -p "$apk" assets/opengolfapi-us.geojson | sha256sum | cut -d ' ' -f 1)
           test "$catalog_sha" = "fb4aa24aa8bce2fe338812bc316a2067720c6ffb7874429f5c037b31578300db"
           unzip -p "$apk" assets/COURSE_DATA_ATTRIBUTION.txt | grep -q "OpenGolfAPI"
+          sha256sum "$apk"
 
-      - name: Upload APK
+      # Normal CI runs keep a short-lived artifact. A manual run also publishes
+      # a prerelease asset, which is separate from Actions artifact storage.
+      - name: Upload APK artifact
+        if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: watch-this-drive-debug-apk
-          path: |
-            app/build/outputs/apk/debug/app-debug.apk
+          path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
-          retention-days: 3
-        # The Android build and tests are the required CI checks. GitHub may
-        # reject artifact uploads when the repository storage quota is full;
-        # report that as an upload warning rather than a false build failure.
-        continue-on-error: true
+          retention-days: 1
+
+      - name: Publish installable test APK
+        if: github.event_name == 'workflow_dispatch'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: test-build-${{ github.run_number }}
+          name: Watch this Drive test build ${{ github.run_number }}
+          prerelease: true
+          generate_release_notes: false
+          files: app/build/outputs/apk/debug/app-debug.apk
+          body: |
+            Automated Android debug build for testing.
+            Built from commit ${{ github.sha }}.
+            Unit tests and offline course catalog packaging checks ran before publication.
