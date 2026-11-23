@@ -37,6 +37,25 @@ class HoleReconstructorTest {
     }
 
     @Test
+    fun oneUnnumberedPlayingLineCannotCreateDuplicateTeeCandidatesForNearbyGreens() {
+        val line = listOf(
+            GeoPoint(0.0, 0.0),
+            GeoPoint(0.002, 0.0004),
+            GeoPoint(0.004, 0.0)
+        )
+        val geometry = CourseGeometry(99, "Shared line fixture", listOf(
+            feature(2, "green", 0.004, 0.0001),
+            feature(3, "green", 0.004, -0.0001),
+            feature(4, "hole", 0.0, 0.0, points = line)
+        ))
+
+        val holes = HoleReconstructor.reconstruct(geometry)
+
+        assertEquals(1, holes.size)
+        assertTrue(holes.single().teeSource.isPredicted)
+    }
+
+    @Test
     fun mappedTeeIsPreferredOverAnInferredPlayingLineEndpoint() {
         val line = listOf(
             GeoPoint(0.0, 0.0),
