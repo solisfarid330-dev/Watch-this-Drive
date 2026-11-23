@@ -26,7 +26,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install Pillow
-        run: python -m pip install --disable-pip-version-check Pillow numpy scikit-image
+        run: python -m pip install --disable-pip-version-check Pillow numpy scikit-image shapely
       - name: South Padre Hole 1 imagery and overlay
         run: |
           if [ ! -s research/results/south-padre/aerial-validation/hole-1-naip-2022.png ] || [ ! -s research/results/south-padre/aerial-validation/hole-1-naip-2022-rgbir.tif ]; then
@@ -226,6 +226,14 @@ jobs:
             --tiff research/results/south-padre/aerial-validation/hole-2-naip-2022-rgbir.tif \
             --hole-ref 2 --segments 6000 \
             --out research/results/south-padre/aerial-validation/hole-2-superpixel-6000
+      - name: Validate candidate GeoJSON topology with Shapely
+        run: |
+          python research/validate_candidate_geojson.py \
+            --geojson \
+              research/results/south-padre/aerial-validation/hole-1-superpixel-experiment/hole-1-fairway-candidate.geojson \
+              research/results/south-padre/aerial-validation/hole-2-superpixel-experiment/hole-2-fairway-candidate.geojson \
+              research/results/south-padre/aerial-validation/hole-1-superpixel-6000/hole-1-fairway-candidate.geojson \
+              research/results/south-padre/aerial-validation/hole-2-superpixel-6000/hole-2-fairway-candidate.geojson
       - name: Commit imagery and overlays
         run: |
           git config user.name "github-actions[bot]"
