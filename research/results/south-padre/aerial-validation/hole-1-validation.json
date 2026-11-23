@@ -18,19 +18,94 @@
     508
   ],
   "buffer_m": 65,
+  "feature_corridor_m": 45,
   "visible_osm_feature_element_counts": {
     "tee": 3,
     "bunker": 4,
     "green": 1,
-    "rough": 2,
-    "fairway": 1
+    "rough": 1,
+    "fairway": 1,
+    "hole": 1
   },
+  "candidate_feature_distances": [
+    {
+      "osm_type": "way",
+      "osm_id": 1565321006,
+      "golf": "tee",
+      "distance_to_hole_centerline_m": 0.0,
+      "assignment": "proximity candidate only"
+    },
+    {
+      "osm_type": "way",
+      "osm_id": 1565321007,
+      "golf": "tee",
+      "distance_to_hole_centerline_m": 11.2,
+      "assignment": "proximity candidate only"
+    },
+    {
+      "osm_type": "way",
+      "osm_id": 1565321008,
+      "golf": "tee",
+      "distance_to_hole_centerline_m": 16.1,
+      "assignment": "proximity candidate only"
+    },
+    {
+      "osm_type": "way",
+      "osm_id": 1565321009,
+      "golf": "bunker",
+      "distance_to_hole_centerline_m": 24.9,
+      "assignment": "proximity candidate only"
+    },
+    {
+      "osm_type": "way",
+      "osm_id": 1565321010,
+      "golf": "bunker",
+      "distance_to_hole_centerline_m": 23.2,
+      "assignment": "proximity candidate only"
+    },
+    {
+      "osm_type": "way",
+      "osm_id": 1565321011,
+      "golf": "bunker",
+      "distance_to_hole_centerline_m": 18.0,
+      "assignment": "proximity candidate only"
+    },
+    {
+      "osm_type": "way",
+      "osm_id": 1565321012,
+      "golf": "bunker",
+      "distance_to_hole_centerline_m": 9.0,
+      "assignment": "proximity candidate only"
+    },
+    {
+      "osm_type": "way",
+      "osm_id": 1565321013,
+      "golf": "green",
+      "distance_to_hole_centerline_m": 0.0,
+      "assignment": "proximity candidate only"
+    },
+    {
+      "osm_type": "way",
+      "osm_id": 1565321015,
+      "golf": "rough",
+      "distance_to_hole_centerline_m": 0.8,
+      "assignment": "proximity candidate only"
+    },
+    {
+      "osm_type": "relation",
+      "osm_id": 21503736,
+      "golf": "fairway",
+      "distance_to_hole_centerline_m": 0.0,
+      "assignment": "proximity candidate only"
+    }
+  ],
   "files": [
     "hole-1-naip-2022.png",
     "hole-1-osm-overlay.png"
   ],
   "limitations": [
     "Visual overlay only; not a ground-truth accuracy measurement.",
+    "Nearby features are candidates by distance, not confirmed hole assignments.",
     "NAIP is aerial orthophotography, not satellite imagery.",
     "2022 imagery may differ from current course conditions.",
     "OSM features may be incomplete or misclassified.",
