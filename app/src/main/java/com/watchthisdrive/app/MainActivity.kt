@@ -447,6 +447,7 @@ private fun RoundHubScreen(
             activeHole = activeHole,
             geometry = courseGeometry,
             geometryError = geometryError,
+            reconstructedHoles = reconstructedHoles,
             modifier = Modifier.height(380.dp)
         )
     }
