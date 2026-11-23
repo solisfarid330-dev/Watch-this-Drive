@@ -20,8 +20,6 @@ import com.watchthisdrive.app.data.CourseGeometry
 import com.watchthisdrive.app.data.CourseGeometryLoader
 import com.watchthisdrive.app.data.GolfCourse
 import com.watchthisdrive.app.data.HoleReconstructor
-import java.util.Locale
-import kotlin.math.roundToInt
 
 private data class ClubDistance(val name: String, val carryYards: String)
 
@@ -77,12 +75,6 @@ private fun PlayingCaddyScreen(
         ?: greens.firstOrNull { it.id == selectedGreenId }
         ?: greens.firstOrNull { it.id == reconstructedHole?.greenSource?.id }
     val target = selectedGreen?.let { greenCenter(it) }
-    val approachHazards = remember(location?.latitude, location?.longitude, target?.latitude, target?.longitude, reconstructedHole) {
-        if (location == null || target == null) emptyList()
-        else (reconstructedHole?.water.orEmpty() + reconstructedHole?.bunkers.orEmpty())
-            .mapNotNull { hazard -> hazardSafeLayupYards(hazard, location, target)?.let { hazard to it } }
-    }
-    val safeLayupYards = approachHazards.minOfOrNull { it.second }
     val loading = course != null && geometry == null && geometryError == null
     val error: String? = if (geometry == null) geometryError else null
     val preferences = LocalContext.current.getSharedPreferences("watch_this_drive_caddy", Context.MODE_PRIVATE)
@@ -91,9 +83,6 @@ private fun PlayingCaddyScreen(
             club.copy(carryYards = preferences.getString("carry_" + club.name, club.carryYards) ?: club.carryYards)
         })
     }
-    var selectedClubName by remember(course?.id, activeHole) { mutableStateOf<String?>(null) }
-    var shotStart by remember(course?.id, activeHole) { mutableStateOf<Location?>(null) }
-    var shotMessage by remember(course?.id, activeHole) { mutableStateOf<String?>(null) }
 
     val distanceYards = if (location != null && target != null) {
         val meters = FloatArray(1)
@@ -200,98 +189,19 @@ private fun PlayingCaddyScreen(
                     Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text("CLUB RECOMMENDATION", color = caddyGreen, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
                         Text(
-                            recommendation?.first?.name ?: if (safeLayupYards != null) "No safe lay-up club" else "Waiting for distance",
+                            recommendation?.first?.name ?: "Waiting for distance",
                             color = Color.White, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold
                         )
                         Text(
-                            recommendation?.let { (if (safeLayupYards != null) "Lay-up carry: " else "Typical carry: ") + it.second + " yd" }
+                            recommendation?.let { "Carry: " + it.second + " yd" }
                                 ?: "A recommendation appears when GPS and a mapped green are available.",
                             color = caddyMuted
                         )
                         Text("Recommendations use carry distance only; wind, slope and exact pin position are not yet modelled.", color = caddyMuted, style = MaterialTheme.typography.bodySmall)
-                        approachHazards.firstOrNull()?.let { hazard ->
-                            Text(
-                                "HAZARD AHEAD: mapped ${hazard.first.featureType.replace('_', ' ')}. Aim to land about ${hazard.second} yd from here to stay short of its mapped edge.",
-                                color = Color(0xFFFFC078),
-                                style = MaterialTheme.typography.bodySmall,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
                     }
                 }
             }
-            item {
-                Card(colors = CardDefaults.cardColors(containerColor = caddyCard), shape = RoundedCornerShape(18.dp)) {
-                    Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Text("LEARN FROM YOUR SHOTS", color = caddyGreen, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
-                        Text("Record your position before a shot, then tap again at the ball's first landing point. The caddy will update that club's carry average using your latest 20 recorded shots.", color = caddyMuted, style = MaterialTheme.typography.bodySmall)
-                        val chosenClub = clubs.firstOrNull { it.name == selectedClubName } ?: recommendation?.first
-                        var clubMenu by remember { mutableStateOf(false) }
-                        OutlinedButton(onClick = { clubMenu = true }, modifier = Modifier.fillMaxWidth()) {
-                            Text(chosenClub?.name ?: "SELECT CLUB USED")
-                        }
-                        DropdownMenu(expanded = clubMenu, onDismissRequest = { clubMenu = false }) {
-                            clubs.forEach { club ->
-                                DropdownMenuItem(text = { Text(club.name) }, onClick = {
-                                    selectedClubName = club.name
-                                    clubMenu = false
-                                })
-                            }
-                        }
-                        Button(
-                            onClick = {
-                                if (location == null) {
-                                    shotMessage = "A GPS fix is required to record a shot."
-                                } else if (System.currentTimeMillis() - location.time > 15_000L) {
-                                    shotMessage = "Waiting for a fresh GPS fix. Keep the Play screen open for a moment."
-                                } else if (location.accuracy > 15f || (shotStart?.accuracy ?: 0f) > 15f) {
-                                    shotMessage = "GPS accuracy must be within 15 metres at both shot points. Wait for a clearer fix."
-                                } else if (shotStart == null) {
-                                    shotStart = Location(location)
-                                    shotMessage = "Start saved. Tap again at the ball's first landing point."
-                                } else {
-                                    val club = chosenClub
-                                    if (club == null) {
-                                        shotMessage = "Choose the club you used before saving this shot."
-                                    } else {
-                                        val meters = FloatArray(1)
-                                        Location.distanceBetween(
-                                            shotStart!!.latitude, shotStart!!.longitude,
-                                            location.latitude, location.longitude, meters
-                                        )
-                                        val yards = (meters[0] * 1.0936133).roundToInt()
-                                        if (yards !in 10..350) {
-                                            shotMessage = "That GPS distance (${yards} yd) is outside the 10–350 yd learning range. Start again at the shot location."
-                                            shotStart = null
-                                        } else {
-                                            val key = "shot_samples_" + club.name
-                                            val previous = preferences.getString(key, "").orEmpty()
-                                                .split(",").mapNotNull { it.toIntOrNull() }
-                                            val samples = (previous + yards).takeLast(20)
-                                            val average = samples.average().roundToInt()
-                                            preferences.edit()
-                                                .putString(key, samples.joinToString(","))
-                                                .putString("carry_" + club.name, average.toString())
-                                                .apply()
-                                            clubs = clubs.map { current ->
-                                                if (current.name == club.name) current.copy(carryYards = average.toString()) else current
-                                            }
-                                            shotMessage = "Recorded $yards yd. ${club.name} carry average is now $average yd (${samples.size} shots)."
-                                            shotStart = null
-                                        }
-                                    }
-                                }
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            enabled = location != null
-                        ) {
-                            Text(if (shotStart == null) "RECORD SHOT START" else "RECORD FIRST LANDING")
-                        }
-                        shotMessage?.let { Text(it, color = caddyGreen, style = MaterialTheme.typography.bodySmall) }
-                        Text("GPS distance is an estimate, not a launch-monitor measurement. Record the first landing point before bounce and roll.", color = caddyMuted, style = MaterialTheme.typography.bodySmall)
-                    }
-                }
-            }
+
         }
     }
 }
@@ -354,7 +264,7 @@ private fun ClubManagementScreen() {
         Card(colors = CardDefaults.cardColors(containerColor = caddyCard), shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text("CARRY DISTANCE (YD)", color = caddyGreen, fontWeight = FontWeight.Bold)
-                Text("Distance the ball travels through the air to its first landing. Bounce and roll are not included. The caddy uses this number for club recommendations and hazard planning.", color = caddyMuted, style = MaterialTheme.typography.bodySmall)
+                Text("Distance the ball travels through the air to its first landing. Bounce and roll are not included. The caddy uses this number for straightforward distance-based club recommendations.", color = caddyMuted, style = MaterialTheme.typography.bodySmall)
             }
         }
         clubs.forEach { club ->
@@ -389,7 +299,7 @@ private fun ClubManagementScreen() {
                 modifier = Modifier.fillMaxWidth()
             ) { Text("SAVE CLUB DISTANCES") }
             savedMessage?.let { Text(it, color = caddyGreen, style = MaterialTheme.typography.bodySmall) }
-            Text("You can change these estimates whenever you like. Shot learning will update them as you play.", color = caddyMuted, style = MaterialTheme.typography.bodySmall)
+            Text("You can edit these estimates and save them whenever you like.", color = caddyMuted, style = MaterialTheme.typography.bodySmall)
         }
     }
 }
