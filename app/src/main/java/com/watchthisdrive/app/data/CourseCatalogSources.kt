@@ -69,22 +69,31 @@ object CourseCatalogSources {
         offline.forEach { course ->
             course.openGolfId?.let { records["open:$it"] = course }
         }
-        val failures = mutableListOf<Throwable>()
 
-        runCatching { fetchTeeTimeRegion(region) }
-            .onSuccess { list -> list.forEach { records["tee:${it.teeTimeId}"] = it } }
-            .onFailure { failures += it }
+        // These sources are independent. Fetch them together and share one
+        // wall-clock budget so a slow provider cannot serialize its timeout
+        // after the other providers have already completed.
+        val teeTimeFuture = CompletableFuture.supplyAsync { fetchTeeTimeRegion(region) }
+        val openGolfStateFuture = if (region.countryCode == "US" && region.stateCode != null) {
+            CompletableFuture.supplyAsync { fetchOpenGolfState(region.stateCode) }
+        } else null
+        val query = searchTerm?.takeIf { it.isNotBlank() } ?: region.city
+        val openGolfSearchFuture = if (region.countryCode == "US" &&
+            region.stateCode != null && !query.isNullOrBlank()
+        ) CompletableFuture.supplyAsync { fetchOpenGolfSearch(query, region.stateCode) } else null
 
-        if (region.countryCode == "US" && region.stateCode != null) {
-            runCatching { fetchOpenGolfState(region.stateCode) }
-                .onSuccess { list -> list.forEach { records["open:${it.openGolfId}"] = it } }
-                .onFailure { failures += it }
-
-            val query = searchTerm?.takeIf { it.isNotBlank() } ?: region.city
-            if (!query.isNullOrBlank()) {
-                runCatching { fetchOpenGolfSearch(query, region.stateCode) }
-                    .onSuccess { list -> list.forEach { records["open:${it.openGolfId}"] = it } }
-                    .onFailure { failures += it }
+        val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(18)
+        awaitCourses(teeTimeFuture, deadline).forEach {
+            it.teeTimeId?.let { id -> records["tee:$id"] = it }
+        }
+        openGolfStateFuture?.let { future ->
+            awaitCourses(future, deadline).forEach {
+                it.openGolfId?.let { id -> records["open:$id"] = it }
+            }
+        }
+        openGolfSearchFuture?.let { future ->
+            awaitCourses(future, deadline).forEach {
+                it.openGolfId?.let { id -> records["open:$id"] = it }
             }
         }
 
@@ -120,12 +129,9 @@ object CourseCatalogSources {
         val teeTimeFuture = CompletableFuture.supplyAsync {
             runCatching { fetchTeeTimeSearch(normalizedQuery) }.getOrDefault(emptyList())
         }
-        val openGolf = runCatching { openGolfFuture.get(13, TimeUnit.SECONDS) }
-            .getOrDefault(emptyList())
-        val teeTime = runCatching { teeTimeFuture.get(13, TimeUnit.SECONDS) }
-            .getOrDefault(emptyList())
-        if (openGolf.isEmpty()) openGolfFuture.cancel(true)
-        if (teeTime.isEmpty()) teeTimeFuture.cancel(true)
+        val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(13)
+        val openGolf = awaitCourses(openGolfFuture, deadline)
+        val teeTime = awaitCourses(teeTimeFuture, deadline)
         openGolf.forEach { course -> course.openGolfId?.let { results["open:$it"] = course } }
         teeTime.forEach { course -> course.teeTimeId?.let { results["tee:$it"] = course } }
         val merged = mergeCatalogs(results.values.toList())
@@ -179,6 +185,23 @@ object CourseCatalogSources {
             return emptyList()
         } finally {
             connection.disconnect()
+        }
+    }
+
+    private fun awaitCourses(
+        future: CompletableFuture<List<GolfCourse>>,
+        deadlineNanos: Long
+    ): List<GolfCourse> {
+        val remaining = deadlineNanos - System.nanoTime()
+        if (remaining <= 0L) {
+            future.cancel(true)
+            return emptyList()
+        }
+        return try {
+            future.get(remaining, TimeUnit.NANOSECONDS)
+        } catch (_: Exception) {
+            future.cancel(true)
+            emptyList()
         }
     }
 
