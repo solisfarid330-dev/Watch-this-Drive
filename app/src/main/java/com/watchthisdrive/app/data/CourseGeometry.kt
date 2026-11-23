@@ -861,8 +861,16 @@ internal object ZommaGeoJsonParser {
             val feature = features.optJSONObject(index) ?: continue
             val properties = feature.optJSONObject("properties") ?: JSONObject()
             val tags = properties.optJSONObject("tags") ?: properties
-            val kind = firstValue(tags, "golf", "feature_type", "featureType", "kind", "class", "layer", "feature", "type")
-                ?.lowercase()?.replace(Regex("[^a-z0-9]+"), "_")?.trim('_') ?: continue
+            // Zomma exports OSM-derived layers. Some classes are represented
+            // by non-golf OSM tags (for example natural=water, landuse=forest,
+            // and highway=path), so inspect those canonical tags as fallbacks.
+            // Keep golf/explicit layer labels first to avoid treating a generic
+            // surrounding road or land-use tag as a golf feature.
+            val kind = firstValue(
+                tags, "golf", "feature_type", "featureType", "kind", "class",
+                "layer", "feature", "natural", "water", "waterway", "highway",
+                "landuse", "leisure", "type"
+            )?.lowercase()?.replace(Regex("[^a-z0-9]+"), "_")?.trim('_') ?: continue
             val featureType = normalizeType(kind) ?: continue
             val geometry = feature.optJSONObject("geometry") ?: continue
             val parts = readCoordinateParts(geometry).orEmpty()
@@ -936,8 +944,11 @@ internal object ZommaGeoJsonParser {
         "rough", "semi_rough", "rough_in_play", "in_play" -> "rough"
         "wood", "woodland", "forest", "trees" -> "woodland"
         "tree" -> "tree"
-        "path", "cart_path", "cartpath" -> "path"
-        "course_boundary", "boundary", "outline", "golf_course" -> "course_boundary"
+        "path", "footway", "cart_path", "cartpath", "golf_cart_path" -> "path"
+        "water", "natural_water", "pond", "lake", "reservoir", "riverbank", "river_bank" -> "water"
+        "wood", "natural_wood", "forest", "landuse_forest", "woodland" -> "woodland"
+        "course", "golf_course", "leisure_golf_course",
+        "course_boundary", "boundary", "outline" -> "course_boundary"
         else -> null
     }
 
