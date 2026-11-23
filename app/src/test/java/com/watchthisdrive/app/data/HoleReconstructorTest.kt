@@ -371,4 +371,41 @@ class HoleReconstructorTest {
         assertEquals(fairway, hole.mappedFairways.single().points)
     }
 
+    @Test
+    fun explicitlyNumberedFairwayFragmentsSurviveWhenCenterlineOnlyCoversPartOfThem() {
+        val first = listOf(
+            GeoPoint(0.0002, -0.0003),
+            GeoPoint(0.0018, -0.0003),
+            GeoPoint(0.0018, 0.0003),
+            GeoPoint(0.0002, 0.0003),
+            GeoPoint(0.0002, -0.0003)
+        )
+        val second = listOf(
+            GeoPoint(0.0020, -0.0003),
+            GeoPoint(0.0038, -0.0003),
+            GeoPoint(0.0038, 0.0003),
+            GeoPoint(0.0020, 0.0003),
+            GeoPoint(0.0020, -0.0003)
+        )
+        val route = listOf(
+            GeoPoint(0.0, 0.0),
+            GeoPoint(0.001, 0.00015),
+            GeoPoint(0.003, 0.00015),
+            GeoPoint(0.004, 0.0)
+        )
+        val geometry = CourseGeometry(99, "Numbered dogleg fairway", listOf(
+            feature(1, "tee", 0.0, 0.0, "1"),
+            feature(2, "green", 0.004, 0.0, "1"),
+            feature(3, "fairway", 0.0, 0.0, "1", first),
+            feature(4, "fairway", 0.0, 0.0, "1", second),
+            feature(5, "hole", 0.0, 0.0, "1", route)
+        ))
+
+        val hole = HoleReconstructor.reconstruct(geometry).single()
+
+        assertTrue(hole.usesMappedFairway)
+        assertEquals(setOf(3L, 4L), hole.mappedFairways.map { it.id }.toSet())
+        assertTrue(hole.fairwayEstimate.isEmpty())
+    }
+
 }
