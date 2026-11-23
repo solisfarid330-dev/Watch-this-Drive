@@ -68,9 +68,8 @@ private fun PlayingCaddyScreen(
     val reconstructedHole = remember(geometry, activeHole) {
         geometry?.let { HoleReconstructor.reconstruct(it).firstOrNull { hole -> hole.number == activeHole } }
     }
-    val selectedGreen = numberedGreens.firstOrNull { it.id == selectedGreenId }
+    val selectedGreen = greens.firstOrNull { it.id == selectedGreenId }
         ?: numberedGreens.firstOrNull()
-        ?: greens.firstOrNull { it.id == selectedGreenId }
         ?: greens.firstOrNull { it.id == reconstructedHole?.greenSource?.id }
     val target = selectedGreen?.let { greenCenter(it) }
     val loading = course != null && geometry == null && geometryError == null
@@ -151,6 +150,7 @@ private fun PlayingCaddyScreen(
                                 }
                                 Text(
                                     when {
+                                        selectedGreenId != null && selectedGreen?.id == selectedGreenId -> "Manually selected target green."
                                         numberedGreens.isNotEmpty() -> "Automatically selected from the mapped hole number."
                                         reconstructedHole != null && selectedGreen?.id == reconstructedHole.greenSource.id ->
                                             "Matched to this hole using tee/green geometry; you can override it below."
