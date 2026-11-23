@@ -45,11 +45,16 @@ internal object CourseHoleArtworkRenderer {
             append("renderer=").append(VERSION).append('|').append(cacheKey).append('|').append(hole.number)
             append("|naip:").append(aerialCacheToken).append('|').append(aerialBounds)
             append('|').append(hole.tee).append('|').append(hole.green).append('|').append(hole.greenBoundary)
+            append("|green-source:").append(hole.greenSource.source).append(':').append(hole.greenSource.confidence)
+                .append(':').append(hole.greenSource.isPredicted)
             append('|').append(hole.fairwayEstimate).append('|').append(hole.lengthMeters)
             append('|').append(hole.par).append('|').append(hole.handicap)
-            hole.mappedFairways.forEach { append("|f:").append(it.id).append(it.points) }
-            hole.bunkers.forEach { append("|b:").append(it.id).append(it.points) }
-            hole.water.forEach { append("|w:").append(it.id).append(it.points) }
+            hole.mappedFairways.forEach { append("|f:").append(it.id).append(it.points)
+                .append(':').append(it.source).append(':').append(it.confidence).append(':').append(it.isPredicted) }
+            hole.bunkers.forEach { append("|b:").append(it.id).append(it.points)
+                .append(':').append(it.source).append(':').append(it.confidence).append(':').append(it.isPredicted) }
+            hole.water.forEach { append("|w:").append(it.id).append(it.points)
+                .append(':').append(it.source).append(':').append(it.confidence).append(':').append(it.isPredicted) }
             hole.mappedCenterline?.let { append("|c:").append(it.id).append(it.points) }
             (hole.rough + hole.woodland + hole.paths + hole.trees).forEach { append("|s:").append(it.featureType).append(it.id).append(it.points) }
         }
