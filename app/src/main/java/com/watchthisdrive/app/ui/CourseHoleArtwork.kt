@@ -86,12 +86,19 @@ fun CourseHoleArtworkPanel(course: GolfCourse, geometry: CourseGeometry?) {
 
     LaunchedEffect(course.elementType, course.id) {
         loading = true
-        val loaded = withContext(Dispatchers.IO) {
-            CourseHoleArtworkRepository.load(context, course)
+        try {
+            val loaded = withContext(Dispatchers.IO) {
+                CourseHoleArtworkRepository.load(context, course)
+            }
+            artwork = loaded
+            selected = loaded?.holes?.firstOrNull()?.number
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            artwork = null
+        } finally {
+            loading = false
         }
-        artwork = loaded
-        selected = loaded?.holes?.firstOrNull()?.number
-        loading = false
     }
     LaunchedEffect(course.elementType, course.id, geometry) {
         if (selected == null) {
