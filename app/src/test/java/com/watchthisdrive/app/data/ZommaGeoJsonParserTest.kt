@@ -124,6 +124,37 @@ class ZommaGeoJsonParserTest {
     }
 
     @Test
+    fun readsTopLevelLayerAndNestedOsmTagsTogether() {
+        val json = """
+            {
+              "type": "FeatureCollection",
+              "features": [{
+                "type": "Feature",
+                "id": "green-seven",
+                "properties": {
+                  "layer": "Green",
+                  "tags": {
+                    "golf:hole": "7",
+                    "par": "4",
+                    "handicap": "2",
+                    "name": "Green 7"
+                  }
+                },
+                "geometry": {"type":"Point","coordinates":[-97.0,32.0]}
+              }]
+            }
+        """.trimIndent()
+
+        val green = ZommaGeoJsonParser.parse(json).single()
+
+        assertEquals("green", green.featureType)
+        assertEquals("7", green.holeNumber)
+        assertEquals(4, green.par)
+        assertEquals(2, green.handicap)
+        assertEquals("Green 7", green.name)
+    }
+
+    @Test
     fun mapsCanonicalOsmNaturalWaterWoodlandAndPathTags() {
         val json = """
             {
