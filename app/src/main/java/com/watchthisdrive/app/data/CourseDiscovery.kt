@@ -35,6 +35,7 @@ data class GolfCourse(
     val postalCode: String? = null,
     val holes: Int? = null,
     val par: Int? = null,
+    val totalYardage: Int? = null,
     val courseType: String? = null,
     val website: String? = null,
     val phone: String? = null,
