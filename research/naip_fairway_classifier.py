@@ -79,17 +79,22 @@ def main():
     if pos.sum()<100 or neg.sum()<100:
         raise SystemExit(f"Insufficient South Padre seed pixels: fairway={pos.sum()}, rough={neg.sum()}")
     rng=np.random.default_rng(20261123)
+    block_size=64
     def sample(mask,limit=40000):
         ys,xs=np.where(mask)
         if len(xs)>limit:
             pick=rng.choice(len(xs),limit,replace=False); ys,xs=ys[pick],xs[pick]
-        return tx[ys,xs]
-    p=sample(pos); n=sample(neg)
-    # Random holdout is only a weak diagnostic because neighboring pixels are correlated.
-    def split(z):
-        order=rng.permutation(len(z)); cut=max(1,int(.8*len(z)))
-        return z[order[:cut]],z[order[cut:]]
-    pfit,ptest=split(p); nfit,ntest=split(n)
+        return tx[ys,xs],ys,xs
+    p,py,pxs=sample(pos); n,ny,nx=sample(neg)
+    # Hold out whole spatial blocks, not random neighboring pixels.
+    def block_ids(ys,xs):
+        return ((ys//block_size)*73856093 ^ (xs//block_size)*19349663) % 5
+    ptest_mask=block_ids(py,pxs)==0
+    ntest_mask=block_ids(ny,nx)==0
+    pfit,ptest=p[~ptest_mask],p[ptest_mask]
+    nfit,ntest=n[~ntest_mask],n[ntest_mask]
+    if min(len(pfit),len(ptest),len(nfit),len(ntest))<100:
+        raise SystemExit("Spatial block holdout produced too few samples; inspect seed geometry.")
     allfit=np.vstack([pfit,nfit]); mean=allfit.mean(0); scale=allfit.std(0); scale[scale<1e-6]=1
     pz=(pfit-mean)/scale; nz=(nfit-mean)/scale
     mu_p=pz.mean(0); mu_n=nz.mean(0)
@@ -100,7 +105,7 @@ def main():
     def score(x): return ((x-mean)/scale)@weight+bias
     ptest_score=score(ptest); ntest_score=score(ntest)
     threshold=0.0
-    holdout={"fairway_true_positive_rate":round(float(np.mean(ptest_score>threshold)),4),"rough_false_positive_rate":round(float(np.mean(ntest_score>threshold)),4),"fairway_holdout_pixels":len(ptest),"rough_holdout_pixels":len(ntest),"warning":"Random pixel holdout is optimistic because spatially adjacent pixels are correlated and labels are OSM-derived."}
+    holdout={"method":"spatial block holdout; 64x64 pixel blocks (~38m square at 0.6m GSD) assigned wholly to train or test","fairway_true_positive_rate":round(float(np.mean(ptest_score>threshold)),4),"rough_false_positive_rate":round(float(np.mean(ntest_score>threshold)),4),"fairway_holdout_pixels":len(ptest),"rough_holdout_pixels":len(ntest),"fairway_train_pixels":len(pfit),"rough_train_pixels":len(nfit),"warning":"Spatial blocks reduce neighboring-pixel leakage, but labels are still OSM-derived and the test covers only one hole and one acquisition."}
 
     fc,meta,raw,px,w,h,bbox=test
     x,valid,rgb,ndvi,exg=features(test)
@@ -139,7 +144,7 @@ def main():
         "training_samples":{"fairway":len(p),"rough":len(n)},
         "features":["NDVI","excess_green","local_RGB_texture_stddev_9x9"],
         "linear_discriminant_weights":weight.tolist(),"standardization_mean":mean.tolist(),"standardization_scale":scale.tolist(),"bias":bias,
-        "south_padre_random_pixel_holdout":holdout,
+        "south_padre_spatial_block_holdout":holdout,
         "target_seed_positive_rates":seed_eval,
         "candidate_corridor_m":a.corridor_m,
         "candidate_pixels":int(candidate.sum()),
