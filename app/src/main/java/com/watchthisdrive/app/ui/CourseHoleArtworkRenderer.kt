@@ -465,7 +465,10 @@ internal object CourseHoleArtworkRenderer {
         }
         paint.color = 0xFFE65E4E.toInt(); canvas.drawPath(flag, paint)
         paint.color = 0xFF344B35.toInt(); canvas.drawCircle(pin.first, pin.second + 20f, 8f, paint)
-        text("TEE", tee.first, tee.second + 48f, 0xFF344B35.toInt(), 19f)
+        text(
+            if (hole.teeSource.isPredicted) "TEE · EST." else "TEE",
+            tee.first, tee.second + 48f, 0xFF344B35.toInt(), 19f
+        )
         text(if (green != null) "GREEN" else "GREEN · EST.", greenCenter.first, greenCenter.second + 72f, 0xFF344B35.toInt(), 19f)
 
         // Header/footer are kept outside the fitted course viewport.
