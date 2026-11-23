@@ -98,6 +98,32 @@ class ZommaGeoJsonParserTest {
     }
 
     @Test
+    fun normalizesHumanReadableZommaCourseMapLayerNames() {
+        val json = """
+            {
+              "type": "FeatureCollection",
+              "features": [
+                {"type":"Feature","id":"tee","properties":{"layer":"Tee pad"},
+                 "geometry":{"type":"Point","coordinates":[-97.0,32.0]}},
+                {"type":"Feature","id":"line","properties":{"layer":"Playing line","hole":5},
+                 "geometry":{"type":"LineString","coordinates":[[-97.0,32.0],[-96.999,32.001]]}},
+                {"type":"Feature","id":"rough","properties":{"layer":"Rough / in play"},
+                 "geometry":{"type":"Polygon","coordinates":[[[-97.0,32.0],[-96.999,32.0],[-96.999,32.001],[-97.0,32.0]]]}},
+                {"type":"Feature","id":"path","properties":{"layer":"Cart path"},
+                 "geometry":{"type":"LineString","coordinates":[[-97.0,32.0],[-96.999,32.001]]}}
+              ]
+            }
+        """.trimIndent()
+
+        val parsed = ZommaGeoJsonParser.parse(json)
+
+        assertTrue(parsed.any { it.featureType == "tee" })
+        assertTrue(parsed.any { it.featureType == "hole" && it.holeNumber == "5" })
+        assertTrue(parsed.any { it.featureType == "rough" })
+        assertTrue(parsed.any { it.featureType == "path" })
+    }
+
+    @Test
     fun mapsCanonicalOsmNaturalWaterWoodlandAndPathTags() {
         val json = """
             {
