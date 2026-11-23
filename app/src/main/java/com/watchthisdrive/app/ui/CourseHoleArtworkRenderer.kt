@@ -22,7 +22,7 @@ import kotlin.math.*
 
 /** Rich tee-bottom/green-top artwork, fitted to the complete reconstructed hole. */
 internal object CourseHoleArtworkRenderer {
-    private const val VERSION = 18
+    private const val VERSION = 19
     private const val WIDTH = 1200
     private const val HEIGHT = 1800
     private const val LEFT = 48.0
@@ -56,7 +56,10 @@ internal object CourseHoleArtworkRenderer {
             hole.water.forEach { append("|w:").append(it.id).append(it.points)
                 .append(':').append(it.source).append(':').append(it.confidence).append(':').append(it.isPredicted) }
             hole.mappedCenterline?.let { append("|c:").append(it.id).append(it.points) }
-            (hole.rough + hole.woodland + hole.paths + hole.trees).forEach { append("|s:").append(it.featureType).append(it.id).append(it.points) }
+            (hole.rough + hole.woodland + hole.paths + hole.trees).forEach {
+                append("|s:").append(it.featureType).append(it.id).append(it.points)
+                    .append(':').append(it.source).append(':').append(it.confidence).append(':').append(it.isPredicted)
+            }
         }
         val digest = MessageDigest.getInstance("SHA-256")
             .digest(signature.toByteArray()).take(12).joinToString("") { "%02x".format(it) }
