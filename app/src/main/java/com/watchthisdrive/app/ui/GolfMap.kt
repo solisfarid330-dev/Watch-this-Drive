@@ -290,7 +290,10 @@ internal fun loadCachedCourseGeometry(context: android.content.Context, course: 
                 name = item.optString("name").takeIf { it.isNotBlank() },
                 points = points,
                 par = item.optInt("par", Int.MIN_VALUE).takeIf { it != Int.MIN_VALUE },
-                handicap = item.optInt("handicap", Int.MIN_VALUE).takeIf { it != Int.MIN_VALUE }
+                handicap = item.optInt("handicap", Int.MIN_VALUE).takeIf { it != Int.MIN_VALUE },
+                source = item.optString("source").takeIf { it.isNotBlank() },
+                confidence = item.optString("confidence").takeIf { it.isNotBlank() },
+                isPredicted = item.optBoolean("isPredicted", false)
             ))
         }
         CourseGeometry(
@@ -318,7 +321,11 @@ private fun saveCachedGeometry(context: android.content.Context, geometry: Cours
                     .put("featureType", feature.featureType)
                     .put("holeNumber", feature.holeNumber ?: "")
                     .put("name", feature.name ?: "")
-                    .put("points", points).apply {
+                    .put("points", points)
+                    .put("source", feature.source ?: "")
+                    .put("confidence", feature.confidence ?: "")
+                    .put("isPredicted", feature.isPredicted)
+                    .apply {
                         feature.par?.let { put("par", it) }
                         feature.handicap?.let { put("handicap", it) }
                     })
