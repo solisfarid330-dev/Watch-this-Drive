@@ -84,8 +84,14 @@ fun CourseHoleArtworkPanel(
     var renderError by remember(course.elementType, course.id) { mutableStateOf<String?>(null) }
     // Reconstruction is pure but non-trivial; do it once per geometry snapshot,
     // not on every Compose recomposition (chip selection, loading, bitmap updates).
-    val reconstructedHoles = remember(geometry) {
-        geometry?.let { HoleReconstructor.reconstruct(it) }.orEmpty()
+    val reconstructedHoles = remember(geometry, course.scorecard) {
+        geometry?.let { HoleReconstructor.reconstruct(it) }.orEmpty().map { hole ->
+            val catalogHole = course.scorecard.firstOrNull { it.number == hole.number }
+            hole.copy(
+                par = hole.par ?: catalogHole?.par,
+                handicap = hole.handicap ?: catalogHole?.handicap
+            )
+        }
     }
 
     LaunchedEffect(course.elementType, course.id) {
