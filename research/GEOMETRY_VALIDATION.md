@@ -72,7 +72,7 @@ course with sparse OSM coverage.
 
 - The hole has an explicit OSM centerline and mapped nearby tee, rough, fairway,
   green, and bunker features. All nearby objects remain proximity candidates.
-- - The OSM centerline measures 395.3 yd versus the club's published Hole 2 yardage of 403 yd, a 1.91% difference (inside the 5% tolerance).
+- The OSM centerline measures 395.3 yd versus the club's published Hole 2 yardage of 403 yd, a 1.91% difference (inside the 5% tolerance).
 - The mapped fairway polygon covers 54.3% of the sampled centerline, close to Hole 1's 55.3%. This confirms incomplete OSM fairway coverage on both holes.
 - A classifier trained on Hole 1 fairway/rough labels recognized 59.5% of Hole 2
   fairway seed pixels and incorrectly marked 10.2% of its mapped rough seed
@@ -156,6 +156,49 @@ add stronger spatial continuity and shape constraints, then be evaluated
 against independently drawn reference boundaries—not merely the same OSM
 polygons used to select the clusters.
 
+
+
+## Superpixel fairway-candidate experiment
+
+The next experiment combines SLIC superpixels with weak OSM labels, a
+three-feature linear discriminant (NDVI, excess green, and local texture), a
+hole corridor, exclusion masks for mapped greens/tees/bunkers/water, and a
+connected-component filter that retains only candidate regions touching a
+mapped fairway seed. This is conventional image processing; no neural network
+or pretrained model is used.
+
+| Diagnostic | South Padre Hole 1 | South Padre Hole 2 |
+|---|---:|---:|
+| SLIC superpixels | 2,492 | 2,479 |
+| Spatial-block fairway true-positive rate | 96.3% | 86.7% |
+| Spatial-block rough false-positive rate | 28.9% | 15.6% |
+| Mapped fairway seed pixels retained | 83.7% | 87.4% |
+| Mapped rough seed pixels retained | 0.0% | 1.1% |
+| Candidate share of hole corridor | 23.7% | 23.1% |
+
+The connected-component filter removes disconnected fairway-like patches that
+do not touch the mapped fairway seed. In these two crops it sharply reduces
+candidate overlap with the mapped rough seed while retaining most mapped
+fairway seed pixels. The resulting candidate geometry is exported as GeoJSON,
+not just a preview image:
+
+- \`research/results/south-padre/aerial-validation/hole-1-superpixel-experiment/hole-1-fairway-candidate.geojson\`
+- \`research/results/south-padre/aerial-validation/hole-2-superpixel-experiment/hole-2-fairway-candidate.geojson\`
+
+The GeoJSON uses \`golf=fairway_candidate\` and
+\`status=unverified_candidate\`. Polygon rings are closed, correctly wound, and
+include inner rings where the mask contains exclusions. The Hole 1 result
+contains five polygon components; Hole 2 contains one. A 6,000-superpixel
+variant was also tested; it did not improve the spatial-block metrics and
+produced more fragmented components, so 2,400 remains the better research
+setting for these crops.
+
+**Important limitation:** these percentages measure agreement with OSM seed
+polygons, not true fairway accuracy. The component filter is explicitly
+anchored to mapped fairway geometry, so it cannot solve courses such as
+Cottonwood that have no mapped fairway seed. The outputs are promising
+candidate polygons, not accepted reconstruction geometry. Independent
+reference boundaries are still required before we can claim accuracy.
 
 ## What this proves
 
