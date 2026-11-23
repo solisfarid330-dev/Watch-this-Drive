@@ -11,9 +11,9 @@
     "local_RGB_texture_stddev_9x9"
   ],
   "linear_discriminant_weights": [
-    -1.375472593996591,
-    2.1283386223967913,
-    0.03352130087946097
+    -1.3754725939965935,
+    2.1283386223967935,
+    0.03352130087946228
   ],
   "standardization_mean": [
     0.15940164029598236,
@@ -25,9 +25,9 @@
     0.05462845787405968,
     0.013537443242967129
   ],
-  "bias": -0.07871281193244557,
+  "bias": -0.0787128119324456,
   "south_padre_spatial_block_holdout": {
-    "method": "spatial block holdout; 64x64 pixel blocks (~38m square at 0.6m GSD) assigned wholly to train or test",
+    "method": "spatial block holdout; 64x64 export-pixel blocks (~21m square at the 0.33m exported pixel spacing used for South Padre; source GSD is 0.6m) assigned wholly to train or test",
     "fairway_true_positive_rate": 0.8483,
     "rough_false_positive_rate": 0.3005,
     "fairway_holdout_pixels": 7526,
