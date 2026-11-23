@@ -272,6 +272,9 @@ internal fun loadCachedCourseGeometry(context: android.content.Context, course: 
             legacy
         }
         val root = JSONObject(raw)
+        // Schema v2 preserves source/confidence/predicted provenance. Ignore
+        // old caches that silently lost that distinction when they were saved.
+        if (root.optInt("schemaVersion", 0) != 2) return null
         val array = root.getJSONArray("features")
         val features = mutableListOf<CourseFeature>()
         for (i in 0 until array.length()) {
@@ -331,6 +334,7 @@ private fun saveCachedGeometry(context: android.content.Context, geometry: Cours
                     })
             }
             val root = JSONObject()
+                .put("schemaVersion", 2)
                 .put("courseId", geometry.courseId)
                 .put("courseName", geometry.courseName)
                 .put("courseElementType", geometry.courseElementType)
