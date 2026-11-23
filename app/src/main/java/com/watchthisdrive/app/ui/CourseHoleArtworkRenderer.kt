@@ -18,7 +18,7 @@ import kotlin.math.*
 
 /** Rich tee-bottom/green-top artwork, fitted to the complete reconstructed hole. */
 internal object CourseHoleArtworkRenderer {
-    private const val VERSION = 12
+    private const val VERSION = 13
     private const val WIDTH = 1200
     private const val HEIGHT = 1800
     private const val LEFT = 48.0
@@ -83,10 +83,10 @@ internal object CourseHoleArtworkRenderer {
         // rather than shrinking the playable hole to fit unrelated geometry.
         val longitudinalPadding = (length * 0.12).coerceIn(25.0, 55.0)
         val framing = projected.filter {
-            it.x in -85.0..85.0 && it.y in -longitudinalPadding..(length + longitudinalPadding)
+            it.x in -45.0..45.0 && it.y in -longitudinalPadding..(length + longitudinalPadding)
         }
-        val minX = min(-40.0, framing.minOfOrNull { it.x } ?: -40.0)
-        val maxX = max(40.0, framing.maxOfOrNull { it.x } ?: 40.0)
+        val minX = min(-32.0, framing.minOfOrNull { it.x } ?: -32.0)
+        val maxX = max(32.0, framing.maxOfOrNull { it.x } ?: 32.0)
         val minY = min(-longitudinalPadding, framing.minOfOrNull { it.y } ?: -longitudinalPadding)
         val maxY = max(length + longitudinalPadding, framing.maxOfOrNull { it.y } ?: (length + longitudinalPadding))
         val rangeX = (maxX - minX).coerceAtLeast(80.0)
@@ -99,8 +99,9 @@ internal object CourseHoleArtworkRenderer {
             return (ox + q.x * scale).toFloat() to (oy - q.y * scale).toFloat()
         }
 
-        val bitmap = Bitmap.createBitmap(WIDTH, HEIGHT, Bitmap.Config.ARGB_8888)
+        val bitmap = Bitmap.createBitmap(900, 1350, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
+        canvas.scale(0.75f, 0.75f)
         val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
         val full = RectF(0f, 0f, WIDTH.toFloat(), HEIGHT.toFloat())
 
