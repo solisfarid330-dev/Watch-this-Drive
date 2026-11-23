@@ -91,6 +91,26 @@ class HoleReconstructorTest {
     }
 
     @Test
+    fun greenPolygonUsesAreaCentroidInsteadOfBiasedClosedRingVertexAverage() {
+        val greenRing = listOf(
+            GeoPoint(0.0038, 0.0),
+            GeoPoint(0.0038, 0.0004),
+            GeoPoint(0.0042, 0.0004),
+            GeoPoint(0.0042, 0.0),
+            GeoPoint(0.0038, 0.0)
+        )
+        val geometry = CourseGeometry(99, "Green centroid fixture", listOf(
+            feature(1, "tee", 0.0, 0.0),
+            feature(2, "green", 0.0, 0.0, points = greenRing)
+        ))
+
+        val hole = HoleReconstructor.reconstruct(geometry).single()
+
+        assertEquals(0.004, hole.green.latitude, 0.0000001)
+        assertEquals(0.0002, hole.green.longitude, 0.0000001)
+    }
+
+    @Test
     fun explicitHoleNumbersPairTheCorrectTeeAndGreen() {
         val geometry = CourseGeometry(
             courseId = 99,
