@@ -30,6 +30,7 @@ import com.watchthisdrive.app.data.GeoPoint
 import com.watchthisdrive.app.data.NaipImageryRepository
 import com.watchthisdrive.app.data.NdviBoundaryAnalyzer
 import java.io.File
+import kotlin.math.roundToInt
 import org.json.JSONObject
 
 private data class HoleArtwork(val number: Int, val label: String, val assetPath: String)
