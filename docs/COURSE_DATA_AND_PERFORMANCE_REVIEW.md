@@ -149,3 +149,34 @@ Use stable provider IDs first. When IDs differ, match candidates with normalized
 - Never present inferred imagery candidates as surveyed course geometry.
 - Preserve source attribution and applicable dataset licenses.
 - A successful CI build is not proof that GPS, MapLibre rendering, or generated artwork works correctly on the user's phone.
+
+
+## Implementation progress (November 2026)
+
+The following items have now been implemented on `feature/course-hole-artwork-generation`:
+
+- A source-aware `GolfCourse` model now carries provider IDs, location metadata, hole count, par, scorecard holes, contact details, and source names.
+- Nearby course discovery combines OSM with OpenGolfAPI and TeeTime.AI catalog records. Provider calls run concurrently with OSM discovery.
+- Direct course-name search queries OpenGolfAPI and TeeTime.AI, while geocoded OSM/region search runs alongside it.
+- TeeTime.AI results are limited to active records; candidate records are not promoted into the playable course list.
+- Provider results are deduplicated by normalized name and proximity, and source names are retained when records are merged.
+- The verified OpenGolfAPI v2.1.0 US GeoJSON is downloaded during APK builds, checked by compressed and uncompressed SHA-256, and bundled as an app asset.
+- The bundled US catalog is imported on demand into an indexed SQLite database using a streaming JSON reader. Nearby US course searches can therefore work from the local catalog without a network request.
+- Available catalog par and handicap values are used as scorecard defaults when the user has not already saved a value.
+- Course geometry cache storage has moved from large SharedPreferences JSON strings to compressed, type-specific files under app storage. Legacy preference cache data remains readable for migration.
+- Concurrent geometry requests for the same provider element are deduplicated, and geometry downloads are bounded to two concurrent requests.
+- Catalog course points now resolve to OSM boundaries by preferring exact course-name matches and only using a close-distance fallback when names do not match.
+- A cached NAIP aerial-reference image can be fetched lazily for selected CONUS courses and displayed on Course Detail. It is clearly labeled as imagery, not surveyed golf geometry.
+- Attribution for OpenGolfAPI, TeeTime.AI, OSM and NAIP is surfaced in Settings.
+- Artwork asset loading and rendering paths now reset loading state on failure and preserve the fallback view.
+
+### Still outstanding
+
+- Verify the latest full build and add runtime/device validation for first-run SQLite import, nearby discovery, direct name search, compressed geometry cache migration, and NAIP image export.
+- The TeeTime.AI MCP name-search response parser is defensive but needs a live-device/API response test; the regional REST catalog remains the primary TeeTime path for nearby search.
+- NAIP currently provides an RGB aerial reference preview. It is not yet used for automatic semantic fairway/green/bunker extraction. The existing Python spectral candidate pipeline remains low-confidence and is not wired into Android.
+- Improve course-to-hole geometry association and fairway alignment using a broader test set; exact OSM coverage and data quality remain variable.
+- Profile renderer, geometry parsing and map layer updates on the user's Android device.
+- The app still measures distance to the mapped green center, not a live pin, unless a pin position is separately supplied.
+
+A passing CI build validates compilation and unit tests only. It does not validate network provider behavior, Android SQLite import timing, GPS accuracy, MapLibre lifecycle, or on-device artwork quality.
