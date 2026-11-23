@@ -19,7 +19,7 @@ import kotlin.math.cos
 internal object OfflineCourseCatalog {
     private const val DATABASE_VERSION = 1
     private const val DATABASE_NAME = "watch_this_drive_courses.db"
-    private const val ASSET_NAME = "opengolfapi-us.geojson.gz"
+    private const val ASSET_NAME = "opengolfapi-us.geojson"
     private const val DATASET_VERSION = "v2.1.0"
     private const val RADIUS_METERS = 15_000.0
 
@@ -76,8 +76,8 @@ internal object OfflineCourseCatalog {
         if (existing > 0L) return true
 
         return runCatching {
-            context.assets.open(ASSET_NAME).use { compressed ->
-                JsonReader(InputStreamReader(GZIPInputStream(compressed), Charsets.UTF_8)).use { reader ->
+            context.assets.open(ASSET_NAME).use { stream ->
+                JsonReader(InputStreamReader(stream, Charsets.UTF_8)).use { reader ->
                     db.beginTransaction()
                     try {
                         reader.beginObject()
