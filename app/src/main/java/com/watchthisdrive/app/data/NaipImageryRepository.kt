@@ -19,7 +19,7 @@ object NaipImageryRepository {
     private const val CACHE_MAX_AGE_MS = 30L * 24L * 60L * 60L * 1000L
     private const val MAX_IMAGE_BYTES = 12 * 1024 * 1024
 
-    private data class Bounds(
+    data class Bounds(
         val west: Double,
         val south: Double,
         val east: Double,
@@ -117,7 +117,7 @@ object NaipImageryRepository {
         }
     }
 
-    private fun boundsFor(course: GolfCourse, geometry: CourseGeometry?): Bounds? {
+    fun boundsFor(course: GolfCourse, geometry: CourseGeometry?): Bounds? {
         val boundaryPoints = geometry?.features
             ?.filter { it.featureType == "course_boundary" }
             ?.flatMap { it.points }
