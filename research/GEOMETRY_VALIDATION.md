@@ -93,6 +93,33 @@ course with sparse OSM coverage.
   reconstructed hole layout. This is an important sparse-data test: the
   pipeline must distinguish missing map data from absent real-world features.
 
+## Endpoint-based tee, green, and pin association audit
+
+A separate diagnostic now uses hole-line endpoints to propose tee/green/pin
+relationships. It first infers line orientation from the nearest tee plus green
+markers; where those are absent, it can use a pin near one endpoint. It does
+not force assignments, and all accepted results remain candidates pending
+visual or trusted-reference confirmation.
+
+| Course | Hole lines | Direction inferred | Holes with tee candidates | Holes with green candidates | Holes with pin candidates |
+|---|---:|---:|---:|---:|---:|
+| South Padre Island GC | 18 | 18/18 | 17/18 | 18/18 | 0/18 |
+| Westwood CC | 18 | 18/18 | 18/18 | 18/18 | 18/18 |
+| Cottonwood Creek CC | 9 | 9/9 | 0/9 | 0/9 | 9/9 |
+
+This is a useful improvement over assigning every nearby object to every hole.
+For example, South Padre Hole 1 yields one strong tee candidate at the start
+and one green candidate at the end; the other nearby tee polygons are not
+promoted merely because they fall within the broader 45 m display corridor.
+Cottonwood's sparse data yields one pin candidate at the inferred green end,
+while its other nearby pin is rejected by the endpoint rule.
+
+The audit still cannot prove membership: neighboring holes can have markers
+near an endpoint, line orientation can be ambiguous, and tee/green tags may be
+missing. Fairway, bunker, rough, cartpath and water objects remain corridor
+candidates only. The code and per-course JSON reports are in
+research/hole_feature_association.py and research/results/*/hole-association-audit.json.
+
 ## Corridor-width sensitivity
 
 Per-course clustering was rerun at 25 m and 35 m on either side of the Hole 1
