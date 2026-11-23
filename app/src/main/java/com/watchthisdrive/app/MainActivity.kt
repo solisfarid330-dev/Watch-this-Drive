@@ -703,6 +703,7 @@ private fun NearbyCoursesScreen(
     onBack: () -> Unit,
     onCourseSelected: (GolfCourse) -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     var courses by remember { mutableStateOf<List<GolfCourse>>(emptyList()) }
     var searchText by remember { mutableStateOf("") }
     var loading by remember { mutableStateOf(false) }
@@ -723,7 +724,7 @@ private fun NearbyCoursesScreen(
         searchDescription = "Searching within 15 km of your current GPS location."
 
         CourseDiscovery.searchNearby(
-            context = androidx.compose.ui.platform.LocalContext.current,
+            context = context,
             latitude = current.latitude,
             longitude = current.longitude
         ) { result ->
