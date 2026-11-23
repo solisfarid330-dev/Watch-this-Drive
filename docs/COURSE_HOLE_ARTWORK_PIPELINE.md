@@ -18,6 +18,19 @@ The same generated artwork package is consumed by **Illustrated Holes** and **Pl
 - The artwork viewport uses the full portrait image area in Illustrated Holes and Caddy. Surrounding landscape is clipped to the fitted hole bounds so large woodland polygons do not shrink the playable hole.
 - Python geometry/rendering scripts are prototypes/reference tools, not a production runtime dependency. The Android renderer is functional but still needs visual review across courses with sparse and dense OSM mapping, plus device-level performance and layout checks.
 
+## Evidence-fusion implementation notes
+
+The current Android implementation now follows a layered evidence strategy:
+
+1. **Course identity and scorecard:** OpenGolfAPI supplies course discovery metadata and per-hole scorecard facts where available. These records are not treated as hole geometry.
+2. **Mapped geometry:** OSM remains the direct mapped source. Zomma GeoJSON is queried as a supplemental source using state plus course/city slug candidates, and its returned geometry is rejected if its geographic footprint is implausibly far from the selected course.
+3. **Source priority:** Direct OSM features replace coincident Zomma features marked as model-predicted. Zomma-only features remain available. Zomma source/confidence/prediction fields are retained when present.
+4. **Imagery selection:** The USGS NAIP ImageServer is queried for intersecting four-band source rasters. The selection prefers the newest acquisition and finest available ground sampling distance within that vintage. Older intersecting rasters remain ordered behind the preferred rasters as a pixel-level coverage fallback.
+5. **Matched spectral evidence:** Natural-colour RGB and a scaled 8-bit NDVI product are exported from the same locked NAIP raster set and the same WGS84 hole bounds. The imagery export is capped at the service's 4,000-pixel dimension. The renderer downsamples imagery for memory safety and applies NDVI as a restrained vegetation tint over the aerial underlay.
+6. **Illustration honesty:** Mapped vectors remain the geometry source. Predicted geometry is rendered with lower-opacity fills and dashed outlines, and SatlasPretrain attribution is shown beside the illustration when predicted features are present. NDVI is explicitly a visual evidence layer, not a classifier or proof that a pixel is fairway, green, bunker, or water.
+
+This is an incremental evidence-fusion pipeline, not yet a fully automated image-segmentation system. The next accuracy work should measure imagery against known mapped features on a representative course set, then use those results to decide where conservative boundary refinement is justified. Do not silently promote spectral candidates to confirmed golf features.
+
 ## Runtime architecture to implement
 
 ### 1. Course identity and geometry acquisition
