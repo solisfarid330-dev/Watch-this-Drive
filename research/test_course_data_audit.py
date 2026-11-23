@@ -89,5 +89,19 @@ class CourseDataAuditTests(unittest.TestCase):
         self.assertEqual(result["features"][0]["geometry"]["type"], "LineString")
 
 
+    def test_direct_polygon_is_oriented_counterclockwise(self):
+        payload = {"elements": [{
+            "type": "way", "id": 88, "tags": {"golf": "green"},
+            "geometry": [
+                {"lat": 0, "lon": 0}, {"lat": 1, "lon": 0},
+                {"lat": 1, "lon": 1}, {"lat": 0, "lon": 1},
+                {"lat": 0, "lon": 0},
+            ],
+        }]}
+        result = audit.to_geojson(payload)
+        ring = result["features"][0]["geometry"]["coordinates"][0]
+        self.assertGreater(audit._ring_area(ring), 0)
+
+
 if __name__ == "__main__":
     unittest.main()
