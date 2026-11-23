@@ -1,5 +1,5 @@
 name: Course data integration experiment
-# Runs a live, read-only OSM extraction on two unrelated courses.
+# Read-only source extraction; generated research snapshots are committed to this isolated branch.
 
 on:
   push:
@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   retrieve-course-data:
@@ -38,22 +38,41 @@ jobs:
             --course "Cottonwood Creek Country Club" \
             --location "Harlingen, Texas, USA" \
             --out output/cottonwood-creek
-      - name: Upload raw source snapshots and reports
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: generic-course-data-experiment
-          path: output/
-          if-no-files-found: warn
-          retention-days: 14
-      - name: Summarize integration outcomes
+      - name: Preserve source snapshots in research branch
+        if: steps.south-padre.outcome == 'success' && steps.second-course.outcome == 'success'
+        run: |
+          mkdir -p research/results/south-padre research/results/cottonwood-creek
+          cp output/south-padre/source-response.json research/results/south-padre/
+          cp output/south-padre/inventory-report.json research/results/south-padre/
+          cp output/south-padre/features.geojson research/results/south-padre/
+          cp output/cottonwood-creek/source-response.json research/results/cottonwood-creek/
+          cp output/cottonwood-creek/inventory-report.json research/results/cottonwood-creek/
+          cp output/cottonwood-creek/features.geojson research/results/cottonwood-creek/
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add research/results/
+          if git diff --cached --quiet; then
+            echo "No changes to research snapshots."
+          else
+            git commit -m "Store two-course OSM extraction snapshots"
+            git push
+          fi
+      - name: Summarize extraction outcomes
         if: always()
         run: |
-          echo "South Padre extraction outcome: ${{ steps.south-padre.outcome }}" >> "$GITHUB_STEP_SUMMARY"
-          echo "Cottonwood Creek extraction outcome: ${{ steps.second-course.outcome }}" >> "$GITHUB_STEP_SUMMARY"
-          echo "A successful run means data retrieval completed, not that course geometry is validated." >> "$GITHUB_STEP_SUMMARY"
-      - name: Fail if either extraction failed
+          echo "South Padre extraction outcome: \${{ steps.south-padre.outcome }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Cottonwood Creek extraction outcome: \${{ steps.second-course.outcome }}" >> "$GITHUB_STEP_SUMMARY"
+          if [ -f output/south-padre/inventory-report.json ]; then
+            echo "## South Padre Island Golf Club" >> "$GITHUB_STEP_SUMMARY"
+            jq -r '.inventory.counts_by_golf_tag | to_entries[] | "- \(.key): \(.value)"' output/south-padre/inventory-report.json >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [ -f output/cottonwood-creek/inventory-report.json ]; then
+            echo "## Cottonwood Creek Country Club" >> "$GITHUB_STEP_SUMMARY"
+            jq -r '.inventory.counts_by_golf_tag | to_entries[] | "- \(.key): \(.value)"' output/cottonwood-creek/inventory-report.json >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo "Successful extraction confirms data retrieval, not geometric accuracy." >> "$GITHUB_STEP_SUMMARY"
+      - name: Check both course extractions
         if: always()
         run: |
-          test "${{ steps.south-padre.outcome }}" = "success"
-          test "${{ steps.second-course.outcome }}" = "success"
+          test "\${{ steps.south-padre.outcome }}" = "success"
+          test "\${{ steps.second-course.outcome }}" = "success"
