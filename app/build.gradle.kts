@@ -13,7 +13,8 @@ android {
         minSdk = 26
         targetSdk = 35
         versionCode = 1
-        versionName = "0.1.0"
+        versionName = "0.2.0"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "MAPTILER_API_KEY", "\"${providers.gradleProperty("MAPTILER_API_KEY").orElse(providers.environmentVariable("MAPTILER_API_KEY")).getOrElse("")}\"")
     }
 
@@ -41,4 +42,6 @@ dependencies {
     implementation("com.google.android.gms:play-services-location:21.3.0")
     implementation("org.maplibre.gl:android-sdk:11.8.0")
     debugImplementation("androidx.compose.ui:ui-tooling")
+    androidTestImplementation("androidx.test.ext:junit:1.2.1")
+    androidTestImplementation("androidx.test:runner:1.6.2")
 }
