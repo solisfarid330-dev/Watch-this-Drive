@@ -345,10 +345,12 @@ def to_geojson(payload: dict) -> dict:
             ]
             if len(coords) >= 2:
                 closed = len(coords) >= 4 and coords[0] == coords[-1]
-                geometry = (
-                    {"type": "Polygon", "coordinates": [coords]}
-                    if closed else {"type": "LineString", "coordinates": coords}
-                )
+                if closed:
+                    if _ring_area(coords) < 0:
+                        coords.reverse()
+                    geometry = {"type": "Polygon", "coordinates": [coords]}
+                else:
+                    geometry = {"type": "LineString", "coordinates": coords}
         elif element.get("type") == "relation":
             relation_count += 1
             if tags.get("type") == "multipolygon":
