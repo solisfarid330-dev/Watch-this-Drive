@@ -210,6 +210,22 @@ jobs:
             --tiff research/results/south-padre/aerial-validation/hole-2-naip-2022-rgbir.tif \
             --hole-ref 2 \
             --out research/results/south-padre/aerial-validation/hole-2-superpixel-experiment
+      - name: Compare higher-resolution SLIC superpixels on South Padre Hole 1
+        run: |
+          python research/naip_superpixel_fairway.py \
+            --geojson research/results/south-padre/features.geojson \
+            --metadata research/results/south-padre/aerial-validation/hole-1-validation.json \
+            --tiff research/results/south-padre/aerial-validation/hole-1-naip-2022-rgbir.tif \
+            --hole-ref 1 --segments 6000 \
+            --out research/results/south-padre/aerial-validation/hole-1-superpixel-6000
+      - name: Compare higher-resolution SLIC superpixels on South Padre Hole 2
+        run: |
+          python research/naip_superpixel_fairway.py \
+            --geojson research/results/south-padre/features.geojson \
+            --metadata research/results/south-padre/aerial-validation/hole-2-validation.json \
+            --tiff research/results/south-padre/aerial-validation/hole-2-naip-2022-rgbir.tif \
+            --hole-ref 2 --segments 6000 \
+            --out research/results/south-padre/aerial-validation/hole-2-superpixel-6000
       - name: Commit imagery and overlays
         run: |
           git config user.name "github-actions[bot]"
