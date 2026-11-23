@@ -197,7 +197,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add research/results/south-padre/aerial-validation research/results/westwood/aerial-validation research/results/cottonwood-creek/aerial-validation
+          git add research/results/south-padre/aerial-validation research/results/westwood/aerial-validation research/results/cottonwood-creek/aerial-validation research/results/south-padre/hole-association-audit.json research/results/westwood/hole-association-audit.json research/results/cottonwood-creek/hole-association-audit.json
           git commit -m "Add NAIP aerial overlays for multi-course hole validation" || echo "No new imagery outputs"
           git fetch origin research/generic-course-pipeline
           git rebase origin/research/generic-course-pipeline
