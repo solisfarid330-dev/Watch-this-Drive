@@ -121,5 +121,12 @@ class CourseDataAuditTests(unittest.TestCase):
         self.assertEqual(errors, [])
 
 
+    def test_geojson_includes_osm_attribution_and_license(self):
+        result = audit.to_geojson({"elements": []})
+        self.assertEqual(result["metadata"]["attribution"],
+                         "© OpenStreetMap contributors")
+        self.assertEqual(result["metadata"]["license"], "ODbL-1.0")
+
+
 if __name__ == "__main__":
     unittest.main()
