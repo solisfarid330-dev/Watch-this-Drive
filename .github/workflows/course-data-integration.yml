@@ -35,9 +35,9 @@ jobs:
         continue-on-error: true
         run: |
           python research/course_data_audit.py \
-            --course "Rancho Viejo Resort and Country Club" \
-            --location "Rancho Viejo, Texas, USA" \
-            --out output/rancho-viejo
+            --course "Cottonwood Creek Country Club" \
+            --location "Harlingen, Texas, USA" \
+            --out output/cottonwood-creek
       - name: Upload raw source snapshots and reports
         if: always()
         uses: actions/upload-artifact@v4
@@ -50,7 +50,7 @@ jobs:
         if: always()
         run: |
           echo "South Padre extraction outcome: ${{ steps.south-padre.outcome }}" >> "$GITHUB_STEP_SUMMARY"
-          echo "Rancho Viejo extraction outcome: ${{ steps.second-course.outcome }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Cottonwood Creek extraction outcome: ${{ steps.second-course.outcome }}" >> "$GITHUB_STEP_SUMMARY"
           echo "A successful run means data retrieval completed, not that course geometry is validated." >> "$GITHUB_STEP_SUMMARY"
       - name: Fail if either extraction failed
         if: always()
