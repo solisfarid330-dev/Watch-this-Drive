@@ -24,12 +24,12 @@ from pathlib import Path
 USER_AGENT = "WatchThisDrive-Research/0.1 (generic golf-course data audit)"
 NOMINATIM = "https://nominatim.openstreetmap.org"
 OVERPASS = (
-    "https://ovp.dresel.systems/api-na/interpreter",
     "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
+    "https://ovp.dresel.systems/api-na/interpreter",
     "https://overpass-api.de/api/interpreter",
     "https://overpass.private.coffee/api/interpreter",
 )
-TIMEOUT = 90
+TIMEOUT = 35
 
 
 class PipelineError(RuntimeError):
