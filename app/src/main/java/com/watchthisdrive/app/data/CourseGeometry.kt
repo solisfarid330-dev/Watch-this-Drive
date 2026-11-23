@@ -115,37 +115,132 @@ object CourseGeometryLoader {
             "The selected course coordinates are outside the valid range."
         }
 
+        // Zomma publishes downloadable GeoJSON for courses it has processed.
+        // Treat it as an additional geometry provider: never make it a hard
+        // dependency, and retain OSM as the broad-coverage fallback.
+        val zomma = runCatching { fetchZommaGeometry(course) }
+            .onFailure { android.util.Log.d("CourseGeometry", "Zomma unavailable for ${course.name}: ${it.message}") }
+            .getOrDefault(emptyList())
+        val osmResult = runCatching { loadOsmGeometry(course) }
+        val osm = osmResult.getOrNull()
+
+        if (zomma.isEmpty() && osm == null) {
+            throw osmResult.exceptionOrNull()
+                ?: IllegalStateException("No course geometry was available from Zomma or OpenStreetMap.")
+        }
+
+        val features = mergeProviderFeatures(zomma, osm?.features.orEmpty())
+        if (features.none { it.featureType != "course_boundary" }) {
+            throw IllegalStateException(
+                "The selected course was found, but neither Zomma nor OpenStreetMap returned usable golf features."
+            )
+        }
+        return CourseGeometry(
+            courseId = course.id,
+            courseName = course.name,
+            features = features,
+            courseElementType = course.elementType
+        )
+    }
+
+    private fun loadOsmGeometry(course: GolfCourse): CourseGeometry {
         val boundary = fetchBoundary(course)
         val bounds = boundary.second ?: fallbackBounds(course)
         val featureElements = fetchFeatures(bounds.expanded())
         val parsed = parseFeatures(featureElements)
         val boundaryRings = stitchBoundaryRings(boundary.first)
-        // The expanded rectangle is only a retrieval envelope. Use the actual
-        // selected course outline to reject neighboring-course features.
         val scoped = if (boundaryRings.isNotEmpty()) {
             parsed.filter { belongsToCourse(it, boundaryRings) }
         } else {
             parsed
         }
-
-        // Keep the selected boundary in the result so downstream reconstruction
-        // can distinguish the course footprint from nearby golf features.
         val combined = (boundary.first + scoped)
             .distinctBy { Triple(it.elementType, it.id, it.featureType) }
-
         if (combined.none { it.featureType != "course_boundary" }) {
             throw IllegalStateException(
                 "The selected course was found, but no mapped golf features were returned. " +
                     "This course may have sparse OpenStreetMap coverage."
             )
         }
+        return CourseGeometry(course.id, course.name, combined, course.elementType)
+    }
 
-        return CourseGeometry(
-            courseId = course.id,
-            courseName = course.name,
-            features = combined,
-            courseElementType = course.elementType
+    private fun fetchZommaGeometry(course: GolfCourse): List<CourseFeature> {
+        val state = stateCode(course.region) ?: return emptyList()
+        val slug = course.name.lowercase(java.util.Locale.US)
+            .replace(Regex("[^a-z0-9]+"), "-").trim('-')
+        if (slug.isBlank()) return emptyList()
+        val url = URL("https://zommagolf.com/courses/$state/$slug/geo.json")
+        val connection = url.openConnection() as HttpURLConnection
+        try {
+            connection.requestMethod = "GET"
+            connection.connectTimeout = 4_000
+            connection.readTimeout = 8_000
+            connection.instanceFollowRedirects = true
+            connection.setRequestProperty("Accept", "application/geo+json, application/json")
+            connection.setRequestProperty("User-Agent", "WatchThisDrive/0.3 (Android golf course mapping)")
+            val status = connection.responseCode
+            if (status == HttpURLConnection.HTTP_NOT_FOUND || status == HttpURLConnection.HTTP_GONE) {
+                return emptyList()
+            }
+            if (status !in 200..299) throw IllegalStateException("Zomma returned HTTP $status")
+            val text = connection.inputStream.bufferedReader().use { it.readText() }
+            if (text.length > MAX_RESPONSE_CHARS) {
+                throw IllegalStateException("Zomma GeoJSON exceeded the safe response-size limit.")
+            }
+            return ZommaGeoJsonParser.parse(text)
+        } finally {
+            connection.disconnect()
+        }
+    }
+
+    private fun stateCode(region: String?): String? {
+        val value = region?.trim()?.lowercase(java.util.Locale.US) ?: return null
+        if (value.matches(Regex("[a-z]{2}"))) return value
+        val states = mapOf(
+            "alabama" to "al", "alaska" to "ak", "arizona" to "az", "arkansas" to "ar",
+            "california" to "ca", "colorado" to "co", "connecticut" to "ct", "delaware" to "de",
+            "florida" to "fl", "georgia" to "ga", "hawaii" to "hi", "idaho" to "id",
+            "illinois" to "il", "indiana" to "in", "iowa" to "ia", "kansas" to "ks",
+            "kentucky" to "ky", "louisiana" to "la", "maine" to "me", "maryland" to "md",
+            "massachusetts" to "ma", "michigan" to "mi", "minnesota" to "mn",
+            "mississippi" to "ms", "missouri" to "mo", "montana" to "mt", "nebraska" to "ne",
+            "nevada" to "nv", "new hampshire" to "nh", "new jersey" to "nj",
+            "new mexico" to "nm", "new york" to "ny", "north carolina" to "nc",
+            "north dakota" to "nd", "ohio" to "oh", "oklahoma" to "ok", "oregon" to "or",
+            "pennsylvania" to "pa", "rhode island" to "ri", "south carolina" to "sc",
+            "south dakota" to "sd", "tennessee" to "tn", "texas" to "tx", "utah" to "ut",
+            "vermont" to "vt", "virginia" to "va", "washington" to "wa",
+            "west virginia" to "wv", "wisconsin" to "wi", "wyoming" to "wy",
+            "district of columbia" to "dc"
         )
+        return states[value]
+    }
+
+    private fun mergeProviderFeatures(
+        preferred: List<CourseFeature>,
+        fallback: List<CourseFeature>
+    ): List<CourseFeature> {
+        val result = preferred.toMutableList()
+        fallback.forEach { candidate ->
+            val duplicate = result.any { existing ->
+                existing.featureType == candidate.featureType &&
+                    (existing.holeNumber == null || candidate.holeNumber == null ||
+                        existing.holeNumber == candidate.holeNumber) &&
+                    featureCentersWithin(existing, candidate, 14.0)
+            }
+            if (!duplicate) result += candidate
+        }
+        return result.distinctBy { Triple(it.elementType, it.id, it.featureType) }
+    }
+
+    private fun featureCentersWithin(first: CourseFeature, second: CourseFeature, meters: Double): Boolean {
+        if (first.points.isEmpty() || second.points.isEmpty()) return false
+        val aLat = first.points.map { it.latitude }.average()
+        val aLon = first.points.map { it.longitude }.average()
+        val bLat = second.points.map { it.latitude }.average()
+        val bLon = second.points.map { it.longitude }.average()
+        return haversineMeters(aLat, aLon, bLat, bLon) <= meters
     }
 
     /**
@@ -702,5 +797,138 @@ object CourseGeometryLoader {
             kotlin.math.cos(Math.toRadians(lat1)) * kotlin.math.cos(Math.toRadians(lat2)) *
             kotlin.math.sin(dLon / 2) * kotlin.math.sin(dLon / 2)
         return 2 * radius * kotlin.math.asin(kotlin.math.sqrt(a.coerceIn(0.0, 1.0)))
+    }
+}
+
+
+/**
+ * Defensive GeoJSON reader for Zomma's public course export. Geometry remains
+ * ordinary WGS84 data; unknown feature properties are ignored rather than
+ * guessed into golf features.
+ */
+internal object ZommaGeoJsonParser {
+    fun parse(json: String): List<CourseFeature> {
+        val root = JSONObject(json)
+        val features = root.optJSONArray("features") ?: JSONArray()
+        val result = mutableListOf<CourseFeature>()
+        for (index in 0 until features.length()) {
+            val feature = features.optJSONObject(index) ?: continue
+            val properties = feature.optJSONObject("properties") ?: JSONObject()
+            val tags = properties.optJSONObject("tags") ?: properties
+            val kind = firstValue(tags, "golf", "feature_type", "featureType", "kind", "class", "type")
+                ?.lowercase()?.replace('-', '_') ?: continue
+            val featureType = normalizeType(kind) ?: continue
+            val geometry = feature.optJSONObject("geometry") ?: continue
+            val points = readCoordinates(geometry) ?: continue
+            if (points.isEmpty()) continue
+            val hole = firstValue(tags, "hole_number", "holeNumber", "hole", "golf:hole", "ref")
+            val par = firstValue(tags, "par")?.toIntOrNull()?.takeIf { it in 3..6 }
+            val handicap = firstValue(tags, "handicap", "stroke_index")?.toIntOrNull()?.takeIf { it in 1..36 }
+            val rawId = feature.opt("id")?.toString()
+                ?: firstValue(properties, "id", "osm_id")
+                ?: "zomma-$index-$featureType"
+            val id = stableId(rawId, index, featureType)
+            result += CourseFeature(
+                id = id,
+                elementType = "zomma",
+                featureType = featureType,
+                holeNumber = hole,
+                name = firstValue(tags, "name", "label"),
+                points = points,
+                par = par,
+                handicap = handicap
+            )
+        }
+        return result.distinctBy { Triple(it.elementType, it.id, it.featureType) }
+    }
+
+    private fun firstValue(json: JSONObject, vararg keys: String): String? =
+        keys.firstNotNullOfOrNull { key ->
+            val value = json.opt(key) ?: return@firstNotNullOfOrNull null
+            if (value == JSONObject.NULL) return@firstNotNullOfOrNull null
+            when (value) {
+                is String -> value.takeIf { it.isNotBlank() && it != "null" }
+                is Number -> value.toString()
+                else -> null
+            }
+        }
+
+    private fun normalizeType(value: String): String? = when (value) {
+        "tee", "tee_box", "teeing_ground", "start" -> "tee"
+        "green", "putting_green" -> "green"
+        "fairway", "fair_way" -> "fairway"
+        "hole", "hole_line", "hole_centerline", "centerline", "playing_line", "route" -> "hole"
+        "bunker", "sand", "sand_trap" -> "bunker"
+        "water", "water_hazard", "pond", "lake" -> "water"
+        "rough", "semi_rough" -> "rough"
+        "wood", "woodland", "forest", "trees" -> "woodland"
+        "tree" -> "tree"
+        "path", "cart_path", "cartpath" -> "path"
+        "course_boundary", "boundary", "outline", "golf_course" -> "course_boundary"
+        else -> null
+    }
+
+    private fun readCoordinates(geometry: JSONObject): List<GeoPoint>? {
+        val type = geometry.optString("type")
+        val coordinates = geometry.optJSONArray("coordinates") ?: return null
+        val rawPoints = mutableListOf<GeoPoint>()
+        fun collect(value: Any?) {
+            when (value) {
+                is JSONArray -> {
+                    if (value.length() >= 2 && value.opt(0) is Number && value.opt(1) is Number) {
+                        val lon = value.optDouble(0, Double.NaN)
+                        val lat = value.optDouble(1, Double.NaN)
+                        if (lat.isFinite() && lon.isFinite() && lat in -90.0..90.0 && lon in -180.0..180.0) {
+                            rawPoints += GeoPoint(lat, lon)
+                        }
+                    } else {
+                        for (i in 0 until value.length()) collect(value.opt(i))
+                    }
+                }
+            }
+        }
+        when (type) {
+            "Point", "MultiPoint", "LineString", "MultiLineString", "Polygon", "MultiPolygon",
+            "GeometryCollection" -> collect(coordinates)
+            else -> return null
+        }
+        if (type == "Polygon" || type == "MultiPolygon") {
+            // GeoJSON polygons begin with the exterior ring. Keep the largest
+            // ring when a multi-polygon is represented as a single feature.
+            val rings = when (type) {
+                "Polygon" -> (0 until coordinates.length()).mapNotNull { ring ->
+                    coordinateRing(coordinates.optJSONArray(ring))
+                }
+                else -> (0 until coordinates.length()).flatMap { polygonIndex ->
+                    val polygon = coordinates.optJSONArray(polygonIndex) ?: return@flatMap emptyList()
+                    (0 until polygon.length()).mapNotNull { ring -> coordinateRing(polygon.optJSONArray(ring)) }
+                }
+            }
+            return rings.maxByOrNull { it.size }?.takeIf { it.isNotEmpty() }
+        }
+        return rawPoints
+    }
+
+    private fun coordinateRing(array: JSONArray?): List<GeoPoint>? {
+        array ?: return null
+        val points = mutableListOf<GeoPoint>()
+        for (i in 0 until array.length()) {
+            val pair = array.optJSONArray(i) ?: continue
+            if (pair.length() < 2) continue
+            val lon = pair.optDouble(0, Double.NaN)
+            val lat = pair.optDouble(1, Double.NaN)
+            if (lat.isFinite() && lon.isFinite() && lat in -90.0..90.0 && lon in -180.0..180.0) {
+                points += GeoPoint(lat, lon)
+            }
+        }
+        return points.takeIf { it.isNotEmpty() }
+    }
+
+    private fun stableId(value: String, index: Int, kind: String): Long {
+        val bytes = java.security.MessageDigest.getInstance("SHA-256")
+            .digest("$value:$index:$kind".toByteArray(Charsets.UTF_8))
+        var result = 0L
+        for (i in 0 until 8) result = (result shl 8) or (bytes[i].toLong() and 0xffL)
+        return -((result and Long.MAX_VALUE).coerceAtLeast(1L))
     }
 }
