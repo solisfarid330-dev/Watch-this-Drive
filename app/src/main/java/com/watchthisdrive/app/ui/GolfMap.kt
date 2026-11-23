@@ -128,18 +128,26 @@ fun GolfMap(
         }
     }
 
-    LaunchedEffect(location, cameraTarget, mapReady) {
-        if (mapReady) {
-            val focus = cameraTarget ?: location
-            if (focus != null) {
-                mapView.getMapAsync { map ->
-                    map.animateCamera(
-                        org.maplibre.android.camera.CameraUpdateFactory.newLatLngZoom(
-                            LatLng(focus.latitude, focus.longitude), 16.0
-                        )
+    // Camera movement is driven only by an explicit locate/course target.
+    // Following every GPS sample made MapLibre animate repeatedly and caused
+    // the whole Play screen to feel sluggish while walking.
+    LaunchedEffect(cameraTarget, mapReady) {
+        if (mapReady && cameraTarget != null) {
+            mapView.getMapAsync { map ->
+                map.animateCamera(
+                    org.maplibre.android.camera.CameraUpdateFactory.newLatLngZoom(
+                        LatLng(cameraTarget.latitude, cameraTarget.longitude), 16.0
                     )
-                    location?.let { player -> map.style?.let { renderPlayerLocation(it, player) } }
-                }
+                )
+            }
+        }
+    }
+
+    // Update the player marker independently without moving the camera.
+    LaunchedEffect(location, mapReady) {
+        if (mapReady && location != null) {
+            mapView.getMapAsync { map ->
+                map.style?.let { renderPlayerLocation(it, location) }
             }
         }
     }
