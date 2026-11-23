@@ -137,6 +137,27 @@ class ZommaGeoJsonParserTest {
                   "geometry": {"type": "Polygon", "coordinates": [[
                     [-97.0,32.0],[-96.999,32.0],[-96.999,32.001],[-97.0,32.0]
                   ]]}
+                },
+                {
+                  "type": "Feature", "id": "grass",
+                  "properties": {"tags": {"landuse": "grass"}},
+                  "geometry": {"type": "Polygon", "coordinates": [[
+                    [-97.0,32.0],[-96.999,32.0],[-96.999,32.001],[-97.0,32.0]
+                  ]]}
+                },
+                {
+                  "type": "Feature", "id": "scrub",
+                  "properties": {"tags": {"natural": "scrub"}},
+                  "geometry": {"type": "Polygon", "coordinates": [[
+                    [-97.0,32.0],[-96.999,32.0],[-96.999,32.001],[-97.0,32.0]
+                  ]]}
+                },
+                {
+                  "type": "Feature", "id": "track",
+                  "properties": {"tags": {"highway": "track"}},
+                  "geometry": {"type": "LineString", "coordinates": [
+                    [-97.0,32.0],[-96.999,32.001]
+                  ]}
                 }
               ]
             }
@@ -148,6 +169,9 @@ class ZommaGeoJsonParserTest {
         assertTrue(parsed.any { it.featureType == "path" })
         assertTrue(parsed.any { it.featureType == "water" && it.holeNumber == null })
         assertTrue(parsed.any { it.featureType == "course_boundary" })
+        assertTrue(parsed.any { it.featureType == "rough" })
+        assertTrue(parsed.any { it.featureType == "woodland" && it.id < 0 })
+        assertTrue(parsed.any { it.featureType == "path" && it.id < 0 })
     }
 
     @Test
