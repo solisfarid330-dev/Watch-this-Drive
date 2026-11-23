@@ -48,15 +48,18 @@ private suspend fun loadAerialReference(
     course: GolfCourse,
     hole: ReconstructedHole
 ): AerialReference? = withContext(Dispatchers.IO) {
-    runCatching {
-        val file = NaipImageryRepository.loadOrFetchForHole(context, course, hole)
-            ?: return@runCatching null
-        val bounds = NaipImageryRepository.boundsForHole(hole) ?: return@runCatching null
+    try {
+        val file = NaipImageryRepository.loadOrFetchForHole(context, course, hole) ?: return@withContext null
+        val bounds = NaipImageryRepository.boundsForHole(hole) ?: return@withContext null
         val rgbOptions = BitmapFactory.Options().apply { inSampleSize = 2 }
-        val bitmap = BitmapFactory.decodeFile(file.absolutePath, rgbOptions) ?: return@runCatching null
+        val bitmap = BitmapFactory.decodeFile(file.absolutePath, rgbOptions) ?: return@withContext null
         val token = file.name + ":" + file.lastModified() + ":" + file.length()
         AerialReference(bitmap, null, bounds, token)
-    }.getOrNull()
+    } catch (cancelled: CancellationException) {
+        throw cancelled
+    } catch (_: Exception) {
+        null
+    }
 }
 
 /** NDVI is optional evidence: fetch it after the RGB illustration can already render. */
@@ -65,14 +68,18 @@ private suspend fun loadNdviReference(
     course: GolfCourse,
     hole: ReconstructedHole
 ): NdviReference? = withContext(Dispatchers.IO) {
-    runCatching {
+    try {
         val file = NaipImageryRepository.loadOrFetchNdviForHole(context, course, hole)
-            ?: return@runCatching null
+            ?: return@withContext null
         val bitmap = BitmapFactory.decodeFile(
             file.absolutePath, BitmapFactory.Options().apply { inSampleSize = 4 }
-        ) ?: return@runCatching null
+        ) ?: return@withContext null
         NdviReference(bitmap, "|ndvi:" + file.lastModified() + ":" + file.length())
-    }.getOrNull()
+    } catch (cancelled: CancellationException) {
+        throw cancelled
+    } catch (_: Exception) {
+        null
+    }
 }
 
 /** Generic asset contract: course_holes/<OSM-type>-<OSM-id>/manifest.json plus its PNGs. */
@@ -126,6 +133,7 @@ fun CourseHoleArtworkPanel(
     var generating by remember(course.elementType, course.id) { mutableStateOf(false) }
     var renderError by remember(course.elementType, course.id) { mutableStateOf<String?>(null) }
     var aerialReference by remember(course.elementType, course.id) { mutableStateOf<AerialReference?>(null) }
+    var aerialLoading by remember(course.elementType, course.id) { mutableStateOf(false) }
 
     // Hole reconstruction can be CPU-heavy on large OSM courses. Keep it
     // off the main thread and share the result with the panel's render effect.
@@ -134,8 +142,11 @@ fun CourseHoleArtworkPanel(
     }
     LaunchedEffect(course.elementType, course.id, geometry, selected, reconstructedHoles) {
         val hole = reconstructedHoles.firstOrNull { it.number == selected }
+        aerialReference = null
+        aerialLoading = hole != null
         val baseReference = if (hole != null) loadAerialReference(context, course, hole) else null
         aerialReference = baseReference
+        aerialLoading = false
         if (baseReference != null && hole != null) {
             val ndvi = loadNdviReference(context, course, hole)
             if (ndvi != null && aerialReference?.cacheToken == baseReference.cacheToken) {
@@ -189,10 +200,10 @@ fun CourseHoleArtworkPanel(
     // Render only the hole the golfer is viewing. Rendering an entire course at
     // panel-open time caused a long burst of CPU and bitmap allocation on phones.
     // The renderer's disk cache keeps revisited holes inexpensive.
-    LaunchedEffect(course.elementType, course.id, geometry, selected, reconstructedHoles, aerialReference) {
+    LaunchedEffect(course.elementType, course.id, geometry, selected, reconstructedHoles, aerialReference, aerialLoading) {
         val hole = reconstructedHoles.firstOrNull { it.number == selected }
         val imageryToken = aerialReference?.cacheToken.orEmpty()
-        if (hole != null && renderedTokens[hole.number] != imageryToken) {
+        if (hole != null && !aerialLoading && renderedTokens[hole.number] != imageryToken)
             generating = true
             try {
                 val rendered = withContext(Dispatchers.Default) {
