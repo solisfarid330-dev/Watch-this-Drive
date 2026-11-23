@@ -127,10 +127,23 @@ object CourseDiscovery {
                 }
                 return@thread
             }
-            val directFuture = sourceExecutor.submit<List<GolfCourse>> {
+            // A typed course query should not trigger geocoding and a broad
+            // nearby Overpass search when the course catalogs already know it.
+            // The catalog providers run concurrently and have a bounded budget.
+            val direct = runCatching {
                 CourseCatalogSources.searchByText(context.applicationContext, searchText)
             }
-            val locationFuture = sourceExecutor.submit<List<GolfCourse>> {
+            if (direct.isSuccess && direct.getOrDefault(emptyList()).isNotEmpty()) {
+                Handler(Looper.getMainLooper()).post {
+                    onResult(Result.success(direct.getOrDefault(emptyList())))
+                }
+                return@thread
+            }
+
+            // Only pay for geocoding and spatial discovery when direct name
+            // search has no match. This avoids the old serial wait for both
+            // direct and location searches on every typed query.
+            val nearby = runCatching {
                 val point = geocode(searchText)
                 val osm = runCatching { searchAtCoordinates(point.latitude, point.longitude) }
                 val catalogs = runCatching {
@@ -143,15 +156,11 @@ object CourseDiscovery {
                 }
                 mergeCourseSources(osm.getOrDefault(emptyList()), catalogs.getOrDefault(emptyList()))
             }
-            val direct = runCatching { directFuture.get(30, TimeUnit.SECONDS) }
-            val nearby = runCatching { locationFuture.get(65, TimeUnit.SECONDS) }
             val result = when {
-                direct.isSuccess || nearby.isSuccess -> Result.success(
-                    mergeCourseSources(
-                        nearby.getOrDefault(emptyList()),
-                        direct.getOrDefault(emptyList())
-                    )
+                nearby.isSuccess -> Result.success(
+                    mergeCourseSources(nearby.getOrDefault(emptyList()), direct.getOrDefault(emptyList()))
                 )
+                direct.isSuccess -> Result.success(direct.getOrDefault(emptyList()))
                 else -> Result.failure(
                     Exception("Course search services are unavailable. Try a course name with its city or state.")
                 )
