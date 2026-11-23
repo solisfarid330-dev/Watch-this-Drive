@@ -1,0 +1,16 @@
+{
+  "source_geojson": "research/results/south-padre/aerial-validation/hole-2-superpixel-experiment/hole-2-fairway-candidate.geojson",
+  "feature_count": 1,
+  "features": [
+    {
+      "geometry_type": "Polygon",
+      "valid": true,
+      "validity_reason": "Valid Geometry",
+      "empty": false,
+      "area_degrees_squared": 5.209608068132744e-07,
+      "polygon_count": 1,
+      "hole_count": 3
+    }
+  ],
+  "status": "valid"
+}
