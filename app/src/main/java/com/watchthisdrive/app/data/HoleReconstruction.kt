@@ -56,12 +56,21 @@ object HoleReconstructor {
         val greens = geometry.features.filter {
             it.featureType.equals("green", true) && it.points.size >= 1
         }
-        val tees = clusterTees(geometry.features.filter {
+        if (greens.isEmpty()) return emptyList()
+
+        val holeLines = geometry.features.filter {
+            it.featureType.equals("hole", true) && it.points.size >= 2
+        }
+        val mappedTees = clusterTees(geometry.features.filter {
             it.featureType.equals("tee", true) && it.points.isNotEmpty()
         })
-        if (greens.isEmpty() || tees.isEmpty()) return emptyList()
-
-        val holeLines = geometry.features.filter { it.featureType.equals("hole", true) && it.points.size >= 2 }
+        // Some imagery-derived course maps publish a playing line and green
+        // but no tee polygon. In that case, recover only the endpoint that is
+        // opposite a line endpoint demonstrably close to the matching green.
+        // Keep this provenance explicit: it is an inferred tee, not a mapped pad.
+        val derivedTees = deriveTeeCandidates(greens, holeLines, mappedTees)
+        val tees = mappedTees + derivedTees
+        if (tees.isEmpty()) return emptyList()
         val pairings = mutableListOf<Pairing>()
         greens.forEachIndexed { greenIndex, green ->
             val greenPoint = center(green.points)
@@ -426,6 +435,65 @@ object HoleReconstructor {
             )
         }
         return result
+    }
+
+    private fun deriveTeeCandidates(
+        greens: List<CourseFeature>,
+        holeLines: List<CourseFeature>,
+        mappedTees: List<TeeCandidate>
+    ): List<TeeCandidate> {
+        return greens.mapNotNull { green ->
+            val greenNumber = number(green.holeNumber)
+            if (greenNumber != null && mappedTees.any { it.holeNumber == greenNumber }) {
+                return@mapNotNull null
+            }
+            val greenPoint = center(green.points)
+            val best = holeLines.asSequence()
+                .filter { line ->
+                    val lineNumber = number(line.holeNumber)
+                    lineNumber == null || greenNumber == null || lineNumber == greenNumber
+                }
+                .mapNotNull { line ->
+                    val first = line.points.first()
+                    val last = line.points.last()
+                    val firstToGreen = meters(first, greenPoint)
+                    val lastToGreen = meters(last, greenPoint)
+                    val greenEndDistance = min(firstToGreen, lastToGreen)
+                    val teePoint = if (firstToGreen <= lastToGreen) last else first
+                    val routeLength = polylineLength(line.points)
+                    if (greenEndDistance > 110.0 ||
+                        routeLength !in MIN_HOLE_METERS..MAX_HOLE_METERS ||
+                        meters(teePoint, greenPoint) !in MIN_HOLE_METERS..MAX_HOLE_METERS
+                    ) null else Triple(line, teePoint, greenEndDistance)
+                }
+                .filter { (_, teePoint, _) ->
+                    mappedTees.none { tee ->
+                        (greenNumber == null || tee.holeNumber == null || tee.holeNumber == greenNumber) &&
+                            meters(tee.point, teePoint) <= 30.0
+                    }
+                }
+                .minByOrNull { (_, _, greenEndDistance) -> greenEndDistance }
+                ?: return@mapNotNull null
+
+            val line = best.first
+            val inferredTee = CourseFeature(
+                id = line.id,
+                elementType = line.elementType,
+                featureType = "tee",
+                holeNumber = greenNumber?.toString() ?: line.holeNumber,
+                name = "Estimated tee from playing line",
+                points = listOf(best.second),
+                source = "Derived from playing-line endpoint" +
+                    (line.source?.let { " ($it)" } ?: ""),
+                confidence = line.confidence ?: "inferred",
+                isPredicted = true
+            )
+            TeeCandidate(
+                sources = listOf(inferredTee),
+                point = best.second,
+                holeNumber = greenNumber ?: number(line.holeNumber)
+            )
+        }
     }
 
     private fun number(value: String?): Int? =
