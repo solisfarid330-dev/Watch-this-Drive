@@ -367,6 +367,8 @@
     }
   ],
   "metadata": {
+    "attribution": "\u00a9 OpenStreetMap contributors",
+    "license": "ODbL-1.0",
     "coordinate_order": "longitude, latitude (EPSG:4326)",
     "relation_count": 0,
     "relations_or_features_omitted": [],

@@ -48,9 +48,9 @@
         "-97.2957895"
       ]
     },
-    "overpass_endpoint": "https://overpass-api.de/api/interpreter",
+    "overpass_endpoint": "https://ovp.dresel.systems/api-na/interpreter",
     "overpass_query": "[out:json][timeout:75];\nrelation(19071561);\nmap_to_area -> .courseArea;\n(\n  nwr(area.courseArea)[\"golf\"];\n);\nout body geom;\n",
-    "retrieved_at_utc": "2026-11-23T19:49:51Z",
+    "retrieved_at_utc": "2026-11-23T19:52:02Z",
     "osm_copyright": "\u00a9 OpenStreetMap contributors; data available under ODbL"
   },
   "inventory": {
@@ -98,6 +98,11 @@
       "hole:7": 1,
       "hole:8": 1,
       "hole:9": 1
+    },
+    "hole_numbering": {
+      "hole_line_count": 18,
+      "numbered_hole_line_count": 18,
+      "unnumbered_hole_lines": []
     },
     "features": [
       {
@@ -2592,7 +2597,7 @@
     ],
     "limitations": [
       "OSM feature counts are element counts, not guaranteed counts of physical objects.",
-      "A relation may represent a multipolygon or grouped feature; member rings must be reconstructed before measuring its footprint.",
+      "A relation may represent a multipolygon or grouped feature; assembled rings must be checked for completeness and topology before measurement.",
       "A feature without an explicit hole reference is not automatically assigned to a hole.",
       "Missing OSM features are unknown, not evidence that the real course lacks them.",
       "A successful HTTP response and valid JSON do not establish real-world geometric accuracy."
