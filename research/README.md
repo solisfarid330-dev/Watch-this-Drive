@@ -65,17 +65,31 @@ and ambiguity reporting.
 
 ## Promotion criteria
 
-The current research branch has live retrieval snapshots for South Padre Island
-Golf Club and Cottonwood Creek Country Club. South Padre returned 183 golf-tagged
-OSM elements (18 hole lines, 18 greens, 49 tee elements, 42 bunker elements,
-17 fairway elements, 2 water-hazard elements, plus rough/cart paths). Cottonwood
-Creek returned only 9 hole lines and 9 pin nodes, demonstrating why the app must
-report mapping coverage rather than assume every course is equally mapped.
+The current research branch has live retrieval snapshots for three unrelated
+courses discovered by name and location, with no course IDs or coordinates
+hardcoded in the extractor:
 
-South Padre relation conversion currently yields 183 GeoJSON features with no
-omitted relations: 142 polygons and 41 lines. Offline tests cover course-boundary
-query construction, node rejection, inventory counting, multipolygon outer/inner
-rings, segmented-ring stitching, open hole lines, and GeoJSON ring winding.
+| Course | OSM golf elements | Mapped features |
+|---|---:|---|
+| South Padre Island Golf Club | 183 | 18 holes, 18 greens, 49 tees, 42 bunker elements, 17 fairway elements, 14 rough elements, 2 water hazards, 23 cart paths |
+| Cottonwood Creek Country Club | 18 | 9 hole lines and 9 pin nodes |
+| Westwood Country Club | 201 | 18 holes, 18 greens, 56 tees, 62 bunker elements, 19 fairway elements, 9 water hazards, 18 pin nodes |
+
+These are OSM element counts, not verified counts of physical objects. The
+Cottonwood result demonstrates sparse mapping: the extractor reports its nine
+mapped holes rather than pretending it has a complete 18-hole layout.
+
+GeoJSON serialization produced 183 features for South Padre (142 polygons and
+41 lines) and 201 for Westwood (165 polygons, 18 lines, 18 points). It assembled
+all 20 South Padre multipolygon relations and all 15 Westwood multipolygon
+relations with zero omissions. A structural validation pass found no open
+polygon rings, no uncontained inner rings, and no incorrect ring winding in
+those two outputs.
+
+Nine offline unit tests cover boundary query construction, node rejection,
+inventory counting, multipolygon outer/inner rings, segmented-ring stitching
+in both directions, open hole lines, and GeoJSON polygon winding. The GitHub
+Actions test workflow has passed.
 
 Do not port this prototype to Android until a third unrelated course is tested,
 relation handling is validated on more complex multipolygons, and geometry is
