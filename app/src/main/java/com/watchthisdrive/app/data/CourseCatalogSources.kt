@@ -9,6 +9,8 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLEncoder
 import java.util.Locale
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.TimeUnit
 
 internal fun stableCourseRecordId(value: String): Long {
     val digest = java.security.MessageDigest.getInstance("SHA-256")
@@ -110,10 +112,22 @@ object CourseCatalogSources {
         offline.forEach { course ->
             course.openGolfId?.let { results["open:$it"] = course }
         }
-        runCatching { fetchOpenGolfSearch(normalizedQuery, null) }
-            .onSuccess { list -> list.forEach { course -> course.openGolfId?.let { results["open:$it"] = course } } }
-        runCatching { fetchTeeTimeSearch(normalizedQuery) }
-            .onSuccess { list -> list.forEach { course -> course.teeTimeId?.let { results["tee:$it"] = course } } }
+        // These are independent public catalogs. Fetch them concurrently so
+        // a slow provider cannot add its full timeout after the other finishes.
+        val openGolfFuture = CompletableFuture.supplyAsync {
+            runCatching { fetchOpenGolfSearch(normalizedQuery, null) }.getOrDefault(emptyList())
+        }
+        val teeTimeFuture = CompletableFuture.supplyAsync {
+            runCatching { fetchTeeTimeSearch(normalizedQuery) }.getOrDefault(emptyList())
+        }
+        val openGolf = runCatching { openGolfFuture.get(13, TimeUnit.SECONDS) }
+            .getOrDefault(emptyList())
+        val teeTime = runCatching { teeTimeFuture.get(13, TimeUnit.SECONDS) }
+            .getOrDefault(emptyList())
+        if (openGolf.isEmpty()) openGolfFuture.cancel(true)
+        if (teeTime.isEmpty()) teeTimeFuture.cancel(true)
+        openGolf.forEach { course -> course.openGolfId?.let { results["open:$it"] = course } }
+        teeTime.forEach { course -> course.teeTimeId?.let { results["tee:$it"] = course } }
         val merged = mergeCatalogs(results.values.toList())
         if (merged.isNotEmpty()) writeCache(cacheFile, merged)
         return mergeCatalogs(merged.ifEmpty { offline + cached.orEmpty() })
