@@ -29,6 +29,60 @@ android {
     kotlinOptions { jvmTarget = "17" }
 }
 
+// The OpenGolfAPI snapshot is bundled so US course discovery works offline.
+val ensureOpenGolfOfflineCatalog = tasks.register("ensureOpenGolfOfflineCatalog") {
+    val catalogFile = layout.projectDirectory.file("src/main/assets/opengolfapi-us.geojson.gz").asFile
+    outputs.upToDateWhen { false }
+    doLast {
+        val expectedCompressed = "c3b3bd4b1b3894fe5b9a6f0e84df43472f55aaad2602faeb58ef56a709db1a39"
+        val expectedGeoJson = "fb4aa24aa8bce2fe338812bc316a2067720c6ffb7874429f5c037b31578300db"
+
+        fun sha256(stream: java.io.InputStream): String {
+            val digest = java.security.MessageDigest.getInstance("SHA-256")
+            stream.use { input ->
+                val buffer = ByteArray(32 * 1024)
+                while (true) {
+                    val count = input.read(buffer)
+                    if (count < 0) break
+                    digest.update(buffer, 0, count)
+                }
+            }
+            return digest.digest().joinToString("") { "%02x".format(it) }
+        }
+
+        catalogFile.parentFile.mkdirs()
+        if (!catalogFile.exists() || sha256(catalogFile.inputStream()) != expectedCompressed) {
+            val temporary = java.io.File(catalogFile.parentFile, catalogFile.name + ".download")
+            java.net.URL(
+                "https://github.com/opengolfapi/data/releases/download/v2.1.0/opengolfapi-us.geojson.gz"
+            ).openStream().use { input ->
+                temporary.outputStream().use { output -> input.copyTo(output) }
+            }
+            val downloadedHash = sha256(temporary.inputStream())
+            if (downloadedHash != expectedCompressed) {
+                temporary.delete()
+                throw GradleException("OpenGolfAPI course catalog failed its compressed SHA-256 check")
+            }
+            if (!temporary.renameTo(catalogFile)) {
+                temporary.copyTo(catalogFile, overwrite = true)
+                temporary.delete()
+            }
+        }
+
+        if (sha256(catalogFile.inputStream()) != expectedCompressed) {
+            throw GradleException("OpenGolfAPI course catalog is corrupt")
+        }
+        val contentHash = sha256(java.util.zip.GZIPInputStream(catalogFile.inputStream()))
+        if (contentHash != expectedGeoJson) {
+            throw GradleException("OpenGolfAPI GeoJSON content failed its SHA-256 check")
+        }
+    }
+}
+
+tasks.named("preBuild").configure {
+    dependsOn(ensureOpenGolfOfflineCatalog)
+}
+
 dependencies {
     testImplementation("junit:junit:4.13.2")
     implementation(platform("androidx.compose:compose-bom:2024.12.01"))
