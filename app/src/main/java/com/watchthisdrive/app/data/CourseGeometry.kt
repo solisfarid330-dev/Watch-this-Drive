@@ -27,7 +27,10 @@ data class CourseFeature(
     val name: String?,
     val points: List<GeoPoint>,
     val par: Int? = null,
-    val handicap: Int? = null
+    val handicap: Int? = null,
+    val source: String? = null,
+    val confidence: String? = null,
+    val isPredicted: Boolean = false
 )
 
 data class CourseGeometry(
@@ -578,7 +581,11 @@ object CourseGeometryLoader {
                 name = name,
                 points = points,
                 par = par,
-                handicap = handicap
+                handicap = handicap,
+                source = firstValue(properties, "source", "geometry_source", "provenance", "origin")
+                    ?: firstValue(tags, "source", "provenance"),
+                confidence = firstValue(properties, "confidence", "model_confidence", "prediction_confidence"),
+                isPredicted = isPredicted(properties, tags)
             ))
         }
         return features.distinctBy { Triple(it.elementType, it.id, it.featureType) }
@@ -850,7 +857,7 @@ internal object ZommaGeoJsonParser {
             val properties = feature.optJSONObject("properties") ?: JSONObject()
             val tags = properties.optJSONObject("tags") ?: properties
             val kind = firstValue(tags, "golf", "feature_type", "featureType", "kind", "class", "layer", "feature", "type")
-                ?.lowercase()?.replace(Regex("[\\s-]+"), "_") ?: continue
+                ?.lowercase()?.replace(Regex("[^a-z0-9]+"), "_")?.trim('_') ?: continue
             val featureType = normalizeType(kind) ?: continue
             val geometry = feature.optJSONObject("geometry") ?: continue
             val points = readCoordinates(geometry) ?: continue
@@ -876,6 +883,23 @@ internal object ZommaGeoJsonParser {
         return result.distinctBy { Triple(it.elementType, it.id, it.featureType) }
     }
 
+    private fun isPredicted(properties: JSONObject, tags: JSONObject): Boolean {
+        val explicit = listOf("predicted", "is_predicted", "model_generated", "ai_generated")
+            .firstNotNullOfOrNull { key ->
+                val value = properties.opt(key) ?: tags.opt(key)
+                when (value) {
+                    is Boolean -> value
+                    is String -> value.equals("true", true) || value.equals("yes", true)
+                    is Number -> value.toInt() != 0
+                    else -> null
+                }
+            }
+        if (explicit != null) return explicit
+        val provenance = (firstValue(properties, "source", "geometry_source", "provenance", "origin")
+            ?: firstValue(tags, "source", "provenance")).orEmpty().lowercase()
+        return listOf("model", "predict", "satlas", "ai_generated").any { it in provenance }
+    }
+
     private fun firstValue(json: JSONObject, vararg keys: String): String? =
         keys.firstNotNullOfOrNull { key ->
             val value = json.opt(key) ?: return@firstNotNullOfOrNull null
@@ -894,7 +918,7 @@ internal object ZommaGeoJsonParser {
         "hole", "hole_line", "hole_centerline", "centerline", "playing_line", "route" -> "hole"
         "bunker", "sand", "sand_trap" -> "bunker"
         "water", "water_hazard", "pond", "lake" -> "water"
-        "rough", "semi_rough" -> "rough"
+        "rough", "semi_rough", "rough_in_play", "in_play" -> "rough"
         "wood", "woodland", "forest", "trees" -> "woodland"
         "tree" -> "tree"
         "path", "cart_path", "cartpath" -> "path"
