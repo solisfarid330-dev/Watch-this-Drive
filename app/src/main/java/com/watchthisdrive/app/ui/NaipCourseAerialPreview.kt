@@ -6,6 +6,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
@@ -29,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import com.watchthisdrive.app.data.CourseGeometry
 import com.watchthisdrive.app.data.GolfCourse
 import com.watchthisdrive.app.data.NaipImageryRepository
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -51,6 +53,10 @@ fun NaipCourseAerialPreview(course: GolfCourse, geometry: CourseGeometry?) {
             bitmap = withContext(Dispatchers.IO) {
                 file?.let { BitmapFactory.decodeFile(it.absolutePath) }
             }
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            bitmap = null
         } finally {
             loading = false
         }
@@ -63,7 +69,7 @@ fun NaipCourseAerialPreview(course: GolfCourse, geometry: CourseGeometry?) {
             colors = CardDefaults.cardColors(containerColor = Color(0xFF1B2520))
         ) {
             Column(
-                modifier = Modifier.fillMaxWidth().then(Modifier),
+                modifier = Modifier.fillMaxWidth().padding(14.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Text(
