@@ -107,6 +107,10 @@ internal object OfflineCourseCatalog {
                 cursor.moveToFirst()
                 cursor.getLong(0)
             }
+            if (count > 0L) Log.i(
+                "OfflineCourseCatalog",
+                "Imported $count US course records from OpenGolfAPI $DATASET_VERSION"
+            )
             count > 0L
         }.onFailure { error ->
             Log.w("OfflineCourseCatalog", "Unable to import the bundled OpenGolfAPI catalog", error)
