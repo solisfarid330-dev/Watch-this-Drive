@@ -180,3 +180,11 @@ The following items have now been implemented on `feature/course-hole-artwork-ge
 - The app still measures distance to the mapped green center, not a live pin, unless a pin position is separately supplied.
 
 A passing CI build validates compilation and unit tests only. It does not validate network provider behavior, Android SQLite import timing, GPS accuracy, MapLibre lifecycle, or on-device artwork quality.
+
+
+Additional performance and data-quality refinements:
+- Hole reconstruction now runs on `Dispatchers.Default` in Play and Course Detail; Caddy requires and reuses the shared result rather than reconstructing during recomposition.
+- Live GPS updates are throttled to a 3-second target interval with a 2.5-metre movement threshold to reduce main-thread and map churn. The explicit fresh-location action remains available.
+- Course records use collision-resistant stable provider IDs, and saved round/scorecard preferences use a canonical provider identity so switching between a catalog point and its matched OSM boundary does not split a golfer's scores.
+- Total course yardage is retained and displayed when a provider supplies it; hole yardage is shown only when the provider actually provides a per-hole value.
+- The offline catalog is generated as a build asset and verified before Android asset merging; packaging is being checked inside the APK, not inferred from a successful build.
