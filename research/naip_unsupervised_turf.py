@@ -57,14 +57,14 @@ def kmeans(data,k=6,iterations=12,seed=42):
 def main():
     ap=argparse.ArgumentParser()
     ap.add_argument("--geojson",required=True);ap.add_argument("--metadata",required=True);ap.add_argument("--tiff",required=True)
-    ap.add_argument("--out",required=True);ap.add_argument("--corridor-m",type=float,default=55);ap.add_argument("--clusters",type=int,default=6)
+    ap.add_argument("--out",required=True);ap.add_argument("--corridor-m",type=float,default=55);ap.add_argument("--clusters",type=int,default=6);ap.add_argument("--hole-ref",default="1")
     a=ap.parse_args()
     fc=json.loads(Path(a.geojson).read_text());meta=json.loads(Path(a.metadata).read_text())
     im=Image.open(a.tiff);raw=np.asarray(im).astype(np.float32);h,w=raw.shape[:2]
     minx,miny,maxx,maxy=meta["export_bbox_web_mercator_m"]
     def px(p):
         x,y=mercator(*p);return ((x-minx)/(maxx-minx)*(w-1),(maxy-y)/(maxy-miny)*(h-1))
-    hole=next((f for f in fc["features"] if f["properties"].get("golf")=="hole" and str(f["properties"].get("ref") or f["properties"].get("golf:hole") or "")=="1"),None)
+    hole=next((f for f in fc["features"] if f["properties"].get("golf")=="hole" and str(f["properties"].get("ref") or f["properties"].get("golf:hole") or "")==a.hole_ref),None)
     if hole is None:raise SystemExit("Missing explicitly numbered Hole 1")
     line=hole["geometry"]["coordinates"]
     corridor=Image.new("1",(w,h),0);d=ImageDraw.Draw(corridor)
@@ -120,6 +120,6 @@ def main():
     palette=np.array([[230,80,80],[80,180,240],[230,210,60],[180,100,220],[60,210,150],[230,150,70]],dtype=np.uint8)
     for j in range(a.clusters):color[label_image==j]=palette[j%len(palette)]
     Image.fromarray(color,"RGB").save(out/"cluster-label-preview.png")
-    report={"hole_osm_id":hole["properties"].get("osm_id"),"method":"Per-course k-means on NDVI, excess-green, and local RGB texture; known green/bunker/water/tee polygons excluded from cluster fitting.","clusters":a.clusters,"corridor_m":a.corridor_m,"analysis_pixels":len(xs),"fairway_seed_pixels":int(fair.sum()),"rough_seed_pixels":int(rough.sum()),"selected_candidate_cluster":best,"selected_cluster_score":round(best_score,4),"raw_candidate_pixels":int(candidate.sum()),"smoothed_candidate_pixels":int(smooth_mask.sum()),"cluster_statistics":stats,"features_standardization":{"mean":mean.tolist(),"scale":scale.tolist()},"warning":"Cluster selection is guided by incomplete OSM seed labels; unsupervised cluster membership is not ground truth. If no rough seed exists, selection uses fairway-seed recall only and cannot estimate precision.","files":["unsupervised-fairway-candidate.png","unsupervised-fairway-smoothed.png","cluster-label-preview.png","cluster-report.json"]}
+    report={"hole_ref":a.hole_ref,"hole_osm_id":hole["properties"].get("osm_id"),"method":"Per-course k-means on NDVI, excess-green, and local RGB texture; known green/bunker/water/tee polygons excluded from cluster fitting.","clusters":a.clusters,"corridor_m":a.corridor_m,"analysis_pixels":len(xs),"fairway_seed_pixels":int(fair.sum()),"rough_seed_pixels":int(rough.sum()),"selected_candidate_cluster":best,"selected_cluster_score":round(best_score,4),"raw_candidate_pixels":int(candidate.sum()),"smoothed_candidate_pixels":int(smooth_mask.sum()),"cluster_statistics":stats,"features_standardization":{"mean":mean.tolist(),"scale":scale.tolist()},"warning":"Cluster selection is guided by incomplete OSM seed labels; unsupervised cluster membership is not ground truth. If no rough seed exists, selection uses fairway-seed recall only and cannot estimate precision.","files":["unsupervised-fairway-candidate.png","unsupervised-fairway-smoothed.png","cluster-label-preview.png","cluster-report.json"]}
     (out/"cluster-report.json").write_text(json.dumps(report,indent=2)+"\n");print(json.dumps(report,indent=2))
 if __name__=="__main__":main()
