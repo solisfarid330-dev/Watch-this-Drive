@@ -91,6 +91,23 @@ private fun WatchThisDriveApp() {
             }
         }
     }
+    LaunchedEffect(courseGeometry, activeCourse?.id) {
+        val geometry = courseGeometry ?: return@LaunchedEffect
+        val courseId = activeCourse?.id ?: return@LaunchedEffect
+        val preferences = context.getSharedPreferences("watch_this_drive_scorecard_$courseId", android.content.Context.MODE_PRIVATE)
+        val mappedPars = HoleReconstructor.reconstruct(geometry).associate { it.number to it.par }
+        val updated = pars.toMutableList()
+        var changed = false
+        for (hole in 1..18) {
+            val mappedPar = mappedPars[hole] ?: continue
+            if (mappedPar in 3..6 && !preferences.contains("par_$hole")) {
+                updated[hole - 1] = mappedPar
+                preferences.edit().putInt("par_$hole", mappedPar).apply()
+                changed = true
+            }
+        }
+        if (changed) pars = updated
+    }
     var location by remember { mutableStateOf<Location?>(null) }
     var hasLocationPermission by remember {
         mutableStateOf(
