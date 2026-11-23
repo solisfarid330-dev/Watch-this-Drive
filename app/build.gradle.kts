@@ -37,8 +37,12 @@ android {
 }
 
 // The OpenGolfAPI snapshot is bundled so US course discovery works offline.
+val generatedCourseAssets = layout.buildDirectory.dir("generated/courseAssets")
+android.sourceSets.getByName("main").assets.srcDir(generatedCourseAssets)
+
 val ensureOpenGolfOfflineCatalog = tasks.register("ensureOpenGolfOfflineCatalog") {
-    val catalogFile = layout.projectDirectory.file("src/main/assets/opengolfapi-us.geojson.gz").asFile
+    val catalogFile = generatedCourseAssets.get().file("opengolfapi-us.geojson.gz").asFile
+    outputs.file(catalogFile)
     outputs.upToDateWhen { false }
     doLast {
         val expectedCompressed = "c3b3bd4b1b3894fe5b9a6f0e84df43472f55aaad2602faeb58ef56a709db1a39"
@@ -91,6 +95,9 @@ val ensureOpenGolfOfflineCatalog = tasks.register("ensureOpenGolfOfflineCatalog"
 }
 
 tasks.named("preBuild").configure {
+    dependsOn(ensureOpenGolfOfflineCatalog)
+}
+tasks.matching { it.name.startsWith("merge") && it.name.endsWith("Assets") }.configureEach {
     dependsOn(ensureOpenGolfOfflineCatalog)
 }
 
