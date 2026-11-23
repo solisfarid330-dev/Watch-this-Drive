@@ -401,6 +401,8 @@ def to_geojson(payload: dict) -> dict:
         "name": "OSM golf features (assembled direct and relation geometries)",
         "features": features,
         "metadata": {
+            "attribution": "© OpenStreetMap contributors",
+            "license": "ODbL-1.0",
             "coordinate_order": "longitude, latitude (EPSG:4326)",
             "relation_count": relation_count,
             "relations_or_features_omitted": skipped,
