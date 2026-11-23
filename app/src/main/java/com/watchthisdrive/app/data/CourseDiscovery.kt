@@ -115,7 +115,7 @@ object CourseDiscovery {
                 }
                 mergeCourseSources(osm.getOrDefault(emptyList()), catalogs.getOrDefault(emptyList()))
             }
-            val direct = runCatching { directFuture.get(20, TimeUnit.SECONDS) }
+            val direct = runCatching { directFuture.get(30, TimeUnit.SECONDS) }
             val nearby = runCatching { locationFuture.get(65, TimeUnit.SECONDS) }
             val result = when {
                 direct.isSuccess || nearby.isSuccess -> Result.success(
