@@ -55,6 +55,8 @@ jobs:
             echo "No changes to research snapshots."
           else
             git commit -m "Store two-course OSM extraction snapshots"
+            git fetch origin research/generic-course-pipeline
+            git rebase origin/research/generic-course-pipeline
             git push
           fi
       - name: Summarize extraction outcomes
