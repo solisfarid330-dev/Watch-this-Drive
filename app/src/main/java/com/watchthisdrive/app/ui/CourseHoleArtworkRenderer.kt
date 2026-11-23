@@ -2,6 +2,8 @@ package com.watchthisdrive.app.ui
 
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.ColorMatrix
+import android.graphics.ColorMatrixColorFilter
 import android.graphics.LinearGradient
 import android.graphics.Matrix
 import android.graphics.Paint
@@ -20,7 +22,7 @@ import kotlin.math.*
 
 /** Rich tee-bottom/green-top artwork, fitted to the complete reconstructed hole. */
 internal object CourseHoleArtworkRenderer {
-    private const val VERSION = 17
+    private const val VERSION = 18
     private const val WIDTH = 1200
     private const val HEIGHT = 1800
     private const val LEFT = 48.0
@@ -34,6 +36,7 @@ internal object CourseHoleArtworkRenderer {
         cacheDirectory: File,
         cacheKey: String,
         aerialBitmap: Bitmap? = null,
+        ndviBitmap: Bitmap? = null,
         aerialBounds: NaipImageryRepository.Bounds? = null,
         aerialCacheToken: String = ""
     ): File {
@@ -153,6 +156,42 @@ internal object CourseHoleArtworkRenderer {
                 paint.color = android.graphics.Color.WHITE
             }
         }
+        // A matched four-band NAIP NDVI product adds a restrained vegetation
+        // signal over the RGB aerial. Low NDVI shifts toward earth tones; high
+        // NDVI shifts toward green. This is visual evidence only, not a golf
+        // feature classifier, and never changes the source vector geometry.
+        if (ndviBitmap != null && aerialBounds != null && !ndviBitmap.isRecycled &&
+            ndviBitmap.width > 0 && ndviBitmap.height > 0
+        ) {
+            val bounds = aerialBounds
+            val source = floatArrayOf(
+                0f, 0f, ndviBitmap.width.toFloat(), 0f,
+                ndviBitmap.width.toFloat(), ndviBitmap.height.toFloat(),
+                0f, ndviBitmap.height.toFloat()
+            )
+            val nw = xy(GeoPoint(bounds.north, bounds.west))
+            val ne = xy(GeoPoint(bounds.north, bounds.east))
+            val se = xy(GeoPoint(bounds.south, bounds.east))
+            val sw = xy(GeoPoint(bounds.south, bounds.west))
+            val destination = floatArrayOf(
+                nw.first, nw.second, ne.first, ne.second,
+                se.first, se.second, sw.first, sw.second
+            )
+            val ndviMatrix = Matrix()
+            if (ndviMatrix.setPolyToPoly(source, 0, destination, 0, 4)) {
+                val ndviPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG).apply {
+                    alpha = 58
+                    colorFilter = ColorMatrixColorFilter(ColorMatrix(floatArrayOf(
+                        -0.45f, 0f, 0f, 0f, 210f,
+                        0f, 0.55f, 0f, 0f, 65f,
+                        0f, 0f, 0.10f, 0f, 40f,
+                        0f, 0f, 0f, 1f, 0f
+                    )))
+                }
+                canvas.drawBitmap(ndviBitmap, ndviMatrix, ndviPaint)
+            }
+        }
+
         paint.style = Paint.Style.STROKE
         for (i in 0..18) {
             val y = 195f + i * 86f
