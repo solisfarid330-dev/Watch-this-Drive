@@ -1,15 +1,5 @@
 package com.watchthisdrive.app.data
 
-internal fun stableCourseRecordId(value: String): Long {
-    val digest = java.security.MessageDigest.getInstance("SHA-256")
-        .digest(value.toByteArray(Charsets.UTF_8))
-    var bits = 0L
-    for (index in 0 until 8) {
-        bits = (bits shl 8) or (digest[index].toLong() and 0xffL)
-    }
-    return -((bits and Long.MAX_VALUE).coerceAtLeast(1L))
-}
-
 import android.content.Context
 import android.location.Location
 import org.json.JSONArray
@@ -19,6 +9,16 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLEncoder
 import java.util.Locale
+
+internal fun stableCourseRecordId(value: String): Long {
+    val digest = java.security.MessageDigest.getInstance("SHA-256")
+        .digest(value.toByteArray(Charsets.UTF_8))
+    var bits = 0L
+    for (index in 0 until 8) {
+        bits = (bits shl 8) or (digest[index].toLong() and 0xffL)
+    }
+    return -((bits and Long.MAX_VALUE).coerceAtLeast(1L))
+}
 
 /**
  * Supplemental public course catalogs. Provider records are discovery metadata,
