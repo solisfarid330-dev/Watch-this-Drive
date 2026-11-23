@@ -1,0 +1,26 @@
+name: Research pipeline checks
+
+on:
+  push:
+    branches:
+      - research/generic-course-pipeline
+    paths:
+      - "research/**"
+      - ".github/workflows/research-pipeline.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Compile prototype
+        run: python -m py_compile research/course_data_audit.py
+      - name: Run offline unit tests
+        run: python -m unittest discover -s research -p "test_*.py" -v
