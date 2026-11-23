@@ -16,6 +16,62 @@ class HoleReconstructorTest {
     ) = CourseFeature(id, "way", kind, hole, null, points)
 
     @Test
+    fun derivesAnExplicitlyMarkedTeeFromPlayingLineWhenTeePadIsMissing() {
+        val line = listOf(
+            GeoPoint(0.0, 0.0),
+            GeoPoint(0.002, 0.0004),
+            GeoPoint(0.004, 0.0)
+        )
+        val geometry = CourseGeometry(99, "Line-only fixture", listOf(
+            feature(2, "green", 0.004, 0.0, "1"),
+            feature(3, "hole", 0.0, 0.0, "1", line)
+        ))
+
+        val hole = HoleReconstructor.reconstruct(geometry).single()
+
+        assertEquals(line.first(), hole.tee)
+        assertTrue(hole.teeSource.isPredicted)
+        assertTrue(hole.teeSource.source.orEmpty().contains("Derived from playing-line endpoint"))
+        assertEquals(1, hole.number)
+        assertTrue(hole.lengthMeters in 400.0..500.0)
+    }
+
+    @Test
+    fun mappedTeeIsPreferredOverAnInferredPlayingLineEndpoint() {
+        val line = listOf(
+            GeoPoint(0.0, 0.0),
+            GeoPoint(0.002, 0.0004),
+            GeoPoint(0.004, 0.0)
+        )
+        val mappedTee = GeoPoint(0.00002, 0.00008)
+        val geometry = CourseGeometry(99, "Mapped tee fixture", listOf(
+            feature(1, "tee", mappedTee.latitude, mappedTee.longitude, "1"),
+            feature(2, "green", 0.004, 0.0, "1"),
+            feature(3, "hole", 0.0, 0.0, "1", line)
+        ))
+
+        val hole = HoleReconstructor.reconstruct(geometry).single()
+
+        assertEquals(mappedTee, hole.tee)
+        assertFalse(hole.teeSource.isPredicted)
+    }
+
+    @Test
+    fun doesNotDeriveTeeFromPlayingLineAssignedToAnotherHole() {
+        val line = listOf(
+            GeoPoint(0.0, 0.0),
+            GeoPoint(0.002, 0.0004),
+            GeoPoint(0.004, 0.0)
+        )
+        val geometry = CourseGeometry(99, "Mismatched line fixture", listOf(
+            feature(2, "green", 0.004, 0.0, "1"),
+            feature(3, "hole", 0.0, 0.0, "2", line)
+        ))
+
+        assertTrue(HoleReconstructor.reconstruct(geometry).isEmpty())
+    }
+
+    @Test
     fun explicitHoleNumbersPairTheCorrectTeeAndGreen() {
         val geometry = CourseGeometry(
             courseId = 99,
