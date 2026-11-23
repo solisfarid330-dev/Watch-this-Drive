@@ -178,31 +178,54 @@ object CourseGeometryLoader {
 
     private fun fetchZommaGeometry(course: GolfCourse): List<CourseFeature> {
         val state = stateCode(course.region) ?: return emptyList()
-        val slug = course.name.lowercase(java.util.Locale.US)
+        fun slug(value: String): String = value.lowercase(java.util.Locale.US)
             .replace(Regex("[^a-z0-9]+"), "-").trim('-')
-        if (slug.isBlank()) return emptyList()
-        val url = URL("https://zommagolf.com/courses/$state/$slug/geo.json")
-        val connection = url.openConnection() as HttpURLConnection
-        try {
-            connection.requestMethod = "GET"
-            connection.connectTimeout = 4_000
-            connection.readTimeout = 8_000
-            connection.instanceFollowRedirects = true
-            connection.setRequestProperty("Accept", "application/geo+json, application/json")
-            connection.setRequestProperty("User-Agent", "WatchThisDrive/0.3 (Android golf course mapping)")
-            val status = connection.responseCode
-            if (status == HttpURLConnection.HTTP_NOT_FOUND || status == HttpURLConnection.HTTP_GONE) {
-                return emptyList()
+        val nameSlug = slug(course.name)
+        if (nameSlug.isBlank()) return emptyList()
+        // Zomma's canonical slugs append the city when needed to distinguish
+        // same-named courses. Try that form first, then the shorter documented
+        // form for courses whose canonical slug has no city suffix.
+        val slugs = listOfNotNull(
+            course.city?.takeIf { it.isNotBlank() }?.let { "$nameSlug-${slug(it)}" },
+            nameSlug
+        ).distinct()
+        for (candidateSlug in slugs) {
+            val url = URL("https://zommagolf.com/courses/$state/$candidateSlug/geo.json")
+            val connection = url.openConnection() as HttpURLConnection
+            try {
+                connection.requestMethod = "GET"
+                connection.connectTimeout = 3_000
+                connection.readTimeout = 5_000
+                connection.instanceFollowRedirects = true
+                connection.setRequestProperty("Accept", "application/geo+json, application/json")
+                connection.setRequestProperty("User-Agent", "WatchThisDrive/0.4 (Android golf course mapping)")
+                val status = connection.responseCode
+                if (status == HttpURLConnection.HTTP_NOT_FOUND || status == HttpURLConnection.HTTP_GONE) {
+                    continue
+                }
+                if (status !in 200..299) continue
+                val text = connection.inputStream.bufferedReader().use { it.readText() }
+                if (text.length > MAX_RESPONSE_CHARS) continue
+                val features = ZommaGeoJsonParser.parse(text)
+                if (features.isNotEmpty() && isPlausibleZommaCourse(features, course)) return features
+            } catch (error: Exception) {
+                android.util.Log.d("CourseGeometry", "Zomma candidate $candidateSlug unavailable: ${error.message}")
+            } finally {
+                connection.disconnect()
             }
-            if (status !in 200..299) throw IllegalStateException("Zomma returned HTTP $status")
-            val text = connection.inputStream.bufferedReader().use { it.readText() }
-            if (text.length > MAX_RESPONSE_CHARS) {
-                throw IllegalStateException("Zomma GeoJSON exceeded the safe response-size limit.")
-            }
-            return ZommaGeoJsonParser.parse(text)
-        } finally {
-            connection.disconnect()
         }
+        return emptyList()
+    }
+
+    private fun isPlausibleZommaCourse(features: List<CourseFeature>, course: GolfCourse): Boolean {
+        val points = features.flatMap { it.points }
+        if (points.isEmpty()) return false
+        val centerLatitude = (points.minOf { it.latitude } + points.maxOf { it.latitude }) / 2.0
+        val centerLongitude = (points.minOf { it.longitude } + points.maxOf { it.longitude }) / 2.0
+        // Reject a same-name page from another town before merging its geometry.
+        return haversineMeters(
+            course.latitude, course.longitude, centerLatitude, centerLongitude
+        ) <= 8_000.0
     }
 
     private fun stateCode(region: String?): String? {
