@@ -1,4 +1,5 @@
 name: Course data integration experiment
+# Runs a live, read-only OSM extraction on two unrelated courses.
 
 on:
   push:
