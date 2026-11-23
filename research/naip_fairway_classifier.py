@@ -51,7 +51,7 @@ def main():
     ap=argparse.ArgumentParser()
     ap.add_argument("--train-geojson",required=True); ap.add_argument("--train-metadata",required=True); ap.add_argument("--train-tiff",required=True)
     ap.add_argument("--geojson",required=True); ap.add_argument("--metadata",required=True); ap.add_argument("--tiff",required=True)
-    ap.add_argument("--out",required=True); ap.add_argument("--corridor-m",type=float,default=55)
+    ap.add_argument("--out",required=True); ap.add_argument("--corridor-m",type=float,default=55); ap.add_argument("--hole-ref",default="1")
     a=ap.parse_args()
     def load(geojson,metadata,tiff):
         fc=json.loads(Path(geojson).read_text()); meta=json.loads(Path(metadata).read_text())
@@ -111,7 +111,7 @@ def main():
     x,valid,rgb,ndvi,exg=features(test)
     scores=score(x)
     minx,miny,maxx,maxy=bbox
-    hole_ref="1"
+    hole_ref=a.hole_ref
     hole=next((f for f in fc["features"] if f["properties"].get("golf")=="hole" and str(f["properties"].get("ref") or f["properties"].get("golf:hole") or "")==hole_ref),None)
     if hole is None: raise SystemExit("Target GeoJSON has no explicitly numbered Hole 1")
     line=hole["geometry"]["coordinates"]
@@ -139,7 +139,7 @@ def main():
         return {"pixels":int(use.sum()),"positive_fraction":round(float(candidate[use].mean()),4) if use.any() else None}
     seed_eval={cls:positive_rate(mask) for cls,mask in masks.items()}
     report={
-        "target_hole_osm_id":hole["properties"].get("osm_id"),
+        "target_hole_ref":a.hole_ref,"target_hole_osm_id":hole["properties"].get("osm_id"),
         "training_source":"South Padre Island Golf Club Hole 1 OSM fairway and rough polygons",
         "training_samples":{"fairway":len(p),"rough":len(n)},
         "features":["NDVI","excess_green","local_RGB_texture_stddev_9x9"],
