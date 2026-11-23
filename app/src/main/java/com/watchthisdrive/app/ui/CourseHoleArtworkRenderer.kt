@@ -22,7 +22,7 @@ import kotlin.math.*
 
 /** Rich tee-bottom/green-top artwork, fitted to the complete reconstructed hole. */
 internal object CourseHoleArtworkRenderer {
-    private const val VERSION = 19
+    private const val VERSION = 20
     private const val WIDTH = 1200
     private const val HEIGHT = 1800
     private const val LEFT = 48.0
