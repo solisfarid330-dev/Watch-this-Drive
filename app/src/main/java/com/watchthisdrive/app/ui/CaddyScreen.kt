@@ -4,7 +4,6 @@ import android.content.Context
 import android.location.Location
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
@@ -17,7 +16,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.watchthisdrive.app.data.CourseFeature
 import com.watchthisdrive.app.data.CourseGeometry
-import com.watchthisdrive.app.data.CourseGeometryLoader
 import com.watchthisdrive.app.data.GolfCourse
 import com.watchthisdrive.app.data.HoleReconstructor
 
