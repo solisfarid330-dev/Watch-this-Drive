@@ -244,7 +244,7 @@ fun CourseHoleArtworkPanel(
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text("Illustrated holes", color = Color.White, style = MaterialTheme.typography.titleLarge)
             when {
-                loading || generating -> CircularProgressIndicator(color = Color(0xFFB8F36B))
+                loading || generating || aerialLoading -> CircularProgressIndicator(color = Color(0xFFB8F36B))
                 artwork?.holes.isNullOrEmpty() && generatedImages.isEmpty() -> Text(
                     if (geometry == null && geometryError != null) {
                         "Course mapping is unavailable, so a hole illustration cannot be generated yet. $geometryError"
