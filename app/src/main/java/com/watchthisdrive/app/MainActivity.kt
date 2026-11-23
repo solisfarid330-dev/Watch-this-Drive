@@ -498,7 +498,12 @@ private fun ScorecardScreen(
                     Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f).clickable { onSelectHole(hole) }) {
                             Text(if (hole == activeHole) "Hole $hole · CURRENT" else "Hole $hole", color = if (hole == activeHole) Color(0xFFB8F36B) else Color.White, fontWeight = FontWeight.Bold)
-                            Text("Par ${pars[index]}", color = Color(0xFFB6C1B9), style = MaterialTheme.typography.bodySmall)
+                            val handicap = course?.scorecard?.firstOrNull { it.number == hole }?.handicap
+                            Text(
+                                "Par ${pars[index]}" + (handicap?.let { " · HCP $it" } ?: ""),
+                                color = Color(0xFFB6C1B9),
+                                style = MaterialTheme.typography.bodySmall
+                            )
                         }
                         TextButton(onClick = {
                             onParChanged(hole, (pars[index] - 1).coerceIn(3, 6))
