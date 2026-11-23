@@ -7,8 +7,8 @@ from PIL import Image, ImageDraw, ImageFont
 
 R = 6378137.0
 SERVICE = "https://imagery.geographic.texas.gov/server/rest/services/NAIP/NAIP22_NCCIR_60cm/ImageServer/exportImage"
-COLORS = {"hole":(255,235,0,255),"fairway":(50,210,90,100),"green":(40,255,80,170),"bunker":(235,190,105,180),"water_hazard":(40,140,255,170),"tee":(255,60,60,180),"rough":(130,180,80,70)}
-LABELS = {"hole":"Hole centerline","fairway":"Fairway","green":"Green","bunker":"Bunker","water_hazard":"Water hazard","tee":"Tee","rough":"Rough"}
+COLORS = {"hole":(255,235,0,255),"fairway":(50,210,90,100),"green":(40,255,80,170),"bunker":(235,190,105,180),"water_hazard":(40,140,255,170),"tee":(255,60,60,180),"rough":(130,180,80,70),"pin":(255,255,255,230)}
+LABELS = {"hole":"Hole centerline","fairway":"Fairway","green":"Green","bunker":"Bunker","water_hazard":"Water hazard","tee":"Tee","rough":"Rough","pin":"Mapped pin"}
 
 def mercator(lon, lat):
     lat=max(-85.05112878,min(85.05112878,lat))
@@ -129,7 +129,7 @@ def main():
             x,y=px(p); d.ellipse((x-5,y-5,x+5,y+5),fill=COLORS["hole"],outline=(20,20,20,255))
     d.rounded_rectangle((12,12,340,245),radius=10,fill=(0,0,0,190)); font=ImageFont.load_default()
     d.text((24,22),f"OSM proximity candidates — hole {a.hole_ref}",fill="white",font=font); y=46
-    for k in ("hole","fairway","green","bunker","water_hazard","tee","rough"):
+    for k in ("hole","fairway","green","bunker","water_hazard","tee","rough","pin"):
         if k=="hole" or visible.get(k,0):
             col=COLORS[k]; d.rectangle((24,y+1,39,y+12),fill=col)
             d.text((47,y),f"{LABELS[k]} ({visible.get(k,1 if k=='hole' else 0)})",fill="white",font=font); y+=20
