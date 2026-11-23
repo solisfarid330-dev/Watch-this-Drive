@@ -1214,7 +1214,11 @@ private fun CourseDetailScreen(
             }
         }
 
-        CourseHoleArtworkPanel(course = course, geometry = geometry)
+        CourseHoleArtworkPanel(
+            course = course,
+            geometry = geometry,
+            geometryError = error
+        )
         NaipCourseAerialPreview(
             course = course,
             geometry = geometry,
