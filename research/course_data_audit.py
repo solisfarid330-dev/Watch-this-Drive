@@ -258,21 +258,29 @@ def _assemble_member_rings(members: list[dict], role: str) -> tuple[list[list[li
         ring = segments.pop(0)
         while ring[-1] != ring[0]:
             match_index = None
+            operation = None
             match_segment = None
-            reverse_segment = False
             for index, segment in enumerate(segments):
                 if segment[0] == ring[-1]:
-                    match_index, match_segment = index, segment
+                    match_index, operation, match_segment = index, "append", segment
                     break
                 if segment[-1] == ring[-1]:
-                    match_index, match_segment = index, list(reversed(segment))
-                    reverse_segment = True
+                    match_index, operation, match_segment = index, "append", list(reversed(segment))
+                    break
+                if segment[-1] == ring[0]:
+                    match_index, operation, match_segment = index, "prepend", segment
+                    break
+                if segment[0] == ring[0]:
+                    match_index, operation, match_segment = index, "prepend", list(reversed(segment))
                     break
             if match_index is None:
                 errors.append(f"Could not close a {role} ring from relation members")
                 break
             segments.pop(match_index)
-            ring.extend(match_segment[1:])
+            if operation == "append":
+                ring.extend(match_segment[1:])
+            else:
+                ring = match_segment[:-1] + ring
         if ring[-1] == ring[0] and len(ring) >= 4:
             rings.append(ring)
     return rings, errors
