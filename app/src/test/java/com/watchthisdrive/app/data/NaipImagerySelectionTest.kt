@@ -6,7 +6,7 @@ import org.junit.Test
 
 class NaipImagerySelectionTest {
     @Test
-    fun newestAcquisitionTakesPriorityOverOlderHigherResolution() {
+    fun newestAcquisitionIsFirstAndOlderImageryRemainsAsCoverageFallback() {
         val selected = NaipImageryRepository.selectBestRasters(
             listOf(
                 NaipImageryRepository.RasterRecord(1, 2023, 1_690_000_000_000, 0.3, "m", 4),
@@ -15,12 +15,12 @@ class NaipImagerySelectionTest {
             )
         )
         assertEquals(2025, selected?.year)
-        assertEquals(listOf(3L), selected?.rasterIds)
+        assertEquals(listOf(3L, 2L, 1L), selected?.rasterIds)
         assertEquals(0.3, selected?.resolutionMeters ?: 0.0, 0.000001)
     }
 
     @Test
-    fun retainsAllMatchingTilesAtTheFinestResolutionInTheNewestVintage() {
+    fun ordersFinestTilesBeforeLowerResolutionFallbacksInNewestVintage() {
         val selected = NaipImageryRepository.selectBestRasters(
             listOf(
                 NaipImageryRepository.RasterRecord(10, 2025, 1_750_000_000_000, 0.3, "m", 4),
@@ -29,7 +29,7 @@ class NaipImagerySelectionTest {
                 NaipImageryRepository.RasterRecord(13, 2025, 1_750_300_000_000, 0.3, "m", 3)
             )
         )
-        assertEquals(listOf(10L, 11L), selected?.rasterIds)
+        assertEquals(listOf(10L, 11L, 12L), selected?.rasterIds)
         assertEquals(4, selected?.bandCount)
     }
 
@@ -41,7 +41,7 @@ class NaipImagerySelectionTest {
                 NaipImageryRepository.RasterRecord(21, 2024, null, 0.5, "m", 4)
             )
         )
-        assertEquals(listOf(21L), selected?.rasterIds)
+        assertEquals(listOf(21L, 20L), selected?.rasterIds)
         assertEquals(0.5, selected?.resolutionMeters ?: 0.0, 0.000001)
     }
 
