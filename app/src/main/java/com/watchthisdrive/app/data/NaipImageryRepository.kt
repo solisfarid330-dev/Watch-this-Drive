@@ -54,6 +54,46 @@ object NaipImageryRepository {
     }
 
     private val selectionCache = ConcurrentHashMap<String, ImagerySelection>()
+    internal data class RasterRecord(
+        val id: Long,
+        val year: Int?,
+        val acquisitionDateEpochMs: Long?,
+        val resolutionValue: Double?,
+        val resolutionUnits: String?,
+        val bandCount: Int
+    )
+
+    /** Newest acquisition wins; within that vintage, prefer finest native GSD. */
+    internal fun selectBestRasters(records: List<RasterRecord>): ImagerySelection? {
+        val valid = records.filter { it.id > 0 && it.bandCount >= 4 }
+        if (valid.isEmpty()) return null
+        val latestYear = valid.mapNotNull { it.year }.maxOrNull()
+        val vintage = if (latestYear != null) valid.filter { it.year == latestYear }
+            else {
+                val latestDate = valid.mapNotNull { it.acquisitionDateEpochMs }.maxOrNull()
+                if (latestDate != null) valid.filter { it.acquisitionDateEpochMs == latestDate } else valid
+            }
+        fun meters(record: RasterRecord): Double? {
+            val value = record.resolutionValue?.takeIf { it.isFinite() && it > 0 } ?: return null
+            return when (record.resolutionUnits?.lowercase(Locale.US)) {
+                "m", "meter", "meters" -> value
+                "ft", "feet", "foot" -> value * 0.3048
+                else -> value
+            }
+        }
+        val bestGsd = vintage.mapNotNull(::meters).minOrNull()
+        val selected = if (bestGsd == null) vintage else vintage.filter {
+            meters(it)?.let { gsd -> gsd <= bestGsd * 1.05 } == true
+        }
+        return ImagerySelection(
+            rasterIds = selected.map { it.id }.distinct(),
+            year = latestYear,
+            acquisitionDateEpochMs = selected.mapNotNull { it.acquisitionDateEpochMs }.maxOrNull(),
+            resolutionMeters = selected.mapNotNull(::meters).minOrNull(),
+            bandCount = selected.minOf { it.bandCount }
+        )
+    }
+
 
     fun loadOrFetch(
         context: Context,
@@ -283,34 +323,20 @@ object NaipImageryRepository {
             val body = connection.inputStream.bufferedReader().use { it.readText() }
             if (body.length > MAX_METADATA_BYTES) return null
             val features = JSONObject(body).optJSONArray("features") ?: return null
-            data class Record(val id: Long, val year: Int?, val date: Long?, val resolution: Double?, val bands: Int)
             val records = (0 until features.length()).mapNotNull { index ->
                 val attrs = features.optJSONObject(index)?.optJSONObject("attributes") ?: return@mapNotNull null
-                val id = value(attrs, "OBJECTID", "objectid")?.toLongOrNull()?.takeIf { it > 0 } ?: return@mapNotNull null
+                val id = value(attrs, "OBJECTID", "objectid")?.toLongOrNull() ?: return@mapNotNull null
                 val bands = value(attrs, "band_count", "Band_Count")?.toIntOrNull() ?: return@mapNotNull null
-                if (bands < 4) return@mapNotNull null
-                Record(
-                    id,
-                    value(attrs, "Year", "year")?.toIntOrNull(),
-                    value(attrs, "acquisition_date", "Acquisition_Date")?.toLongOrNull(),
-                    value(attrs, "resolution_value", "Resolution_Value")?.toDoubleOrNull()?.takeIf { it > 0 },
-                    bands
+                RasterRecord(
+                    id = id,
+                    year = value(attrs, "Year", "year")?.toIntOrNull(),
+                    acquisitionDateEpochMs = value(attrs, "acquisition_date", "Acquisition_Date")?.toLongOrNull(),
+                    resolutionValue = value(attrs, "resolution_value", "Resolution_Value")?.toDoubleOrNull(),
+                    resolutionUnits = value(attrs, "resolution_units", "Resolution_Units"),
+                    bandCount = bands
                 )
-            }.sortedWith(
-                compareByDescending<Record> { it.year ?: 0 }
-                    .thenBy { it.resolution ?: Double.POSITIVE_INFINITY }
-                    .thenByDescending { it.date ?: 0L }
-            )
-            if (records.isEmpty()) return null
-            val chosenYear = records.first().year
-            val chosen = if (chosenYear != null) records.filter { it.year == chosenYear } else records
-            ImagerySelection(
-                rasterIds = chosen.map { it.id },
-                year = chosenYear,
-                acquisitionDateEpochMs = chosen.mapNotNull { it.date }.maxOrNull(),
-                resolutionMeters = chosen.mapNotNull { it.resolution }.minOrNull(),
-                bandCount = chosen.minOf { it.bands }
-            )
+            }
+            selectBestRasters(records)
         } catch (_: Exception) {
             null
         } finally {
