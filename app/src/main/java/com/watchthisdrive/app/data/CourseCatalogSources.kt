@@ -192,6 +192,11 @@ object CourseCatalogSources {
         future: CompletableFuture<List<GolfCourse>>,
         deadlineNanos: Long
     ): List<GolfCourse> {
+        // A different provider may have consumed the shared deadline while
+        // this one was already finishing. Never discard a completed result.
+        if (future.isDone) {
+            return runCatching { future.getNow(emptyList()) }.getOrDefault(emptyList())
+        }
         val remaining = deadlineNanos - System.nanoTime()
         if (remaining <= 0L) {
             future.cancel(true)
