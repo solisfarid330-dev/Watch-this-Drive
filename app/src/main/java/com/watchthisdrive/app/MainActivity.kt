@@ -412,7 +412,12 @@ private fun RoundHubScreen(
                 TextButton(onClick = { onHoleSelected((activeHole + 1).coerceAtMost(18)) }, enabled = activeHole < 18) { Text("NEXT") }
             }
         }
-        val holeData = reconstructedHoles.firstOrNull { it.number == activeHole }
+        val mappedHole = reconstructedHoles.firstOrNull { it.number == activeHole }
+        val catalogHole = course.scorecard.firstOrNull { it.number == activeHole }
+        val holeData = mappedHole?.copy(
+            par = mappedHole.par ?: catalogHole?.par,
+            handicap = mappedHole.handicap ?: catalogHole?.handicap
+        )
         Card(
             Modifier.fillMaxWidth().padding(horizontal = 14.dp),
             colors = CardDefaults.cardColors(containerColor = Color(0xFF1D2A22)),
