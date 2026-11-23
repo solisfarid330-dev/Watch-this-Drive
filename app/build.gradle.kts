@@ -41,7 +41,7 @@ val generatedCourseAssets = File(layout.buildDirectory.get().asFile, "generated/
 android.sourceSets.getByName("main").assets.srcDir(generatedCourseAssets)
 
 val ensureOpenGolfOfflineCatalog = tasks.register("ensureOpenGolfOfflineCatalog") {
-    val catalogFile = File(generatedCourseAssets, "opengolfapi-us.geojson.gz")
+    val catalogFile = project.file("src/main/assets/opengolfapi-us.geojson.gz")
     outputs.file(catalogFile)
     outputs.upToDateWhen { false }
     doLast {
@@ -91,6 +91,7 @@ val ensureOpenGolfOfflineCatalog = tasks.register("ensureOpenGolfOfflineCatalog"
         if (contentHash != expectedGeoJson) {
             throw GradleException("OpenGolfAPI GeoJSON content failed its SHA-256 check")
         }
+        logger.lifecycle("Verified OpenGolfAPI catalog asset: ${catalogFile.absolutePath} (${catalogFile.length()} bytes)")
     }
 }
 
