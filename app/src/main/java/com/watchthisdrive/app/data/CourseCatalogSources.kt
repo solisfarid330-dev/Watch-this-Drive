@@ -43,7 +43,9 @@ object CourseCatalogSources {
         val offline = runCatching {
             OfflineCourseCatalog.searchNearby(context.applicationContext, latitude, longitude)
         }.getOrDefault(emptyList())
-        val region = reverseRegion(context.applicationContext, latitude, longitude) ?: return offline
+        val region = runCatching {
+            reverseRegion(context.applicationContext, latitude, longitude)
+        }.getOrNull() ?: return offline
         val cacheKey = listOf(region.countryCode, region.stateCode ?: region.admin1.orEmpty())
             .joinToString("_").lowercase(Locale.US).replace(Regex("[^a-z0-9_-]"), "_")
         val cacheFile = File(context.filesDir, "course_catalog_$cacheKey.json")
