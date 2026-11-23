@@ -184,6 +184,16 @@ object CourseCatalogSources {
                     (candidate.holes?.let { 1 } ?: 0)
             } ?: group.first()
             best.copy(
+                city = best.city ?: group.firstNotNullOfOrNull { it.city },
+                region = best.region ?: group.firstNotNullOfOrNull { it.region },
+                countryCode = best.countryCode ?: group.firstNotNullOfOrNull { it.countryCode },
+                address = best.address ?: group.firstNotNullOfOrNull { it.address },
+                postalCode = best.postalCode ?: group.firstNotNullOfOrNull { it.postalCode },
+                holes = best.holes ?: group.firstNotNullOfOrNull { it.holes },
+                par = best.par ?: group.firstNotNullOfOrNull { it.par },
+                courseType = best.courseType ?: group.firstNotNullOfOrNull { it.courseType },
+                website = best.website ?: group.firstNotNullOfOrNull { it.website },
+                phone = best.phone ?: group.firstNotNullOfOrNull { it.phone },
                 sourceNames = group.flatMap { it.sourceNames }.toSet(),
                 openGolfId = group.firstNotNullOfOrNull { it.openGolfId },
                 teeTimeId = group.firstNotNullOfOrNull { it.teeTimeId },
