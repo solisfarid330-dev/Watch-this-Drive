@@ -1194,6 +1194,7 @@ private fun CourseDetailScreen(
             course.countryCode?.let { "Country" to it },
             course.holes?.let { "Holes" to it.toString() },
             course.par?.let { "Par" to it.toString() },
+            course.totalYardage?.let { "Total yardage" to "$it yd" },
             course.courseType?.let { "Type" to it },
             course.address?.let { "Address" to it },
             course.postalCode?.let { "Postal code" to it },
