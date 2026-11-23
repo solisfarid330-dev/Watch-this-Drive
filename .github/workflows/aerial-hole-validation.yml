@@ -7,6 +7,7 @@ on:
       - "research/naip_spectral_experiment.py"
       - "research/naip_fairway_classifier.py"
       - "research/naip_unsupervised_turf.py"
+      - "research/hole_feature_association.py"
       - ".github/workflows/aerial-hole-validation.yml"
   workflow_dispatch:
 permissions:
@@ -177,6 +178,21 @@ jobs:
             --tiff research/results/westwood/aerial-validation/hole-1-naip-2022-rgbir.tif \
             --corridor-m 35 \
             --out research/results/westwood/aerial-validation/unsupervised-35m
+      - name: Audit endpoint-based hole feature associations for South Padre
+        run: |
+          python research/hole_feature_association.py \
+            --geojson research/results/south-padre/features.geojson \
+            --out research/results/south-padre/hole-association-audit.json
+      - name: Audit endpoint-based hole feature associations for Westwood
+        run: |
+          python research/hole_feature_association.py \
+            --geojson research/results/westwood/features.geojson \
+            --out research/results/westwood/hole-association-audit.json
+      - name: Audit endpoint-based hole feature associations for Cottonwood
+        run: |
+          python research/hole_feature_association.py \
+            --geojson research/results/cottonwood-creek/features.geojson \
+            --out research/results/cottonwood-creek/hole-association-audit.json
       - name: Commit imagery and overlays
         run: |
           git config user.name "github-actions[bot]"
