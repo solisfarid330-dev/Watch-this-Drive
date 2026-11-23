@@ -6,3 +6,5 @@ local.properties
 .idea/
 .DS_Store
 
+# Downloaded and SHA-verified during Gradle builds
+app/src/main/assets/opengolfapi-us.geojson.gz
