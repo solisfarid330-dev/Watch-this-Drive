@@ -47,9 +47,9 @@ jobs:
           apk="app/build/outputs/apk/debug/app-debug.apk"
           echo "Packaged APK assets:"
           unzip -l "$apk" | grep 'assets/' || true
-          unzip -l "$apk" | grep -q "assets/opengolfapi-us.geojson.gz"
-          catalog_sha=$(unzip -p "$apk" assets/opengolfapi-us.geojson.gz | sha256sum | cut -d ' ' -f 1)
-          test "$catalog_sha" = "c3b3bd4b1b3894fe5b9a6f0e84df43472f55aaad2602faeb58ef56a709db1a39"
+          unzip -l "$apk" | grep -q "assets/opengolfapi-us.geojson"
+          catalog_sha=$(unzip -p "$apk" assets/opengolfapi-us.geojson | sha256sum | cut -d ' ' -f 1)
+          test "$catalog_sha" = "fb4aa24aa8bce2fe338812bc316a2067720c6ffb7874429f5c037b31578300db"
           unzip -p "$apk" assets/COURSE_DATA_ATTRIBUTION.txt | grep -q "OpenGolfAPI"
 
       - name: Upload APK
