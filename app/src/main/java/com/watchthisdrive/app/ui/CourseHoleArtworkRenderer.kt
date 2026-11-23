@@ -20,7 +20,7 @@ import kotlin.math.*
 
 /** Rich tee-bottom/green-top artwork, fitted to the complete reconstructed hole. */
 internal object CourseHoleArtworkRenderer {
-    private const val VERSION = 15
+    private const val VERSION = 16
     private const val WIDTH = 1200
     private const val HEIGHT = 1800
     private const val LEFT = 48.0
@@ -145,10 +145,10 @@ internal object CourseHoleArtworkRenderer {
             val imageMatrix = Matrix()
             if (imageMatrix.setPolyToPoly(source, 0, destination, 0, 4)) {
                 val aerialPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG).apply {
-                    alpha = 158
+                    alpha = 190
                 }
                 canvas.drawBitmap(aerialBitmap, imageMatrix, aerialPaint)
-                paint.color = 0x55E8EAD8
+                paint.color = 0x33E8EAD8
                 canvas.drawRect(full, paint)
                 paint.color = android.graphics.Color.WHITE
             }
@@ -228,7 +228,7 @@ internal object CourseHoleArtworkRenderer {
 
         // Mapped woodland and rough establish the surrounding course landscape.
         hole.woodland.forEach { feature ->
-            val path = polygon(feature.points, 0xFF526C46.toInt(), 0xFF7F9464.toInt(), 5f)
+            val path = polygon(feature.points, 0xD6526C46.toInt(), 0xCC7F9464.toInt(), 5f)
             if (path != null) {
                 canvas.save(); canvas.clipPath(path)
                 for (row in 0..12) for (col in 0..8) {
@@ -244,7 +244,7 @@ internal object CourseHoleArtworkRenderer {
             }
         }
         hole.rough.forEach { feature ->
-            val path = polygon(feature.points, 0xFF9BAE78.toInt(), 0x99758C5C.toInt(), 3f)
+            val path = polygon(feature.points, 0xD69BAE78.toInt(), 0x99758C5C.toInt(), 3f)
             if (path != null) {
                 canvas.save(); canvas.clipPath(path)
                 val seed = (feature.id % 113L).toInt()
@@ -278,7 +278,7 @@ internal object CourseHoleArtworkRenderer {
         // Mapped fairway polygons retain their exact footprint; inferred corridor is softer.
         val fairways = if (hole.usesMappedFairway) hole.mappedFairways.map { it.points } else listOf(hole.fairwayEstimate)
         fairways.forEach { points ->
-            val path = polygon(points, if (hole.usesMappedFairway) 0xFF4F8950.toInt() else 0xCC779A60.toInt(),
+            val path = polygon(points, if (hole.usesMappedFairway) 0xCC4F8950.toInt() else 0xAA779A60.toInt(),
                 0xFFEAF0D1.toInt(), 10f)
             if (path != null) {
                 canvas.save(); canvas.clipPath(path)
@@ -310,7 +310,7 @@ internal object CourseHoleArtworkRenderer {
 
         // Water bodies, with soft shore outlines and ripples.
         hole.water.forEach { feature ->
-            val path = polygon(feature.points, 0xFF438F9F.toInt(), 0xFFB9D9D5.toInt(), 8f)
+            val path = polygon(feature.points, 0xD8438F9F.toInt(), 0xFFB9D9D5.toInt(), 8f)
             if (path != null) {
                 canvas.save(); canvas.clipPath(path)
                 paint.style = Paint.Style.STROKE; paint.strokeWidth = 3f; paint.color = 0x347DE0E8
@@ -328,7 +328,7 @@ internal object CourseHoleArtworkRenderer {
 
         // Green is distinct from fairway, with subtle contours and a soft highlight.
         val greenCenter = xy(hole.green)
-        val green = polygon(hole.greenBoundary, 0xFF9DBF65.toInt(), 0xFFF0F4C8.toInt(), 11f)
+        val green = polygon(hole.greenBoundary, 0xD89DBF65.toInt(), 0xFFF0F4C8.toInt(), 11f)
         if (green != null) {
             canvas.save(); canvas.clipPath(green)
             paint.shader = RadialGradient(greenCenter.first, greenCenter.second, 420f,
@@ -346,7 +346,7 @@ internal object CourseHoleArtworkRenderer {
 
         // Bunkers: warm sand, sculpted lip and fine rake texture.
         hole.bunkers.forEach { feature ->
-            val path = polygon(feature.points, 0xFFE8D5AA.toInt(), 0xFFFFF0D0.toInt(), 7f)
+            val path = polygon(feature.points, 0xD8E8D5AA.toInt(), 0xFFFFF0D0.toInt(), 7f)
             if (path != null) {
                 canvas.save(); canvas.clipPath(path)
                 paint.style = Paint.Style.STROKE; paint.color = 0x397F6941; paint.strokeWidth = 2f
