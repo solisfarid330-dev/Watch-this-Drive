@@ -1,0 +1,92 @@
+#!/usr/bin/env python3
+"""Fetch NAIP aerial imagery and render OSM hole geometry for visual QA."""
+from __future__ import annotations
+import argparse, json, math, urllib.parse, urllib.request, io
+from pathlib import Path
+from PIL import Image, ImageDraw, ImageFont
+
+R = 6378137.0
+SERVICE = "https://imagery.geographic.texas.gov/server/rest/services/NAIP/NAIP22_NCCIR_60cm/ImageServer/exportImage"
+COLORS = {"hole":(255,235,0,255),"fairway":(50,210,90,100),"green":(40,255,80,170),"bunker":(235,190,105,180),"water_hazard":(40,140,255,170),"tee":(255,60,60,180),"rough":(130,180,80,70)}
+LABELS = {"hole":"Hole centerline","fairway":"Fairway","green":"Green","bunker":"Bunker","water_hazard":"Water hazard","tee":"Tee","rough":"Rough"}
+
+def mercator(lon, lat):
+    lat=max(-85.05112878,min(85.05112878,lat))
+    return R*math.radians(lon), R*math.log(math.tan(math.pi/4+math.radians(lat)/2))
+def points(g):
+    k,c=g["type"],g["coordinates"]
+    if k=="Point": yield c
+    elif k=="LineString": yield from c
+    elif k=="MultiLineString":
+        for line in c: yield from line
+    elif k=="Polygon":
+        for ring in c: yield from ring
+    elif k=="MultiPolygon":
+        for poly in c:
+            for ring in poly: yield from ring
+def rings(g):
+    if g["type"]=="Polygon": yield g["coordinates"]
+    elif g["type"]=="MultiPolygon": yield from g["coordinates"]
+def lines(g):
+    if g["type"]=="LineString": yield g["coordinates"]
+    elif g["type"]=="MultiLineString": yield from g["coordinates"]
+
+def main():
+    ap=argparse.ArgumentParser()
+    ap.add_argument("--geojson",required=True); ap.add_argument("--hole-ref",required=True)
+    ap.add_argument("--out",required=True); ap.add_argument("--buffer-m",type=float,default=65)
+    ap.add_argument("--width",type=int,default=1600); ap.add_argument("--height",type=int,default=1100)
+    a=ap.parse_args()
+    fc=json.loads(Path(a.geojson).read_text()); fs=fc["features"]
+    hs=[f for f in fs if f["properties"].get("golf")=="hole" and str(f["properties"].get("ref") or f["properties"].get("golf:hole") or "")==a.hole_ref]
+    if len(hs)!=1: raise SystemExit(f"Expected one explicitly numbered hole {a.hole_ref}; found {len(hs)}")
+    hole=hs[0]; hp=[mercator(*p) for p in points(hole["geometry"])]
+    if len(hp)<2: raise SystemExit("Selected hole has insufficient geometry")
+    minx=min(p[0] for p in hp)-a.buffer_m; maxx=max(p[0] for p in hp)+a.buffer_m
+    miny=min(p[1] for p in hp)-a.buffer_m; maxy=max(p[1] for p in hp)+a.buffer_m
+    aspect=(maxx-minx)/(maxy-miny); w,h=a.width,a.height
+    if w/h>aspect: w=int(h*aspect)
+    else: h=int(w/aspect)
+    params={"bbox":f"{minx:.3f},{miny:.3f},{maxx:.3f},{maxy:.3f}","bboxSR":"3857","imageSR":"3857","size":f"{w},{h}","format":"png32","pixelType":"U8","interpolation":"RSP_Bilinear","adjustAspectRatio":"false","f":"image"}
+    req=urllib.request.Request(SERVICE+"?"+urllib.parse.urlencode(params),headers={"User-Agent":"WatchThisDrive-Research/0.1","Accept":"image/png"})
+    with urllib.request.urlopen(req,timeout=120) as res:
+        raw=res.read(); ctype=res.headers.get("Content-Type","")
+    if "image" not in ctype.lower() or not raw.startswith(b"\x89PNG"): raise RuntimeError(f"NAIP service did not return PNG (type={ctype}, bytes={len(raw)})")
+    out=Path(a.out); out.mkdir(parents=True,exist_ok=True)
+    rawpath=out/f"hole-{a.hole_ref}-naip-2022.png"; overlaypath=out/f"hole-{a.hole_ref}-osm-overlay.png"
+    aerial=Image.open(io.BytesIO(raw)).convert("RGBA")
+    if aerial.size!=(w,h): raise RuntimeError(f"Unexpected dimensions {aerial.size}, expected {(w,h)}")
+    aerial.save(rawpath)
+    def px(p):
+        x,y=mercator(*p); return ((x-minx)/(maxx-minx)*(w-1),(maxy-y)/(maxy-miny)*(h-1))
+    layer=Image.new("RGBA",(w,h),(0,0,0,0)); d=ImageDraw.Draw(layer,"RGBA"); visible={}
+    for f in fs:
+        g=f["geometry"]; kind=f["properties"].get("golf")
+        if kind not in COLORS or f is hole: continue
+        ps=[mercator(*p) for p in points(g)]
+        if not ps or max(p[0] for p in ps)<minx or min(p[0] for p in ps)>maxx or max(p[1] for p in ps)<miny or min(p[1] for p in ps)>maxy: continue
+        visible[kind]=visible.get(kind,0)+1; color=COLORS[kind]
+        for poly in rings(g):
+            if poly:
+                d.polygon([px(p) for p in poly[0]],fill=color,outline=(color[0],color[1],color[2],230))
+                for inner in poly[1:]: d.polygon([px(p) for p in inner],fill=(0,0,0,0))
+        for line in lines(g):
+            if len(line)>1: d.line([px(p) for p in line],fill=color,width=3)
+        if g["type"]=="Point":
+            x,y=px(g["coordinates"]); d.ellipse((x-5,y-5,x+5,y+5),fill=color,outline=(20,20,20,255))
+    for line in lines(hole["geometry"]):
+        d.line([px(p) for p in line],fill=COLORS["hole"],width=5)
+        for p in line:
+            x,y=px(p); d.ellipse((x-5,y-5,x+5,y+5),fill=COLORS["hole"],outline=(20,20,20,255))
+    d.rounded_rectangle((12,12,340,245),radius=10,fill=(0,0,0,190)); font=ImageFont.load_default()
+    d.text((24,22),f"OSM overlay — hole {a.hole_ref}",fill="white",font=font); y=46
+    for k in ("hole","fairway","green","bunker","water_hazard","tee","rough"):
+        if k=="hole" or visible.get(k,0):
+            col=COLORS[k]; d.rectangle((24,y+1,39,y+12),fill=col)
+            d.text((47,y),f"{LABELS[k]} ({visible.get(k,1 if k=='hole' else 0)})",fill="white",font=font); y+=20
+    d.text((24,218),"Texas NAIP 2022 · 60 cm · USDA/Texas GIO",fill="white",font=font)
+    Image.alpha_composite(aerial,layer).convert("RGB").save(overlaypath,quality=95)
+    meta={"hole_ref":a.hole_ref,"hole_osm_id":hole["properties"].get("osm_id"),"imagery_service":SERVICE,"imagery_acquisition":"Texas NAIP 2022 growing season (May–September 2022)","ground_sample_distance_m":0.6,"imagery_attribution":"Texas Geographic Information Office, USDA","osm_attribution":"© OpenStreetMap contributors","osm_license":"ODbL-1.0","export_bbox_web_mercator_m":[minx,miny,maxx,maxy],"export_size_pixels":[w,h],"buffer_m":a.buffer_m,"visible_osm_feature_element_counts":visible,"files":[rawpath.name,overlaypath.name],"limitations":["Visual overlay only; not a ground-truth accuracy measurement.","NAIP is aerial orthophotography, not satellite imagery.","2022 imagery may differ from current course conditions.","OSM features may be incomplete or misclassified.","No image segmentation or missing-feature inference is performed."]}
+    (out/f"hole-{a.hole_ref}-validation.json").write_text(json.dumps(meta,indent=2)+"\n")
+    print(json.dumps(meta,indent=2))
+if __name__=="__main__": main()
