@@ -31,4 +31,18 @@ class EndpointAssociationTests(unittest.TestCase):
         result=audit.analyze(collection)
         self.assertEqual(result["holes"][0]["corridor_feature_candidates"][0]["assignment"],"corridor_candidate_only")
 
+    def test_reversed_line_direction_is_inferred_from_markers(self):
+        collection={"features":[
+            {"properties":{"golf":"hole","osm_id":1,"ref":"1"},"geometry":{"type":"LineString","coordinates":[[-96.999,26.0],[-97.0,26.0]]}},
+            {"properties":{"golf":"tee","osm_type":"way","osm_id":2},"geometry":{"type":"Polygon","coordinates":[[[-97.00002,25.99998],[-96.99998,25.99998],[-96.99998,26.00002],[-97.00002,26.00002],[-97.00002,25.99998]]]}},
+            {"properties":{"golf":"green","osm_type":"way","osm_id":3},"geometry":{"type":"Polygon","coordinates":[[[-96.99902,25.99998],[-96.99898,25.99998],[-96.99898,26.00002],[-96.99902,26.00002],[-96.99902,25.99998]]]}},
+        ]}
+        result=audit.analyze(collection)
+        hole=result["holes"][0]
+        self.assertEqual(hole["line_direction"]["selected"],"reversed")
+        markers=hole["endpoint_marker_candidates"]
+        self.assertEqual(markers["tee"]["strong_endpoint_candidates"][0]["osm_id"],2)
+        self.assertEqual(markers["green"]["strong_endpoint_candidates"][0]["osm_id"],3)
+
+
 if __name__=="__main__":unittest.main()
