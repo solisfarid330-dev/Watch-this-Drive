@@ -66,6 +66,7 @@ def discover_course(course_name: str, location: str) -> dict:
         "addressdetails": 1,
         "limit": 10,
         "namedetails": 1,
+        "extratags": 1,
     })
     results = get_json(f"{NOMINATIM}/search?{query}")
     if not results:
