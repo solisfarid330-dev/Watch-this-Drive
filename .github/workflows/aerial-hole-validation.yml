@@ -21,11 +21,25 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install Pillow
-        run: python -m pip install --disable-pip-version-check Pillow
+        run: python -m pip install --disable-pip-version-check Pillow numpy
       - name: South Padre Hole 1 imagery and overlay
         run: python research/aerial_validation.py --geojson research/results/south-padre/features.geojson --hole-ref 1 --out research/results/south-padre/aerial-validation
       - name: Westwood Hole 1 imagery and overlay
         run: python research/aerial_validation.py --geojson research/results/westwood/features.geojson --hole-ref 1 --out research/results/westwood/aerial-validation
+      - name: Run RGBIR spectral experiment for South Padre
+        run: |
+          python research/naip_spectral_experiment.py \
+            --geojson research/results/south-padre/features.geojson \
+            --metadata research/results/south-padre/aerial-validation/hole-1-validation.json \
+            --tiff research/results/south-padre/aerial-validation/hole-1-naip-2022-rgbir.tif \
+            --out research/results/south-padre/aerial-validation/spectral-experiment
+      - name: Run RGBIR spectral experiment for Westwood
+        run: |
+          python research/naip_spectral_experiment.py \
+            --geojson research/results/westwood/features.geojson \
+            --metadata research/results/westwood/aerial-validation/hole-1-validation.json \
+            --tiff research/results/westwood/aerial-validation/hole-1-naip-2022-rgbir.tif \
+            --out research/results/westwood/aerial-validation/spectral-experiment
       - name: Commit imagery and overlays
         run: |
           git config user.name "github-actions[bot]"
