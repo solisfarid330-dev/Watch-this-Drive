@@ -61,6 +61,46 @@ def line_distance_to_geometry(line,geometry,lat0):
         return min((point_segment_distance(p,a,b) for a,b in zip(projected,projected[1:])),default=float("inf"))
     return min(geometry_distance(point,geometry,lat0) for point in line)
 
+def choose_line_direction(features,line,lat0):
+    original_start,original_end=line[0],line[-1]
+    nearest={}
+    for cls in MARKERS:
+        distances=[]
+        for feature in features:
+            if feature.get("properties",{}).get("golf")==cls:
+                distances.append((geometry_distance(original_start,feature["geometry"],lat0),
+                                  geometry_distance(original_end,feature["geometry"],lat0)))
+        if distances:
+            nearest[cls]=(min(x[0] for x in distances),min(x[1] for x in distances))
+    if "tee" in nearest and "green" in nearest:
+        forward=nearest["tee"][0]+nearest["green"][1]
+        reverse=nearest["tee"][1]+nearest["green"][0]
+        basis="nearest tee plus nearest green endpoints"
+    elif "pin" in nearest:
+        forward=nearest["pin"][1]
+        reverse=nearest["pin"][0]
+        basis="nearest pin endpoint"
+    elif "green" in nearest:
+        forward=nearest["green"][1]
+        reverse=nearest["green"][0]
+        basis="nearest green endpoint"
+    elif "tee" in nearest:
+        forward=nearest["tee"][0]
+        reverse=nearest["tee"][1]
+        basis="nearest tee endpoint"
+    else:
+        return original_start,original_end,{"selected":"ambiguous","forward_score_m":None,"reverse_score_m":None,"basis":"no tee, green, or pin markers"}
+    if abs(forward-reverse)<10:
+        selected="ambiguous"
+        start,end=original_start,original_end
+    elif forward<reverse:
+        selected="forward"
+        start,end=original_start,original_end
+    else:
+        selected="reversed"
+        start,end=original_end,original_start
+    return start,end,{"selected":selected,"forward_score_m":round(forward,1),"reverse_score_m":round(reverse,1),"basis":basis}
+
 def analyze(collection, endpoint_limit_m=30.0, pin_limit_m=20.0, corridor_limit_m=45.0):
     features=collection.get("features",[])
     holes=[f for f in features if f.get("properties",{}).get("golf")=="hole" and f.get("geometry",{}).get("type") in ("LineString","MultiLineString")]
@@ -70,7 +110,8 @@ def analyze(collection, endpoint_limit_m=30.0, pin_limit_m=20.0, corridor_limit_
         line=max(lines,key=len)
         if len(line)<2: continue
         lat0=sum(p[1] for p in line)/len(line)
-        start,end=line[0],line[-1]
+        start,end,direction=choose_line_direction(features,line,lat0)
+        direction_known=direction["selected"]!="ambiguous"
         marker_candidates={}
         for cls in MARKERS:
             candidates=[]
@@ -86,19 +127,19 @@ def analyze(collection, endpoint_limit_m=30.0, pin_limit_m=20.0, corridor_limit_
                 })
             candidates.sort(key=lambda x:min(x["distance_to_start_m"],x["distance_to_end_m"]))
             if cls=="pin":
-                accepted=[x for x in candidates if x["distance_to_end_m"]<=pin_limit_m and x["distance_to_start_m"]-x["distance_to_end_m"]>=10]
+                accepted=[x for x in candidates if direction_known and x["distance_to_end_m"]<=pin_limit_m and x["distance_to_start_m"]-x["distance_to_end_m"]>=10]
                 role="green_end_pin_candidate"
             elif cls=="tee":
-                accepted=[x for x in candidates if x["distance_to_start_m"]<=endpoint_limit_m and x["distance_to_end_m"]-x["distance_to_start_m"]>=10]
+                accepted=[x for x in candidates if direction_known and x["distance_to_start_m"]<=endpoint_limit_m and x["distance_to_end_m"]-x["distance_to_start_m"]>=10]
                 role="tee_end_candidate"
             else:
-                accepted=[x for x in candidates if x["distance_to_end_m"]<=endpoint_limit_m and x["distance_to_start_m"]-x["distance_to_end_m"]>=10]
+                accepted=[x for x in candidates if direction_known and x["distance_to_end_m"]<=endpoint_limit_m and x["distance_to_start_m"]-x["distance_to_end_m"]>=10]
                 role="green_end_candidate"
             marker_candidates[cls]={
                 "role_test":role,
                 "strong_endpoint_candidates":accepted,
                 "nearest_candidates":candidates[:5],
-                "status":"candidate_only" if accepted else "not_found_with_endpoint_rule"
+                "status":"candidate_only" if accepted else ("ambiguous_line_direction" if not direction_known else "not_found_with_endpoint_rule")
             }
         corridor=[]
         for feature in features:
@@ -112,18 +153,19 @@ def analyze(collection, endpoint_limit_m=30.0, pin_limit_m=20.0, corridor_limit_
             "hole_ref":hole.get("properties",{}).get("ref") or hole.get("properties",{}).get("golf:hole"),
             "hole_osm_id":hole.get("properties",{}).get("osm_id"),
             "line_start":start,"line_end":end,
+            "line_direction":direction,
             "endpoint_marker_candidates":marker_candidates,
             "corridor_feature_candidates":corridor,
             "interpretation":"Endpoint proximity is stronger evidence for tee/green/pin association than distance to any part of the hole line, but every result remains a candidate until checked against imagery or trusted course references."
         })
     return {
         "type":"WatchThisDriveHoleAssociationAudit",
-        "method":"Local equirectangular endpoint and centerline distance checks; no forced assignment.",
+        "method":"Choose line orientation from nearest tee/green endpoints, or pin endpoint when tee/green are unavailable; report conservative endpoint and centerline candidates without forced assignment.",
         "thresholds_m":{"tee_green_endpoint":endpoint_limit_m,"pin_green_endpoint":pin_limit_m,"corridor":corridor_limit_m},
         "hole_count":len(results),
         "holes":results,
         "limitations":[
-            "OSM hole-line direction is tested, not assumed to be universally tee-to-green.",
+            "Line orientation is inferred from nearby tee/green markers or pins; when evidence is ambiguous, no strong endpoint candidates are emitted.",
             "Endpoint proximity does not prove feature membership.",
             "Multiple nearby markers may belong to neighboring holes.",
             "Corridor features remain unassigned without stronger topology or imagery evidence."
