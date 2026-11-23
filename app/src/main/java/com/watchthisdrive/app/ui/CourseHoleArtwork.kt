@@ -347,8 +347,32 @@ fun CourseHoleArtworkForHole(
 ) {
     val context = LocalContext.current
     var aerialReference by remember(course.elementType, course.id) { mutableStateOf<AerialReference?>(null) }
+    var aerialLoading by remember(course.elementType, course.id, holeNumber, reconstructedHole) {
+        mutableStateOf(false)
+    }
     LaunchedEffect(course.elementType, course.id, geometry, reconstructedHole) {
-        aerialReference = reconstructedHole?.let { loadAerialReference(context, course, it) }
+        aerialReference = null
+        val hole = reconstructedHole
+        aerialLoading = hole != null
+        aerialReference = hole?.let { loadAerialReference(context, course, it) }
+        aerialLoading = false
+    }
+    // Play and Illustrated Holes use the same matched NAIP RGB+NDVI products
+    // and renderer cache key, so the golfer sees the same refined illustration
+    // in both places. NDVI remains optional and never blocks the RGB first pass.
+    LaunchedEffect(course.elementType, course.id, reconstructedHole, aerialReference?.cacheToken) {
+        val hole = reconstructedHole ?: return@LaunchedEffect
+        val base = aerialReference ?: return@LaunchedEffect
+        if (base.ndviBitmap != null) return@LaunchedEffect
+        val ndvi = loadNdviReference(context, course, hole) ?: return@LaunchedEffect
+        if (aerialReference?.cacheToken == base.cacheToken) {
+            val evidence = analyzeNdviEvidence(ndvi.bitmap, base.bounds, hole)
+            aerialReference = base.copy(
+                ndviBitmap = ndvi.bitmap,
+                cacheToken = base.cacheToken + ndvi.cacheToken,
+                ndviEvidence = evidence
+            )
+        }
     }
     val playerMarker = remember(playerLocation?.latitude, playerLocation?.longitude, reconstructedHole) {
         if (playerLocation != null && reconstructedHole != null) {
@@ -361,9 +385,9 @@ fun CourseHoleArtworkForHole(
     var loading by remember(course.elementType, course.id, holeNumber, reconstructedHole) { mutableStateOf(true) }
     var bitmap by remember(course.elementType, course.id, holeNumber, reconstructedHole) { mutableStateOf<Bitmap?>(null) }
 
-    LaunchedEffect(course.elementType, course.id, holeNumber, reconstructedHole, aerialReference) {
+    LaunchedEffect(course.elementType, course.id, holeNumber, reconstructedHole, aerialReference, aerialLoading) {
+        if (aerialLoading) return@LaunchedEffect
         loading = true
-        bitmap = null
         try {
             val pack = withContext(Dispatchers.IO) {
                 CourseHoleArtworkRepository.load(context, course)
@@ -378,23 +402,24 @@ fun CourseHoleArtworkForHole(
                     )
                 }
             }
-            bitmap = withContext(Dispatchers.IO) {
+            val renderedBitmap = withContext(Dispatchers.IO) {
                 generatedFile?.let { BitmapFactory.decodeFile(it.absolutePath) }
                     ?: entry?.let { CourseHoleArtworkRepository.bitmap(context, it.assetPath) }
             }
+            if (renderedBitmap != null) bitmap = renderedBitmap
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (_: Exception) {
-            // Keep the existing GPS-aware fallback visible if rendering or
-            // image decoding fails; never leave Play stuck on a spinner.
-            bitmap = null
+            // Keep the last good illustration visible while an optional imagery
+            // refinement is attempted. The GPS-aware fallback remains available
+            // if the first render itself cannot be produced.
         } finally {
             loading = false
         }
     }
 
     when {
-        loading -> Box(
+        loading && bitmap == null -> Box(
             Modifier.fillMaxWidth().height(180.dp),
             contentAlignment = androidx.compose.ui.Alignment.Center
         ) {
