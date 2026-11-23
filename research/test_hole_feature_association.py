@@ -16,12 +16,15 @@ class EndpointAssociationTests(unittest.TestCase):
     def test_pin_near_start_is_not_assigned_as_green_end(self):
         collection={"features":[
             {"properties":{"golf":"hole","osm_id":1,"ref":"1"},"geometry":{"type":"LineString","coordinates":[[-97.0,26.0],[-96.999,26.0]]}},
+            {"properties":{"golf":"tee","osm_type":"way","osm_id":4},"geometry":{"type":"Polygon","coordinates":[[[-97.00002,25.99998],[-96.99998,25.99998],[-96.99998,26.00002],[-97.00002,26.00002],[-97.00002,25.99998]]]}},
+            {"properties":{"golf":"green","osm_type":"way","osm_id":5},"geometry":{"type":"Polygon","coordinates":[[[-96.99902,25.99998],[-96.99898,25.99998],[-96.99898,26.00002],[-96.99902,26.00002],[-96.99902,25.99998]]]}},
             {"properties":{"golf":"pin","osm_type":"node","osm_id":2},"geometry":{"type":"Point","coordinates":[-97.0,26.0]}},
-            {"properties":{"golf":"pin","osm_type":"node","osm_id":3},"geometry":{"type":"Point","coordinates":[-96.999,26.0]}},
         ]}
         result=audit.analyze(collection)
-        accepted=result["holes"][0]["endpoint_marker_candidates"]["pin"]["strong_endpoint_candidates"]
-        self.assertEqual([x["osm_id"] for x in accepted],[3])
+        hole=result["holes"][0]
+        self.assertEqual(hole["line_direction"]["selected"],"forward")
+        accepted=hole["endpoint_marker_candidates"]["pin"]["strong_endpoint_candidates"]
+        self.assertEqual(accepted,[])
 
     def test_corridor_features_remain_candidates(self):
         collection={"features":[
