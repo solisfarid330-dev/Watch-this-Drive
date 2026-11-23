@@ -98,6 +98,24 @@ class ZommaGeoJsonParserTest {
     }
 
     @Test
+    fun directOsmGeometryWinsOverCoincidentZommaPrediction() {
+        val point = listOf(GeoPoint(32.0, -97.0), GeoPoint(32.001, -97.0), GeoPoint(32.0, -96.999))
+        val prediction = CourseFeature(
+            id = -1, elementType = "zomma", featureType = "fairway",
+            holeNumber = "2", name = null, points = point, source = "model", isPredicted = true
+        )
+        val mapped = CourseFeature(
+            id = 22, elementType = "way", featureType = "fairway",
+            holeNumber = "2", name = null, points = point, source = "OpenStreetMap"
+        )
+
+        val merged = CourseGeometryLoader.mergeProviderFeatures(listOf(prediction), listOf(mapped))
+        assertEquals(1, merged.size)
+        assertEquals("way", merged.single().elementType)
+        assertTrue(!merged.single().isPredicted)
+    }
+
+    @Test
     fun ignoresUnknownAndInvalidFeaturesWithoutInventingGeometry() {
         val json = """
             {
