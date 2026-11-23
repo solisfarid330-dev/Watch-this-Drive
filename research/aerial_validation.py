@@ -89,6 +89,18 @@ def main():
     aerial=Image.open(io.BytesIO(raw)).convert("RGBA")
     if aerial.size!=(w,h): raise RuntimeError(f"Unexpected dimensions {aerial.size}, expected {(w,h)}")
     aerial.save(rawpath)
+    # Preserve all four source bands (RGB + near infrared) for a separate
+    # conventional spectral-index experiment. TIFF avoids PNG alpha semantics.
+    spectral_params=dict(params)
+    spectral_params.update({"format":"tiff","bandIds":"0,1,2,3","pixelType":"U8"})
+    spectral_req=urllib.request.Request(SERVICE+"?"+urllib.parse.urlencode(spectral_params),
+        headers={"User-Agent":"WatchThisDrive-Research/0.1","Accept":"image/tiff"})
+    with urllib.request.urlopen(spectral_req,timeout=120) as res:
+        spectral_raw=res.read()
+    if not (spectral_raw.startswith(b"II*\\x00") or spectral_raw.startswith(b"MM\\x00*")):
+        raise RuntimeError("NAIP RGBIR export did not return a TIFF image")
+    spectral_path=out/f"hole-{a.hole_ref}-naip-2022-rgbir.tif"
+    spectral_path.write_bytes(spectral_raw)
     def px(p):
         x,y=mercator(*p); return ((x-minx)/(maxx-minx)*(w-1),(maxy-y)/(maxy-miny)*(h-1))
     layer=Image.new("RGBA",(w,h),(0,0,0,0)); d=ImageDraw.Draw(layer,"RGBA"); visible={}
@@ -123,7 +135,7 @@ def main():
             d.text((47,y),f"{LABELS[k]} ({visible.get(k,1 if k=='hole' else 0)})",fill="white",font=font); y+=20
     d.text((24,218),"Texas NAIP 2022 · 60 cm · USDA/Texas GIO",fill="white",font=font)
     Image.alpha_composite(aerial,layer).convert("RGB").save(overlaypath,quality=95)
-    meta={"hole_ref":a.hole_ref,"hole_osm_id":hole["properties"].get("osm_id"),"imagery_service":SERVICE,"imagery_acquisition":"Texas NAIP 2022 growing season (May–September 2022)","ground_sample_distance_m":0.6,"imagery_attribution":"Texas Geographic Information Office, USDA","osm_attribution":"© OpenStreetMap contributors","osm_license":"ODbL-1.0","export_bbox_web_mercator_m":[minx,miny,maxx,maxy],"export_size_pixels":[w,h],"buffer_m":a.buffer_m,"feature_corridor_m":a.feature_corridor_m,"visible_osm_feature_element_counts":visible,"candidate_feature_distances":candidate_distances,"files":[rawpath.name,overlaypath.name],"limitations":["Visual overlay only; not a ground-truth accuracy measurement.", "Nearby features are candidates by distance, not confirmed hole assignments.","NAIP is aerial orthophotography, not satellite imagery.","2022 imagery may differ from current course conditions.","OSM features may be incomplete or misclassified.","No image segmentation or missing-feature inference is performed."]}
+    meta={"hole_ref":a.hole_ref,"hole_osm_id":hole["properties"].get("osm_id"),"imagery_service":SERVICE,"imagery_acquisition":"Texas NAIP 2022 growing season (May–September 2022)","ground_sample_distance_m":0.6,"imagery_attribution":"Texas Geographic Information Office, USDA","osm_attribution":"© OpenStreetMap contributors","osm_license":"ODbL-1.0","export_bbox_web_mercator_m":[minx,miny,maxx,maxy],"export_size_pixels":[w,h],"buffer_m":a.buffer_m,"feature_corridor_m":a.feature_corridor_m,"visible_osm_feature_element_counts":visible,"candidate_feature_distances":candidate_distances,"files":[rawpath.name,spectral_path.name,overlaypath.name],"source_band_order":"RGB + near infrared (band IDs 0,1,2,3; verify from image service metadata)","limitations":["Visual overlay only; not a ground-truth accuracy measurement.", "Nearby features are candidates by distance, not confirmed hole assignments.","NAIP is aerial orthophotography, not satellite imagery.","2022 imagery may differ from current course conditions.","OSM features may be incomplete or misclassified.","No image segmentation or missing-feature inference is performed."]}
     (out/f"hole-{a.hole_ref}-validation.json").write_text(json.dumps(meta,indent=2)+"\n")
     print(json.dumps(meta,indent=2))
 if __name__=="__main__": main()
