@@ -278,14 +278,14 @@ object CourseCatalogSources {
     private fun parseTeeTime(item: JSONObject?): GolfCourse? {
         item ?: return null
         if (item.optString("status", "active") != "active") return null
-        val name = item.optString("canonical_name").trim()
-        val lat = item.optDouble("lat", Double.NaN)
-        val lon = item.optDouble("lon", Double.NaN)
+        val name = item.firstString("canonical_name", "name").orEmpty().trim()
+        val lat = item.firstDouble("lat", "latitude") ?: Double.NaN
+        val lon = item.firstDouble("lon", "longitude") ?: Double.NaN
         if (name.isBlank() || !lat.isFinite() || !lon.isFinite()) return null
-        val id = item.optString("course_id").takeIf { it.isNotBlank() } ?: return null
+        val id = item.firstString("course_id", "id") ?: return null
         val city = item.optString("city").takeIf { it.isNotBlank() }
         val region = item.optString("admin1").takeIf { it.isNotBlank() }
-        val country = item.optString("country_code").takeIf { it.isNotBlank() }
+        val country = item.firstString("country_code", "country")
         return GolfCourse(
             id = stableId("teetime:$id"),
             elementType = "node",
