@@ -193,6 +193,39 @@ class ZommaGeoJsonParserTest {
     }
 
     @Test
+    fun providerMergeRecognizesSamePolygonWithReversedRingStartAndDirection() {
+        val firstRing = listOf(
+            GeoPoint(32.0, -97.0),
+            GeoPoint(32.0, -96.9991),
+            GeoPoint(32.0009, -96.9991),
+            GeoPoint(32.0009, -97.0),
+            GeoPoint(32.0, -97.0)
+        )
+        val reversedRing = listOf(
+            GeoPoint(32.0009, -96.9991),
+            GeoPoint(32.0, -96.9991),
+            GeoPoint(32.0, -97.0),
+            GeoPoint(32.0009, -97.0),
+            GeoPoint(32.0009, -96.9991)
+        )
+        val prediction = CourseFeature(
+            id = -11, elementType = "zomma", featureType = "fairway",
+            holeNumber = "3", name = null, points = firstRing,
+            source = "model prediction", isPredicted = true
+        )
+        val mapped = CourseFeature(
+            id = 31, elementType = "way", featureType = "fairway",
+            holeNumber = "3", name = null, points = reversedRing
+        )
+
+        val merged = CourseGeometryLoader.mergeProviderFeatures(listOf(prediction), listOf(mapped))
+
+        assertEquals(1, merged.size)
+        assertEquals("way", merged.single().elementType)
+        assertTrue(!merged.single().isPredicted)
+    }
+
+    @Test
     fun preservesEveryMultipolygonComponent() {
         val json = """
             {
