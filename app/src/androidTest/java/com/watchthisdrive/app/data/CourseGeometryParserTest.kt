@@ -46,7 +46,7 @@ class CourseGeometryParserTest {
         val fairway = result.features.single()
         assertEquals(CourseGeometryType.POLYGON, fairway.geometryType)
         assertEquals(2, fairway.rings.size)
-        assertEquals(2, fairway.rings[0].size)
+        assertEquals(5, fairway.rings[0].size)
         assertTrue(fairway.hasUsableGeometry)
         assertTrue(result.incompleteRelations.isEmpty())
     }
