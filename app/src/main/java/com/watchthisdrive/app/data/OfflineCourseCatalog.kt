@@ -17,7 +17,7 @@ import kotlin.math.cos
  * never used as hole geometry.
  */
 internal object OfflineCourseCatalog {
-    private const val DATABASE_VERSION = 1
+    private const val DATABASE_VERSION = 2
     private const val DATABASE_NAME = "watch_this_drive_courses.db"
     private const val ASSET_NAME = "opengolfapi-us.geojson"
     private const val DATASET_VERSION = "v2.1.0"
@@ -73,13 +73,20 @@ internal object OfflineCourseCatalog {
             cursor.moveToFirst()
             cursor.getLong(0)
         }
-        if (existing > 0L) return true
+        val importedVersion = db.rawQuery(
+            "SELECT value FROM catalog_meta WHERE key = 'dataset_version'", null
+        ).use { cursor -> if (cursor.moveToFirst()) cursor.getString(0) else null }
+        // Never treat a partial or stale import as a usable offline catalog.
+        // A previous interrupted/failed import must be recoverable on next launch.
+        if (existing >= 10_000L && importedVersion == DATASET_VERSION) return true
 
         return runCatching {
-            context.assets.open(ASSET_NAME).use { stream ->
-                JsonReader(InputStreamReader(stream, Charsets.UTF_8)).use { reader ->
-                    db.beginTransaction()
-                    try {
+            db.beginTransaction()
+            try {
+                db.delete("courses", null, null)
+                db.delete("catalog_meta", null, null)
+                context.assets.open(ASSET_NAME).use { stream ->
+                    JsonReader(InputStreamReader(stream, Charsets.UTF_8)).use { reader ->
                         reader.beginObject()
                         while (reader.hasNext()) {
                             when (reader.nextName()) {
@@ -92,15 +99,22 @@ internal object OfflineCourseCatalog {
                             }
                         }
                         reader.endObject()
-                        db.execSQL(
-                            "INSERT OR REPLACE INTO catalog_meta(key, value) VALUES('dataset_version', ?)",
-                            arrayOf(DATASET_VERSION)
-                        )
-                        db.setTransactionSuccessful()
-                    } finally {
-                        db.endTransaction()
                     }
                 }
+                val count = db.rawQuery("SELECT COUNT(*) FROM courses", null).use { cursor ->
+                    cursor.moveToFirst()
+                    cursor.getLong(0)
+                }
+                check(count >= 10_000L) {
+                    "Offline course catalog import was incomplete ($count records; expected at least 10,000)."
+                }
+                db.execSQL(
+                    "INSERT OR REPLACE INTO catalog_meta(key, value) VALUES('dataset_version', ?)",
+                    arrayOf(DATASET_VERSION)
+                )
+                db.setTransactionSuccessful()
+            } finally {
+                db.endTransaction()
             }
             val count = db.rawQuery("SELECT COUNT(*) FROM courses", null).use { cursor ->
                 cursor.moveToFirst()
@@ -374,17 +388,35 @@ internal object OfflineCourseCatalog {
         return try {
             if (!ensureImported(context.applicationContext, helper)) return emptyList()
             val pattern = "%$term%"
+            // Try the full phrase and a token-aware fallback. Catalog names often
+            // omit generic words such as "Golf Course" that users naturally type.
+            val tokens = term.lowercase(Locale.ROOT)
+                .split(Regex("[^a-z0-9]+"))
+                .filter { it.length >= 2 && it !in setOf("golf", "course", "club", "the", "at", "and") }
+                .distinct()
+                .take(6)
+                .ifEmpty { listOf(term.lowercase(Locale.ROOT)) }
+            val tokenConditions = tokens.joinToString(" AND ") {
+                "(name LIKE ? OR city LIKE ? OR state LIKE ? OR address LIKE ?)"
+            }
+            val arguments = mutableListOf(pattern, pattern, pattern, pattern)
+            tokens.forEach { token ->
+                val tokenPattern = "%$token%"
+                repeat(4) { arguments += tokenPattern }
+            }
             val cursor = helper.readableDatabase.rawQuery(
                 """
                 SELECT id, name, latitude, longitude, country, state, city, course_type,
                        holes, par, phone, website, address, postal_code, scorecard
                 FROM courses
                 WHERE country = 'US'
-                  AND (name LIKE ? OR city LIKE ? OR state LIKE ? OR address LIKE ?)
-                ORDER BY name
+                  AND ((name LIKE ? OR city LIKE ? OR state LIKE ? OR address LIKE ?)
+                       OR ($tokenConditions))
+                ORDER BY CASE WHEN lower(name) = lower(?) THEN 0
+                              WHEN name LIKE ? THEN 1 ELSE 2 END, name
                 LIMIT 100
                 """.trimIndent(),
-                arrayOf(pattern, pattern, pattern, pattern)
+                (arguments + listOf(term, pattern)).toTypedArray()
             )
             cursor.use {
                 val results = mutableListOf<GolfCourse>()
