@@ -25,12 +25,16 @@
     },
     "rough": {
       "pixels": 95826,
-      "candidate_fraction": 0.1177
+      "candidate_fraction": 0.0018
     }
   },
-  "candidate_pixels": 83607,
+  "candidate_pixels_before_component_filter": 83658,
+  "component_count_before_filter": 15,
+  "seeded_components_retained": 2,
+  "component_seed_filter_applied": true,
+  "candidate_pixels": 69963,
   "corridor_pixels": 317465,
-  "candidate_fraction_of_corridor": 0.2634,
+  "candidate_fraction_of_corridor": 0.2204,
   "limitations": [
     "OSM polygons are weak labels and may be incomplete or offset.",
     "SLIC segmentation is a conventional CV experiment, not a trained neural model.",
