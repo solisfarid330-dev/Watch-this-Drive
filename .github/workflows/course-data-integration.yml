@@ -38,8 +38,16 @@ jobs:
             --course "Cottonwood Creek Country Club" \
             --location "Harlingen, Texas, USA" \
             --out output/cottonwood-creek
+      - name: Run independent third-course extraction
+        id: third-course
+        continue-on-error: true
+        run: |
+          python research/course_data_audit.py \
+            --course "Westwood Country Club" \
+            --location "Houston, Texas, USA" \
+            --out output/westwood
       - name: Preserve source snapshots in research branch
-        if: steps.south-padre.outcome == 'success' && steps.second-course.outcome == 'success'
+        if: steps.south-padre.outcome == 'success' && steps.second-course.outcome == 'success' && steps.third-course.outcome == 'success'
         run: |
           mkdir -p research/results/south-padre research/results/cottonwood-creek
           cp output/south-padre/source-response.json research/results/south-padre/
@@ -48,6 +56,10 @@ jobs:
           cp output/cottonwood-creek/source-response.json research/results/cottonwood-creek/
           cp output/cottonwood-creek/inventory-report.json research/results/cottonwood-creek/
           cp output/cottonwood-creek/features.geojson research/results/cottonwood-creek/
+          mkdir -p research/results/westwood
+          cp output/westwood/source-response.json research/results/westwood/
+          cp output/westwood/inventory-report.json research/results/westwood/
+          cp output/westwood/features.geojson research/results/westwood/
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add research/results/
@@ -62,8 +74,9 @@ jobs:
       - name: Summarize extraction outcomes
         if: always()
         run: |
-          echo "South Padre extraction outcome: \${{ steps.south-padre.outcome }}" >> "$GITHUB_STEP_SUMMARY"
-          echo "Cottonwood Creek extraction outcome: \${{ steps.second-course.outcome }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "South Padre extraction outcome: ${{ steps.south-padre.outcome }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Cottonwood Creek extraction outcome: ${{ steps.second-course.outcome }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Westwood extraction outcome: ${{ steps.third-course.outcome }}" >> "$GITHUB_STEP_SUMMARY"
           if [ -f output/south-padre/inventory-report.json ]; then
             echo "## South Padre Island Golf Club" >> "$GITHUB_STEP_SUMMARY"
             jq -r '.inventory.counts_by_golf_tag | to_entries[] | "- \(.key): \(.value)"' output/south-padre/inventory-report.json >> "$GITHUB_STEP_SUMMARY"
@@ -76,5 +89,6 @@ jobs:
       - name: Check both course extractions
         if: always()
         run: |
-          test "\${{ steps.south-padre.outcome }}" = "success"
-          test "\${{ steps.second-course.outcome }}" = "success"
+          test "${{ steps.south-padre.outcome }}" = "success"
+          test "${{ steps.second-course.outcome }}" = "success"
+          test "${{ steps.third-course.outcome }}" = "success"
