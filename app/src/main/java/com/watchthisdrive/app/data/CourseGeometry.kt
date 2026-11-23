@@ -154,7 +154,7 @@ object CourseGeometryLoader {
                 rings = parsed.rings,
                 polygons = parsed.polygons,
                 geometryStatus = if (parsed.geometryType == CourseGeometryType.POLYGON ||
-                    parsed.geometryType == CourseGeometryType.MULTI_POLYGON) "topology_checked_ring_closure" else "source_geometry"
+                    parsed.geometryType == CourseGeometryType.MULTI_POLYGON) "ring_closure_and_inner_containment_checked" else "source_geometry"
             ))
             if (parsed.error != null) relationErrors.add("$elementType/$id: ${parsed.error}")
         }
