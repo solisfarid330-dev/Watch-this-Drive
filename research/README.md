@@ -58,7 +58,8 @@ and ambiguity reporting.
   infrastructure, rate-limited, and not guaranteed to be continuously available.
   The app must handle timeouts, throttling, and endpoint failure gracefully.
 - OSM data: © OpenStreetMap contributors, available under the Open Database
-  License (ODbL). Preserve attribution and comply with ODbL obligations.
+  License (ODbL). Preserve attribution and comply with ODbL obligations. The GeoJSON preview
+  carries explicit OpenStreetMap attribution and an `ODbL-1.0` license marker.
 - This research prototype makes network requests from the machine running it.
   Python is a research tool here, not a production dependency. The intended
   production implementation remains on-device Android/Kotlin.
@@ -86,7 +87,7 @@ relations with zero omissions. A structural validation pass found no open
 polygon rings, no uncontained inner rings, and no incorrect ring winding in
 those two outputs.
 
-Nine offline unit tests cover boundary query construction, node rejection,
+Ten offline unit tests cover boundary query construction, node rejection,
 inventory counting, multipolygon outer/inner rings, segmented-ring stitching
 in both directions, open hole lines, and GeoJSON polygon winding. The GitHub
 Actions test workflow has passed.
