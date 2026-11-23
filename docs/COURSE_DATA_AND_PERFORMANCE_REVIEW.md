@@ -191,3 +191,14 @@ Additional performance and data-quality refinements:
 
 
 Local build prerequisite: run `bash scripts/download_opengolf_catalog.sh` before invoking Gradle. The script verifies both the compressed release asset and the uncompressed GeoJSON content; CI runs it before Gradle configures Android assets.
+
+
+## Build and packaging verification
+
+- CI run [45110855952](https://github.com/solisfarid330-dev/Watch-this-Drive/actions/runs/45110855952) completed successfully on commit `b158f50a8012f6b7059f829fe3e5f9f7839fbd38`.
+- `testDebugUnitTest` and `assembleDebug` both passed.
+- The APK-level verification confirmed that Android packages the gzip source as `assets/opengolfapi-us.geojson` (AAPT2 expands the gzip asset during packaging), and that its SHA-256 matches the verified GeoJSON content hash `fb4aa24aa8bce2fe338812bc316a2067720c6ffb7874429f5c037b31578300db`.
+- The attribution notice is also present in the APK.
+- The generated debug APK was checked for ZIP integrity. Device behavior has not yet been tested.
+
+The local import code therefore reads the uncompressed `opengolfapi-us.geojson` asset from Android's AssetManager. The source download remains compressed and is verified before Gradle starts.
