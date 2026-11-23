@@ -111,6 +111,25 @@ class HoleReconstructorTest {
     }
 
     @Test
+    fun openGreenLineUsesVertexMeanInsteadOfPolygonAreaCentroid() {
+        val openBoundary = listOf(
+            GeoPoint(0.0038, 0.0),
+            GeoPoint(0.0038, 0.0004),
+            GeoPoint(0.0042, 0.0004),
+            GeoPoint(0.0042, 0.0001)
+        )
+        val geometry = CourseGeometry(99, "Open green line fixture", listOf(
+            feature(1, "tee", 0.0, 0.0),
+            feature(2, "green", 0.0, 0.0, points = openBoundary)
+        ))
+
+        val hole = HoleReconstructor.reconstruct(geometry).single()
+
+        assertEquals(openBoundary.map { it.latitude }.average(), hole.green.latitude, 0.0000001)
+        assertEquals(openBoundary.map { it.longitude }.average(), hole.green.longitude, 0.0000001)
+    }
+
+    @Test
     fun explicitHoleNumbersPairTheCorrectTeeAndGreen() {
         val geometry = CourseGeometry(
             courseId = 99,
