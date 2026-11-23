@@ -144,9 +144,9 @@ object CourseGeometryLoader {
         }
 
         val features = mergeProviderFeatures(zomma, osm?.features.orEmpty())
-        if (features.none { it.featureType != "course_boundary" }) {
+        if (features.isEmpty()) {
             throw IllegalStateException(
-                "The selected course was found, but neither Zomma nor OpenStreetMap returned usable golf features."
+                "The selected course was found, but neither Zomma nor OpenStreetMap returned usable course geometry."
             )
         }
         return CourseGeometry(
@@ -170,10 +170,9 @@ object CourseGeometryLoader {
         }
         val combined = (boundary.first + scoped)
             .distinctBy { Triple(it.elementType, it.id, it.featureType) }
-        if (combined.none { it.featureType != "course_boundary" }) {
+        if (combined.isEmpty()) {
             throw IllegalStateException(
-                "The selected course was found, but no mapped golf features were returned. " +
-                    "This course may have sparse OpenStreetMap coverage."
+                "The selected course was found, but no course geometry was returned."
             )
         }
         return CourseGeometry(course.id, course.name, combined, course.elementType)
