@@ -4,7 +4,7 @@ from __future__ import annotations
 import argparse,json,math
 from pathlib import Path
 import numpy as np
-from PIL import Image,ImageDraw
+from PIL import Image,ImageDraw,ImageFilter
 R=6378137.0
 CLASSES=("fairway","rough","green","bunker","water_hazard","tee")
 
@@ -105,10 +105,21 @@ def main():
     overlay[candidate]=(0.42*base[candidate]+0.58*tint).clip(0,255).astype(np.uint8)
     out=Path(a.out);out.mkdir(parents=True,exist_ok=True)
     Image.fromarray(overlay,"RGB").save(out/"unsupervised-fairway-candidate.png",quality=95)
+    # Smooth pixel noise into more coherent regions, then reapply hard exclusions.
+    binary=Image.fromarray((candidate.astype(np.uint8)*255),"L")
+    smooth=(binary.filter(ImageFilter.MedianFilter(5))
+                  .filter(ImageFilter.MaxFilter(7))
+                  .filter(ImageFilter.MinFilter(7))
+                  .filter(ImageFilter.MinFilter(3))
+                  .filter(ImageFilter.MaxFilter(3)))
+    smooth_mask=(np.asarray(smooth)>127)&analysis
+    smooth_overlay=base.copy()
+    smooth_overlay[smooth_mask]=(0.42*base[smooth_mask]+0.58*tint).clip(0,255).astype(np.uint8)
+    Image.fromarray(smooth_overlay,"RGB").save(out/"unsupervised-fairway-smoothed.png",quality=95)
     color=np.zeros((h,w,3),dtype=np.uint8)
     palette=np.array([[230,80,80],[80,180,240],[230,210,60],[180,100,220],[60,210,150],[230,150,70]],dtype=np.uint8)
     for j in range(a.clusters):color[label_image==j]=palette[j%len(palette)]
     Image.fromarray(color,"RGB").save(out/"cluster-label-preview.png")
-    report={"hole_osm_id":hole["properties"].get("osm_id"),"method":"Per-course k-means on NDVI, excess-green, and local RGB texture; known green/bunker/water/tee polygons excluded from cluster fitting.","clusters":a.clusters,"corridor_m":a.corridor_m,"analysis_pixels":len(xs),"fairway_seed_pixels":int(fair.sum()),"rough_seed_pixels":int(rough.sum()),"selected_candidate_cluster":best,"selected_cluster_score":round(best_score,4),"cluster_statistics":stats,"features_standardization":{"mean":mean.tolist(),"scale":scale.tolist()},"warning":"Cluster selection is guided by incomplete OSM seed labels; unsupervised cluster membership is not ground truth. If no rough seed exists, selection uses fairway-seed recall only and cannot estimate precision.","files":["unsupervised-fairway-candidate.png","cluster-label-preview.png","cluster-report.json"]}
+    report={"hole_osm_id":hole["properties"].get("osm_id"),"method":"Per-course k-means on NDVI, excess-green, and local RGB texture; known green/bunker/water/tee polygons excluded from cluster fitting.","clusters":a.clusters,"corridor_m":a.corridor_m,"analysis_pixels":len(xs),"fairway_seed_pixels":int(fair.sum()),"rough_seed_pixels":int(rough.sum()),"selected_candidate_cluster":best,"selected_cluster_score":round(best_score,4),"raw_candidate_pixels":int(candidate.sum()),"smoothed_candidate_pixels":int(smooth_mask.sum()),"cluster_statistics":stats,"features_standardization":{"mean":mean.tolist(),"scale":scale.tolist()},"warning":"Cluster selection is guided by incomplete OSM seed labels; unsupervised cluster membership is not ground truth. If no rough seed exists, selection uses fairway-seed recall only and cannot estimate precision.","files":["unsupervised-fairway-candidate.png","unsupervised-fairway-smoothed.png","cluster-label-preview.png","cluster-report.json"]}
     (out/"cluster-report.json").write_text(json.dumps(report,indent=2)+"\n");print(json.dumps(report,indent=2))
 if __name__=="__main__":main()
