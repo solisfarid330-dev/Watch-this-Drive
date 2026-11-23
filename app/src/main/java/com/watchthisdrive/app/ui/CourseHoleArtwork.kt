@@ -69,7 +69,11 @@ private object CourseHoleArtworkRepository {
 }
 
 @Composable
-fun CourseHoleArtworkPanel(course: GolfCourse, geometry: CourseGeometry?) {
+fun CourseHoleArtworkPanel(
+    course: GolfCourse,
+    geometry: CourseGeometry?,
+    geometryError: String? = null
+) {
     val context = LocalContext.current
     var artwork by remember(course.elementType, course.id) { mutableStateOf<CourseArtworkPackage?>(null) }
     var loading by remember(course.elementType, course.id) { mutableStateOf(true) }
@@ -151,8 +155,11 @@ fun CourseHoleArtworkPanel(course: GolfCourse, geometry: CourseGeometry?) {
             when {
                 loading || generating -> CircularProgressIndicator(color = Color(0xFFB8F36B))
                 artwork?.holes.isNullOrEmpty() && generatedImages.isEmpty() -> Text(
-                    if (geometry == null) "Course geometry is loading. Hole illustrations will be generated when it arrives."
-                    else renderError
+                    if (geometry == null && geometryError != null) {
+                        "Course mapping is unavailable, so a hole illustration cannot be generated yet. $geometryError"
+                    } else if (geometry == null) {
+                        "Course geometry is loading. Hole illustrations will be generated when it arrives."
+                    } else renderError
                         ?: "There is not enough mapped tee/green geometry to reconstruct holes for this course yet. Satellite maps and mapped course details remain available.",
                     color = if (renderError != null) Color(0xFFFFB4AB) else Color(0xFFB6C1B9))
                 else -> {
