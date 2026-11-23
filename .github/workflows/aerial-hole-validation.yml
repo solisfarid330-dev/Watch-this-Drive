@@ -87,6 +87,38 @@ jobs:
             --metadata research/results/westwood/aerial-validation/hole-1-validation.json \
             --tiff research/results/westwood/aerial-validation/hole-1-naip-2022-rgbir.tif \
             --out research/results/westwood/aerial-validation/unsupervised-experiment
+      - name: Test 25m corridor candidate extraction at South Padre
+        run: |
+          python research/naip_unsupervised_turf.py \
+            --geojson research/results/south-padre/features.geojson \
+            --metadata research/results/south-padre/aerial-validation/hole-1-validation.json \
+            --tiff research/results/south-padre/aerial-validation/hole-1-naip-2022-rgbir.tif \
+            --corridor-m 25 \
+            --out research/results/south-padre/aerial-validation/unsupervised-25m
+      - name: Test 35m corridor candidate extraction at South Padre
+        run: |
+          python research/naip_unsupervised_turf.py \
+            --geojson research/results/south-padre/features.geojson \
+            --metadata research/results/south-padre/aerial-validation/hole-1-validation.json \
+            --tiff research/results/south-padre/aerial-validation/hole-1-naip-2022-rgbir.tif \
+            --corridor-m 35 \
+            --out research/results/south-padre/aerial-validation/unsupervised-35m
+      - name: Test 25m corridor candidate extraction at Westwood
+        run: |
+          python research/naip_unsupervised_turf.py \
+            --geojson research/results/westwood/features.geojson \
+            --metadata research/results/westwood/aerial-validation/hole-1-validation.json \
+            --tiff research/results/westwood/aerial-validation/hole-1-naip-2022-rgbir.tif \
+            --corridor-m 25 \
+            --out research/results/westwood/aerial-validation/unsupervised-25m
+      - name: Test 35m corridor candidate extraction at Westwood
+        run: |
+          python research/naip_unsupervised_turf.py \
+            --geojson research/results/westwood/features.geojson \
+            --metadata research/results/westwood/aerial-validation/hole-1-validation.json \
+            --tiff research/results/westwood/aerial-validation/hole-1-naip-2022-rgbir.tif \
+            --corridor-m 35 \
+            --out research/results/westwood/aerial-validation/unsupervised-35m
       - name: Commit imagery and overlays
         run: |
           git config user.name "github-actions[bot]"
