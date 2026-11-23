@@ -2,6 +2,7 @@ package com.watchthisdrive.app.data
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class NaipImagerySelectionTest {
@@ -43,6 +44,19 @@ class NaipImagerySelectionTest {
         )
         assertEquals(listOf(21L, 20L), selected?.rasterIds)
         assertEquals(0.5, selected?.resolutionMeters ?: 0.0, 0.000001)
+    }
+
+
+    @Test
+    fun ndviExportUsesDocumentedNaipNirAndRedBandsAndNormalizedByteScale() {
+        val rule = NaipImageryRepository.ndviRenderingRule()
+        val arguments = rule.getJSONObject("rasterFunctionArguments")
+
+        assertEquals("BandArithmetic", rule.getString("rasterFunction"))
+        assertEquals(0, arguments.getInt("Method"))
+        assertEquals("((B4-B1)/(B4+B1)+1)*127.5", arguments.getString("BandIndexes"))
+        assertEquals("U8", rule.getString("outputPixelType"))
+        assertTrue(rule.toString().contains("B4"))
     }
 
     @Test
