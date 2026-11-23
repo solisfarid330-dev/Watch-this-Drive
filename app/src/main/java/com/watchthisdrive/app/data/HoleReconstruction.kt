@@ -477,8 +477,8 @@ object HoleReconstructor {
                     meters(teePoint, greenPoint) !in MIN_HOLE_METERS..MAX_HOLE_METERS
                 ) return@forEach
                 if (mappedTees.any { tee ->
-                    (greenNumber == null || tee.holeNumber == null || tee.holeNumber == greenNumber) &&
-                        meters(tee.point, teePoint) <= 30.0
+                    (greenNumber != null && tee.holeNumber == greenNumber) &&
+                        meters(tee.point, teePoint) <= 15.0
                 }) return@forEach
                 candidates += DerivedTeeCandidate(
                     greenIndex, line, teePoint, greenNumber ?: lineNumber, greenEndDistance
@@ -488,16 +488,14 @@ object HoleReconstructor {
 
         val usedGreens = mutableSetOf<Int>()
         val usedLines = mutableSetOf<String>()
-        val acceptedPoints = mutableListOf<GeoPoint>()
         return candidates.sortedBy { it.greenEndDistance }.mapNotNull { candidate ->
             val lineKey = candidate.line.elementType + ":" + candidate.line.id
-            if (candidate.greenIndex in usedGreens || lineKey in usedLines ||
-                acceptedPoints.any { meters(it, candidate.point) <= 30.0 }
-            ) return@mapNotNull null
+            if (candidate.greenIndex in usedGreens || lineKey in usedLines) {
+                return@mapNotNull null
+            }
 
             usedGreens += candidate.greenIndex
             usedLines += lineKey
-            acceptedPoints += candidate.point
             val inferredTee = CourseFeature(
                 id = candidate.line.id,
                 elementType = candidate.line.elementType,
