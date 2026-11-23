@@ -97,7 +97,7 @@ def main():
         headers={"User-Agent":"WatchThisDrive-Research/0.1","Accept":"image/tiff"})
     with urllib.request.urlopen(spectral_req,timeout=120) as res:
         spectral_raw=res.read()
-    if not (spectral_raw.startswith(b"II*\\x00") or spectral_raw.startswith(b"MM\\x00*")):
+    if not (spectral_raw.startswith(bytes((73,73,42,0))) or spectral_raw.startswith(bytes((77,77,0,42)))):
         raise RuntimeError("NAIP RGBIR export did not return a TIFF image")
     spectral_path=out/f"hole-{a.hole_ref}-naip-2022-rgbir.tif"
     spectral_path.write_bytes(spectral_raw)
