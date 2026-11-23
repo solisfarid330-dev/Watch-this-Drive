@@ -120,7 +120,8 @@ def main():
     overlay=base.copy();tint=np.array([30,230,80],dtype=np.float32)
     overlay[candidate]=(0.42*base[candidate]+0.58*tint).clip(0,255).astype(np.uint8)
     out=Path(a.out);out.mkdir(parents=True,exist_ok=True)
-    Image.fromarray(overlay,"RGB").save(out/f"hole-{a.hole_ref}-superpixel-fairway-candidate.png",quality=95)
+    Image.fromarray(overlay,"RGB").save(out/f"hole-{a.hole_ref}-superpixel-fairway-candidate.png")
+    Image.fromarray(overlay,"RGB").save(out/f"hole-{a.hole_ref}-superpixel-fairway-candidate.jpg",quality=92)
     def rate(mask):
         n=int(mask.sum());return {"pixels":n,"candidate_fraction":round(float(candidate[mask].mean()),4) if n else None}
     report={
@@ -132,7 +133,7 @@ def main():
         "target_seed_candidate_rates":{"fairway":rate(masks["fairway"]&corridor_mask),"rough":rate(masks["rough"]&corridor_mask)},
         "candidate_pixels":int(candidate.sum()),"corridor_pixels":int(corridor_mask.sum()),"candidate_fraction_of_corridor":round(float(candidate.sum()/max(corridor_mask.sum(),1)),4),
         "limitations":["OSM polygons are weak labels and may be incomplete or offset.","SLIC segmentation is a conventional CV experiment, not a trained neural model.","Output remains a candidate mask; no independently traced fairway reference is available.","No feature is assigned to a hole by proximity alone."],
-        "files":[f"hole-{a.hole_ref}-superpixel-fairway-candidate.png","superpixel-report.json"]
+        "files":[f"hole-{a.hole_ref}-superpixel-fairway-candidate.png",f"hole-{a.hole_ref}-superpixel-fairway-candidate.jpg","superpixel-report.json"]
     }
     (out/"superpixel-report.json").write_text(json.dumps(report,indent=2)+"\n")
     print(json.dumps(report,indent=2))
