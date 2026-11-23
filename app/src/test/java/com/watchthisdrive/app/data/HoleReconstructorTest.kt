@@ -44,8 +44,8 @@ class HoleReconstructorTest {
             GeoPoint(0.004, 0.0)
         )
         val geometry = CourseGeometry(99, "Shared line fixture", listOf(
-            feature(2, "green", 0.004, 0.0001),
-            feature(3, "green", 0.004, -0.0001),
+            feature(2, "green", 0.004, 0.0001, null),
+            feature(3, "green", 0.004, -0.0001, null),
             feature(4, "hole", 0.0, 0.0, points = line)
         ))
 
