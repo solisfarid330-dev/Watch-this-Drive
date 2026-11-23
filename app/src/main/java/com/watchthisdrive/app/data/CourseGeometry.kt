@@ -826,8 +826,8 @@ internal object ZommaGeoJsonParser {
             val feature = features.optJSONObject(index) ?: continue
             val properties = feature.optJSONObject("properties") ?: JSONObject()
             val tags = properties.optJSONObject("tags") ?: properties
-            val kind = firstValue(tags, "golf", "feature_type", "featureType", "kind", "class", "type")
-                ?.lowercase()?.replace('-', '_') ?: continue
+            val kind = firstValue(tags, "golf", "feature_type", "featureType", "kind", "class", "layer", "feature", "type")
+                ?.lowercase()?.replace(Regex("[\\s-]+"), "_") ?: continue
             val featureType = normalizeType(kind) ?: continue
             val geometry = feature.optJSONObject("geometry") ?: continue
             val points = readCoordinates(geometry) ?: continue
@@ -865,7 +865,7 @@ internal object ZommaGeoJsonParser {
         }
 
     private fun normalizeType(value: String): String? = when (value) {
-        "tee", "tee_box", "teeing_ground", "start" -> "tee"
+        "tee", "tee_box", "tee_pad", "teeing_ground", "start" -> "tee"
         "green", "putting_green" -> "green"
         "fairway", "fair_way" -> "fairway"
         "hole", "hole_line", "hole_centerline", "centerline", "playing_line", "route" -> "hole"
