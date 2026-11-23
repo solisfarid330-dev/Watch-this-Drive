@@ -40,5 +40,54 @@ class CourseDataAuditTests(unittest.TestCase):
         self.assertEqual(report["golf_feature_count"], 0)
 
 
+    def test_multipolygon_relation_exports_outer_and_inner_rings(self):
+        outer = [
+            {"lat": 0, "lon": 0}, {"lat": 0, "lon": 10},
+            {"lat": 10, "lon": 10}, {"lat": 10, "lon": 0},
+            {"lat": 0, "lon": 0},
+        ]
+        inner = [
+            {"lat": 2, "lon": 2}, {"lat": 8, "lon": 2},
+            {"lat": 8, "lon": 8}, {"lat": 2, "lon": 8},
+            {"lat": 2, "lon": 2},
+        ]
+        payload = {"elements": [{
+            "type": "relation", "id": 55,
+            "tags": {"golf": "fairway", "type": "multipolygon"},
+            "members": [
+                {"type": "way", "ref": 1, "role": "outer", "geometry": outer},
+                {"type": "way", "ref": 2, "role": "inner", "geometry": inner},
+            ],
+        }]}
+        result = audit.to_geojson(payload)
+        self.assertEqual(len(result["features"]), 1)
+        geometry = result["features"][0]["geometry"]
+        self.assertEqual(geometry["type"], "Polygon")
+        self.assertEqual(len(geometry["coordinates"]), 2)
+        self.assertEqual(result["metadata"]["relations_or_features_omitted"], [])
+
+    def test_multipolygon_stitches_member_way_segments(self):
+        first = [{"lat": 0, "lon": 0}, {"lat": 0, "lon": 1}, {"lat": 1, "lon": 1}]
+        second = [{"lat": 1, "lon": 1}, {"lat": 1, "lon": 0}, {"lat": 0, "lon": 0}]
+        relation = {
+            "members": [
+                {"type": "way", "ref": 10, "role": "outer", "geometry": first},
+                {"type": "way", "ref": 11, "role": "outer", "geometry": second},
+            ]
+        }
+        geometry, errors = audit._relation_multipolygon_geometry(relation)
+        self.assertEqual(geometry["type"], "Polygon")
+        self.assertEqual(len(geometry["coordinates"][0]), 5)
+        self.assertEqual(errors, [])
+
+    def test_open_hole_way_exports_as_linestring(self):
+        payload = {"elements": [{
+            "type": "way", "id": 77, "tags": {"golf": "hole", "ref": "1"},
+            "geometry": [{"lat": 1, "lon": 2}, {"lat": 2, "lon": 3}],
+        }]}
+        result = audit.to_geojson(payload)
+        self.assertEqual(result["features"][0]["geometry"]["type"], "LineString")
+
+
 if __name__ == "__main__":
     unittest.main()
