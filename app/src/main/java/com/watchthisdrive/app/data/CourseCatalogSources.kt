@@ -1,5 +1,15 @@
 package com.watchthisdrive.app.data
 
+internal fun stableCourseRecordId(value: String): Long {
+    val digest = java.security.MessageDigest.getInstance("SHA-256")
+        .digest(value.toByteArray(Charsets.UTF_8))
+    var bits = 0L
+    for (index in 0 until 8) {
+        bits = (bits shl 8) or (digest[index].toLong() and 0xffL)
+    }
+    return -((bits and Long.MAX_VALUE).coerceAtLeast(1L))
+}
+
 import android.content.Context
 import android.location.Location
 import org.json.JSONArray
@@ -90,7 +100,7 @@ object CourseCatalogSources {
         }.getOrDefault(emptyList())
         val cacheFile = File(
             context.filesDir,
-            "course_query_${normalizedQuery.lowercase(Locale.ROOT).hashCode()}.json"
+            "course_query_${stableCourseRecordId(normalizedQuery.lowercase(Locale.ROOT))}.json"
         )
         val cached = readCache(cacheFile)
         if (cached != null && System.currentTimeMillis() - cacheFile.lastModified() < CACHE_MAX_AGE_MS) {
@@ -404,8 +414,7 @@ object CourseCatalogSources {
     }
 
     // Negative IDs reserve a separate namespace from positive OSM element IDs.
-    private fun stableId(value: String): Long =
-        -((value.hashCode().toLong() and 0x7fffffffL) + 1L)
+    private fun stableId(value: String): Long = stableCourseRecordId(value)
 
     private fun enc(value: String): String = URLEncoder.encode(value, "UTF-8")
 
