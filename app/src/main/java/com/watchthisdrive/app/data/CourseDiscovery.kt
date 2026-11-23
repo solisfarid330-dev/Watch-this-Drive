@@ -149,8 +149,10 @@ object CourseDiscovery {
                 normalizeCourseName(catalog.name) == normalized &&
                     distanceMeters(osm.latitude, osm.longitude, catalog.latitude, catalog.longitude) <= 1_500f
             }
+            val isOsmRecord = !(osm.elementType.equals("node", true) && osm.id < 0)
             if (matchIndex < 0) {
-                osm.copy(sourceNames = osm.sourceNames + "OpenStreetMap")
+                if (isOsmRecord) osm.copy(sourceNames = osm.sourceNames + "OpenStreetMap")
+                else osm
             } else {
                 val catalog = unmatchedCatalogs.removeAt(matchIndex)
                 osm.copy(
@@ -168,7 +170,8 @@ object CourseDiscovery {
                     openGolfId = catalog.openGolfId,
                     teeTimeId = catalog.teeTimeId,
                     scorecard = catalog.scorecard,
-                    sourceNames = osm.sourceNames + catalog.sourceNames + "OpenStreetMap"
+                    sourceNames = osm.sourceNames + catalog.sourceNames +
+                        if (isOsmRecord) setOf("OpenStreetMap") else emptySet()
                 )
             }
         }
