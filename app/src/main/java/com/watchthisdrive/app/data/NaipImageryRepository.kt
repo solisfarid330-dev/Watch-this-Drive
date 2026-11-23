@@ -50,7 +50,7 @@ object NaipImageryRepository {
 
     private enum class Product(val suffix: String, val format: String, val rasterFunction: String) {
         NATURAL_COLOR(".jpg", "jpg", "NaturalColor"),
-        NDVI(".ndvi.png", "png", "NDVI_Color")
+        NDVI(".ndvi.png", "png", "BandArithmetic")
     }
 
     private val selectionCache = ConcurrentHashMap<String, ImagerySelection>()
@@ -197,7 +197,15 @@ object NaipImageryRepository {
             "format" to product.format,
             "pixelType" to "U8",
             "compressionQuality" to "95",
-            "renderingRule" to JSONObject().put("rasterFunction", product.rasterFunction).toString(),
+            "renderingRule" to if (product == Product.NDVI) {
+                JSONObject()
+                    .put("rasterFunction", "BandArithmetic")
+                    .put("rasterFunctionArguments", JSONObject()
+                        .put("Method", 0)
+                        .put("BandIndexes", "((B4-B1)/(B4+B1)+1)*127.5"))
+                    .put("outputPixelType", "U8")
+                    .toString()
+            } else JSONObject().put("rasterFunction", product.rasterFunction).toString(),
             "f" to "image"
         )
         selection.mosaicRule()?.let { params["mosaicRule"] = it }
@@ -249,7 +257,7 @@ object NaipImageryRepository {
                     .put("maxExportDimension", MAX_EXPORT_DIMENSION)
                     .put("compressionQuality", 95)
                     .put("rgbRenderingRule", "NaturalColor")
-                    .put("analysisRenderingRule", "NDVI_Color")
+                    .put("analysisRenderingRule", "BandArithmetic scaled NDVI, 0-255")
                     .put("attribution", "USDA Farm Production and Conservation Business Center, Geospatial Enterprise Operations")
                     .put("license", "Public domain; source credit requested")
                     .put("retrievedAtEpochMs", System.currentTimeMillis())
