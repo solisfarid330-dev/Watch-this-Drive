@@ -202,9 +202,8 @@ object HoleReconstructor {
         // that fails to run through them, so retain those polygons rather than
         // silently replacing the real fairway with an estimated corridor.
         val pool = when {
-            centerline.size >= 2 && numbered.any { it in routeScoped } ->
-                (numbered.filter { it in routeScoped } + routeScoped.filter { it !in numbered })
-            centerline.size >= 2 && numbered.isNotEmpty() -> numbered
+            centerline.size >= 2 && numbered.isNotEmpty() ->
+                (numbered + routeScoped.filter { it !in numbered })
             centerline.size >= 2 -> routeScoped
             numbered.isNotEmpty() -> numbered
             else -> compatible.filter {
