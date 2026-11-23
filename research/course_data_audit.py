@@ -24,6 +24,8 @@ from pathlib import Path
 USER_AGENT = "WatchThisDrive-Research/0.1 (generic golf-course data audit)"
 NOMINATIM = "https://nominatim.openstreetmap.org"
 OVERPASS = (
+    "https://ovp.dresel.systems/api-na/interpreter",
+    "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
     "https://overpass-api.de/api/interpreter",
     "https://overpass.private.coffee/api/interpreter",
 )
@@ -144,12 +146,17 @@ def retrieve_features(query: str) -> tuple[dict, str]:
     body = urllib.parse.urlencode({"data": query}).encode()
     errors = []
     for endpoint in OVERPASS:
-        try:
-            payload = get_json(endpoint, data=body, timeout=TIMEOUT)
-            return payload, endpoint
-        except Exception as exc:
-            errors.append(f"{endpoint}: {type(exc).__name__}: {exc}")
-            time.sleep(1.0)
+        for attempt in range(2):
+            try:
+                payload = get_json(endpoint, data=body, timeout=TIMEOUT)
+                return payload, endpoint
+            except Exception as exc:
+                errors.append(
+                    f"{endpoint} (attempt {attempt + 1}): "
+                    f"{type(exc).__name__}: {exc}"
+                )
+                if attempt == 0:
+                    time.sleep(2.0)
     raise PipelineError("All Overpass endpoints failed:\n" + "\n".join(errors))
 
 
