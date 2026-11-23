@@ -4,6 +4,7 @@ on:
     branches: [research/generic-course-pipeline]
     paths:
       - "research/aerial_validation.py"
+      - "research/naip_spectral_experiment.py"
       - ".github/workflows/aerial-hole-validation.yml"
   workflow_dispatch:
 permissions:
