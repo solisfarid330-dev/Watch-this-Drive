@@ -1,0 +1,39 @@
+{
+  "hole_ref": "1",
+  "hole_osm_id": 1383052934,
+  "imagery_service": "https://imagery.geographic.texas.gov/server/rest/services/NAIP/NAIP22_NCCIR_60cm/ImageServer/exportImage",
+  "imagery_acquisition": "Texas NAIP 2022 growing season (May\u2013September 2022)",
+  "ground_sample_distance_m": 0.6,
+  "imagery_attribution": "Texas Geographic Information Office, USDA",
+  "osm_attribution": "\u00a9 OpenStreetMap contributors",
+  "osm_license": "ODbL-1.0",
+  "export_bbox_web_mercator_m": [
+    -10832308.213514458,
+    3012970.5789076295,
+    -10831783.073849939,
+    3013137.54781294
+  ],
+  "export_size_pixels": [
+    1600,
+    508
+  ],
+  "buffer_m": 65,
+  "visible_osm_feature_element_counts": {
+    "tee": 3,
+    "bunker": 4,
+    "green": 1,
+    "rough": 2,
+    "fairway": 1
+  },
+  "files": [
+    "hole-1-naip-2022.png",
+    "hole-1-osm-overlay.png"
+  ],
+  "limitations": [
+    "Visual overlay only; not a ground-truth accuracy measurement.",
+    "NAIP is aerial orthophotography, not satellite imagery.",
+    "2022 imagery may differ from current course conditions.",
+    "OSM features may be incomplete or misclassified.",
+    "No image segmentation or missing-feature inference is performed."
+  ]
+}
