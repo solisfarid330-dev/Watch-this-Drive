@@ -773,7 +773,7 @@ private fun NearbyCoursesScreen(
         searchDescription = "Searching around \"$query\". GPS is not required."
 
         CourseDiscovery.searchByText(
-            context = androidx.compose.ui.platform.LocalContext.current,
+            context = context,
             searchText = query
         ) { result ->
             result.onSuccess { found ->
