@@ -59,4 +59,8 @@ jobs:
           path: |
             app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 3
+        # The Android build and tests are the required CI checks. GitHub may
+        # reject artifact uploads when the repository storage quota is full;
+        # report that as an upload warning rather than a false build failure.
+        continue-on-error: true
