@@ -1,27 +1,29 @@
 package com.watchthisdrive.app.data
 
 import android.content.Context
+import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
+import java.net.URLEncoder
 import java.util.Locale
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.cos
 import kotlin.math.max
 
 /**
- * Lazily fetches a small NAIP aerial reference image for a selected US course.
- * This is RGB imagery for visual reference, not a semantic golf-feature map.
+ * Fetches georeferenced USDA NAIP imagery and a matching NDVI product for
+ * course-hole analysis. The service is four-band (RGB + NIR); the NDVI raster
+ * is generated from the source bands, not from the rendered RGB photograph.
  */
 object NaipImageryRepository {
     private const val IMAGE_SERVER =
         "https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer"
     private const val CACHE_MAX_AGE_MS = 180L * 24L * 60L * 60L * 1000L
-    // USGS advertises a 4,000 x 4,000 maximum export for this ImageServer.
-    // Requesting its full supported dimensions avoids the old 1,024-pixel
-    // bottleneck that discarded most of the source imagery's spatial detail.
     private const val MAX_EXPORT_DIMENSION = 4_000
     private const val MAX_IMAGE_BYTES = 24 * 1024 * 1024
+    private const val MAX_METADATA_BYTES = 512 * 1024
 
     data class Bounds(
         val west: Double,
@@ -30,23 +32,60 @@ object NaipImageryRepository {
         val north: Double
     )
 
+    data class ImagerySelection(
+        val rasterIds: List<Long>,
+        val year: Int?,
+        val acquisitionDateEpochMs: Long?,
+        val resolutionMeters: Double?,
+        val bandCount: Int
+    ) {
+        fun mosaicRule(): String? = rasterIds.takeIf { it.isNotEmpty() }?.let { ids ->
+            JSONObject()
+                .put("mosaicMethod", "esriMosaicLockRaster")
+                .put("lockRasterIds", JSONArray(ids))
+                .put("mosaicOperation", "MT_FIRST")
+                .toString()
+        }
+    }
+
+    private enum class Product(val suffix: String, val format: String, val rasterFunction: String) {
+        NATURAL_COLOR(".jpg", "jpg", "NaturalColor"),
+        NDVI(".ndvi.png", "png", "NDVI_Color")
+    }
+
+    private val selectionCache = ConcurrentHashMap<String, ImagerySelection>()
+
     fun loadOrFetch(
         context: Context,
         course: GolfCourse,
         geometry: CourseGeometry?
     ): File? {
         val bounds = boundsFor(course, geometry) ?: return null
-        return loadOrFetchBounds(context, course, bounds, "course")
+        return loadOrFetchBounds(context, course, bounds, "course", Product.NATURAL_COLOR)
     }
 
-    /** Fetch a correctly framed aerial reference for one reconstructed hole. */
+    /** Fetch a georeferenced natural-colour aerial reference for one hole. */
     fun loadOrFetchForHole(
         context: Context,
         course: GolfCourse,
         hole: ReconstructedHole
     ): File? {
         val bounds = boundsForHole(hole) ?: return null
-        return loadOrFetchBounds(context, course, bounds, "hole-" + hole.number)
+        return loadOrFetchBounds(context, course, bounds, "hole-${hole.number}", Product.NATURAL_COLOR)
+    }
+
+    /**
+     * Fetches an NDVI colour composite from the same locked NAIP source rasters
+     * as the natural-colour image. It helps distinguish vigorous vegetation
+     * from sparse vegetation/bare surfaces; it is not a semantic golf map.
+     */
+    fun loadOrFetchNdviForHole(
+        context: Context,
+        course: GolfCourse,
+        hole: ReconstructedHole
+    ): File? {
+        val bounds = boundsForHole(hole) ?: return null
+        return loadOrFetchBounds(context, course, bounds, "hole-${hole.number}", Product.NDVI)
     }
 
     fun boundsForHole(hole: ReconstructedHole): Bounds? {
@@ -81,16 +120,19 @@ object NaipImageryRepository {
         context: Context,
         course: GolfCourse,
         bounds: Bounds,
-        scope: String
+        scope: String,
+        product: Product
     ): File? {
         if (!isWithinConus(course.latitude, course.longitude)) return null
-        val key = listOf("hd$MAX_EXPORT_DIMENSION", course.elementType, course.id, scope,
+        val key = listOf(
+            "naip4b-v3-$MAX_EXPORT_DIMENSION", course.elementType, course.id, scope,
             "%.5f".format(Locale.US, bounds.west),
             "%.5f".format(Locale.US, bounds.south),
             "%.5f".format(Locale.US, bounds.east),
-            "%.5f".format(Locale.US, bounds.north)).joinToString("_").hashCode().toUInt().toString(16)
+            "%.5f".format(Locale.US, bounds.north)
+        ).joinToString("_").hashCode().toUInt().toString(16)
         val directory = File(context.cacheDir, "naip").apply { mkdirs() }
-        val imageFile = File(directory, "course_$key.jpg")
+        val imageFile = File(directory, "course_$key${product.suffix}")
         val metadataFile = File(directory, "course_$key.json")
         if (imageFile.exists() && imageFile.length() > 0 &&
             System.currentTimeMillis() - imageFile.lastModified() < CACHE_MAX_AGE_MS) return imageFile
@@ -105,19 +147,31 @@ object NaipImageryRepository {
         val height = if (aspect >= 1.0)
             (MAX_EXPORT_DIMENSION / aspect).toInt().coerceIn(256, MAX_EXPORT_DIMENSION)
         else MAX_EXPORT_DIMENSION
-        val request = URL(
-            "$IMAGE_SERVER/exportImage?bbox=${bounds.west},${bounds.south},${bounds.east},${bounds.north}" +
-                "&bboxSR=4326&imageSR=4326&size=$width,$height&format=jpg" +
-                "&compressionQuality=95&f=image"
+
+        val selection = selectionFor(bounds, key, metadataFile)
+        val params = linkedMapOf(
+            "bbox" to "${bounds.west},${bounds.south},${bounds.east},${bounds.north}",
+            "bboxSR" to "4326",
+            "imageSR" to "4326",
+            "size" to "$width,$height",
+            "format" to product.format,
+            "pixelType" to "U8",
+            "compressionQuality" to "95",
+            "renderingRule" to JSONObject().put("rasterFunction", product.rasterFunction).toString(),
+            "f" to "image"
         )
-        val connection = request.openConnection() as HttpURLConnection
+        selection.mosaicRule()?.let { params["mosaicRule"] = it }
+        val requestUrl = IMAGE_SERVER + "/exportImage?" + params.entries.joinToString("&") {
+            "${encode(it.key)}=${encode(it.value)}"
+        }
         val temporary = File(directory, imageFile.name + ".tmp")
+        val connection = URL(requestUrl).openConnection() as HttpURLConnection
         try {
             connection.requestMethod = "GET"
             connection.connectTimeout = 8_000
             connection.readTimeout = 25_000
-            connection.setRequestProperty("Accept", "image/jpeg")
-            connection.setRequestProperty("User-Agent", "WatchThisDrive/0.2 (NAIP public imagery)")
+            connection.setRequestProperty("Accept", if (product == Product.NDVI) "image/png" else "image/jpeg")
+            connection.setRequestProperty("User-Agent", "WatchThisDrive/0.4 (USDA NAIP public imagery)")
             val code = connection.responseCode
             if (code !in 200..299) return null
             if (!connection.contentType.orEmpty().lowercase(Locale.US).startsWith("image/")) return null
@@ -129,33 +183,155 @@ object NaipImageryRepository {
                         val count = input.read(buffer)
                         if (count < 0) break
                         total += count
-                        if (total > MAX_IMAGE_BYTES) { temporary.delete(); return null }
+                        if (total > MAX_IMAGE_BYTES) {
+                            temporary.delete()
+                            return null
+                        }
                         output.write(buffer, 0, count)
                     }
                 }
             }
             if (total == 0) { temporary.delete(); return null }
             if (!temporary.renameTo(imageFile)) {
-                temporary.copyTo(imageFile, overwrite = true); temporary.delete()
+                temporary.copyTo(imageFile, overwrite = true)
+                temporary.delete()
             }
-            metadataFile.writeText(JSONObject()
-                .put("source", IMAGE_SERVER)
-                .put("provider", "USDA NAIP via USGS The National Map")
-                .put("imageryProduct", "NAIP natural-color mosaic")
-                .put("maxExportDimension", MAX_EXPORT_DIMENSION)
-                .put("compressionQuality", 95)
-                .put("note", "RGB display export from a four-band NAIP image service; source imagery resolution varies by location and acquisition year.")
-                .put("attribution", "USDA Farm Production and Conservation Business Center, Geospatial Enterprise Operations")
-                .put("license", "Public domain; source credit requested")
-                .put("retrievedAtEpochMs", System.currentTimeMillis())
-                .put("scope", scope)
-                .put("bboxWgs84", listOf(bounds.west, bounds.south, bounds.east, bounds.north))
-                .put("width", width).put("height", height).toString())
+            if (!metadataFile.exists() || product == Product.NATURAL_COLOR) {
+                val metadata = JSONObject()
+                    .put("source", IMAGE_SERVER)
+                    .put("provider", "USDA NAIP via USGS The National Map")
+                    .put("imageryProduct", "USDA NAIP four-band aerial imagery")
+                    .put("bandCount", selection.bandCount)
+                    .put("acquisitionYear", selection.year ?: JSONObject.NULL)
+                    .put("acquisitionDateEpochMs", selection.acquisitionDateEpochMs ?: JSONObject.NULL)
+                    .put("resolutionMeters", selection.resolutionMeters ?: JSONObject.NULL)
+                    .put("rasterIds", JSONArray(selection.rasterIds))
+                    .put("maxExportDimension", MAX_EXPORT_DIMENSION)
+                    .put("compressionQuality", 95)
+                    .put("rgbRenderingRule", "NaturalColor")
+                    .put("analysisRenderingRule", "NDVI_Color")
+                    .put("attribution", "USDA Farm Production and Conservation Business Center, Geospatial Enterprise Operations")
+                    .put("license", "Public domain; source credit requested")
+                    .put("retrievedAtEpochMs", System.currentTimeMillis())
+                    .put("scope", scope)
+                    .put("bboxWgs84", JSONArray(listOf(bounds.west, bounds.south, bounds.east, bounds.north)))
+                    .put("width", width).put("height", height)
+                metadataFile.writeText(metadata.toString())
+            }
             return imageFile
         } catch (_: Exception) {
-            temporary.delete(); return null
-        } finally { connection.disconnect() }
+            temporary.delete()
+            return null
+        } finally {
+            connection.disconnect()
+        }
     }
+
+    private fun selectionFor(bounds: Bounds, key: String, metadataFile: File): ImagerySelection {
+        selectionCache[key]?.let { return it }
+        if (metadataFile.exists() && metadataFile.length() <= MAX_METADATA_BYTES) {
+            runCatching {
+                val json = JSONObject(metadataFile.readText())
+                val ids = json.optJSONArray("rasterIds") ?: JSONArray()
+                val parsedIds = (0 until ids.length()).mapNotNull { ids.optLong(it, -1L).takeIf { id -> id > 0 } }
+                if (parsedIds.isNotEmpty()) {
+                    val restored = ImagerySelection(
+                        rasterIds = parsedIds,
+                        year = json.optInt("acquisitionYear").takeIf { it > 0 },
+                        acquisitionDateEpochMs = json.optLong("acquisitionDateEpochMs").takeIf { it > 0 },
+                        resolutionMeters = json.optDouble("resolutionMeters").takeIf { it.isFinite() && it > 0 },
+                        bandCount = json.optInt("bandCount", 4)
+                    )
+                    selectionCache[key] = restored
+                    return restored
+                }
+            }
+        }
+        val queried = queryBestImagery(bounds) ?: ImagerySelection(emptyList(), null, null, null, 4)
+        selectionCache[key] = queried
+        return queried
+    }
+
+    /**
+     * Ask the ImageServer which source rasters intersect this hole. Prefer the
+     * newest available NAIP acquisition, then the finest native resolution.
+     * Locking those raster IDs makes RGB and NDVI exports use the same inputs.
+     */
+    private fun queryBestImagery(bounds: Bounds): ImagerySelection? {
+        val queryParams = linkedMapOf(
+            "where" to "band_count >= 4",
+            "geometry" to "${bounds.west},${bounds.south},${bounds.east},${bounds.north}",
+            "geometryType" to "esriGeometryEnvelope",
+            "inSR" to "4326",
+            "spatialRel" to "esriSpatialRelIntersects",
+            "outFields" to "OBJECTID,Year,acquisition_date,resolution_value,resolution_units,band_count,agency",
+            "returnGeometry" to "false",
+            "orderByFields" to "Year DESC,resolution_value ASC",
+            "resultRecordCount" to "50",
+            "f" to "json"
+        )
+        val url = IMAGE_SERVER + "/query?" + queryParams.entries.joinToString("&") {
+            "${encode(it.key)}=${encode(it.value)}"
+        }
+        val connection = URL(url).openConnection() as HttpURLConnection
+        return try {
+            connection.connectTimeout = 5_000
+            connection.readTimeout = 8_000
+            connection.setRequestProperty("Accept", "application/json")
+            connection.setRequestProperty("User-Agent", "WatchThisDrive/0.4 (USDA NAIP source selection)")
+            if (connection.responseCode !in 200..299) return null
+            val body = connection.inputStream.bufferedReader().use { it.readText() }
+            if (body.length > MAX_METADATA_BYTES) return null
+            val features = JSONObject(body).optJSONArray("features") ?: return null
+            data class Record(val id: Long, val year: Int?, val date: Long?, val resolution: Double?, val bands: Int)
+            val records = (0 until features.length()).mapNotNull { index ->
+                val attrs = features.optJSONObject(index)?.optJSONObject("attributes") ?: return@mapNotNull null
+                val id = value(attrs, "OBJECTID", "objectid")?.toLongOrNull()?.takeIf { it > 0 } ?: return@mapNotNull null
+                val bands = value(attrs, "band_count", "Band_Count")?.toIntOrNull() ?: return@mapNotNull null
+                if (bands < 4) return@mapNotNull null
+                Record(
+                    id,
+                    value(attrs, "Year", "year")?.toIntOrNull(),
+                    value(attrs, "acquisition_date", "Acquisition_Date")?.toLongOrNull(),
+                    value(attrs, "resolution_value", "Resolution_Value")?.toDoubleOrNull()?.takeIf { it > 0 },
+                    bands
+                )
+            }.sortedWith(
+                compareByDescending<Record> { it.year ?: 0 }
+                    .thenBy { it.resolution ?: Double.POSITIVE_INFINITY }
+                    .thenByDescending { it.date ?: 0L }
+            )
+            if (records.isEmpty()) return null
+            val chosenYear = records.first().year
+            val chosen = if (chosenYear != null) records.filter { it.year == chosenYear } else records
+            ImagerySelection(
+                rasterIds = chosen.map { it.id },
+                year = chosenYear,
+                acquisitionDateEpochMs = chosen.mapNotNull { it.date }.maxOrNull(),
+                resolutionMeters = chosen.mapNotNull { it.resolution }.minOrNull(),
+                bandCount = chosen.minOf { it.bands }
+            )
+        } catch (_: Exception) {
+            null
+        } finally {
+            connection.disconnect()
+        }
+    }
+
+    private fun value(json: JSONObject, vararg names: String): String? {
+        val entries = json.keys().asSequence().associateBy { it.lowercase(Locale.US) }
+        return names.firstNotNullOfOrNull { name ->
+            val key = entries[name.lowercase(Locale.US)] ?: return@firstNotNullOfOrNull null
+            val value = json.opt(key)
+            when {
+                value == null || value == JSONObject.NULL -> null
+                value is Number -> value.toString()
+                else -> value.toString().takeIf { it.isNotBlank() && it != "null" }
+            }
+        }
+    }
+
+    private fun encode(value: String): String = URLEncoder.encode(value, Charsets.UTF_8.name())
 
     fun boundsFor(course: GolfCourse, geometry: CourseGeometry?): Bounds? {
         val boundaryPoints = geometry?.features
