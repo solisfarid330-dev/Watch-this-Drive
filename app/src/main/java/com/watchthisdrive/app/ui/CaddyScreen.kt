@@ -81,7 +81,8 @@ private fun PlayingCaddyScreen(
         })
     }
 
-    val distanceYards = if (location != null && target != null) {
+    val locationUsable = location != null && location.accuracy <= 50f && System.currentTimeMillis() - location.time <= 60_000L
+    val distanceYards = if (locationUsable && target != null) {
         val meters = FloatArray(1)
         Location.distanceBetween(location.latitude, location.longitude, target.latitude, target.longitude, meters)
         (meters[0] * 1.0936133).toInt()
@@ -121,7 +122,7 @@ private fun PlayingCaddyScreen(
                 Card(colors = CardDefaults.cardColors(containerColor = caddyCard), shape = RoundedCornerShape(18.dp)) {
                     Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text("YOUR LOCATION", color = caddyGreen, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
-                        Text(if (location == null) "No GPS fix yet. Head outdoors and refresh your location." else "GPS position available", color = Color.White)
+                        Text(when { location == null -> "No GPS fix yet. Head outdoors and refresh your location."; location.accuracy > 50f -> "GPS accuracy is too low (±" + location.accuracy.toInt() + " m)."; System.currentTimeMillis() - location.time > 60_000L -> "GPS fix is stale. Refresh your location."; else -> "GPS position available · ±" + location.accuracy.toInt() + " m" }, color = Color.White)
                         Button(onClick = onLocate, modifier = Modifier.fillMaxWidth()) { Text("REFRESH GPS LOCATION") }
                     }
                 }
@@ -167,13 +168,15 @@ private fun PlayingCaddyScreen(
             item {
                 Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF24372A)), shape = RoundedCornerShape(20.dp)) {
                     Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("DISTANCE TO GREEN", color = caddyGreen, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                        Text("DISTANCE TO GREEN CENTER", color = caddyGreen, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
                         Text(distanceYards?.let { "$it yd" } ?: "—", color = Color.White, style = MaterialTheme.typography.displayMedium, fontWeight = FontWeight.Bold)
                         Text(
                             when {
                                 target == null -> "Waiting for a mapped green target."
                                 location == null -> "Refresh GPS to calculate your distance."
-                                else -> "Straight-line GPS distance to the selected green center."
+                                location.accuracy > 50f -> "Waiting for a more accurate GPS fix."
+                                System.currentTimeMillis() - location.time > 60_000L -> "GPS fix is stale. Refresh your location."
+                                else -> "Straight-line distance to the selected green center, not the exact pin."
                             },
                             color = caddyMuted,
                             style = MaterialTheme.typography.bodySmall
