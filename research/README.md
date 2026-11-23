@@ -69,7 +69,11 @@ and ambiguity reporting.
 
 The current research branch has live retrieval snapshots for three unrelated
 courses discovered by name and location, with no course IDs or coordinates
-hardcoded in the extractor:
+hardcoded in the extractor. It also has first-pass aerial validation for Hole 1
+at South Padre and Westwood. The aerial workflow uses the Texas NAIP 2022
+four-band ImageServer and commits source imagery, RGBIR TIFFs, OSM overlays,
+and diagnostic reports to this branch. The source service identifies its bands
+as Red, Green, Blue, and Infrared and reports 0.6 m source pixels.
 
 | Course | OSM golf elements | Mapped features |
 |---|---:|---|
