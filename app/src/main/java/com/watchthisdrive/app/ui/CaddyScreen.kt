@@ -39,6 +39,7 @@ private val caddyMuted = Color(0xFFB6C1B9)
 fun CaddyScreen(
     course: GolfCourse?,
     location: Location?,
+    locationError: String? = null,
     onLocate: () -> Unit,
     onFindCourse: () -> Unit,
     activeHole: Int,
@@ -46,13 +47,14 @@ fun CaddyScreen(
     geometryError: String? = null,
     modifier: Modifier = Modifier
 ) {
-    PlayingCaddyScreen(course, location, onLocate, onFindCourse, activeHole, geometry, geometryError, modifier)
+    PlayingCaddyScreen(course, location, locationError, onLocate, onFindCourse, activeHole, geometry, geometryError, modifier)
 }
 
 @Composable
 private fun PlayingCaddyScreen(
     course: GolfCourse?,
     location: Location?,
+    locationError: String?,
     onLocate: () -> Unit,
     onFindCourse: () -> Unit,
     activeHole: Int,
@@ -123,6 +125,7 @@ private fun PlayingCaddyScreen(
                     Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text("YOUR LOCATION", color = caddyGreen, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
                         Text(when { location == null -> "No GPS fix yet. Head outdoors and refresh your location."; location.accuracy > 50f -> "GPS accuracy is too low (±" + location.accuracy.toInt() + " m)."; System.currentTimeMillis() - location.time > 60_000L -> "GPS fix is stale. Refresh your location."; else -> "GPS position available · ±" + location.accuracy.toInt() + " m" }, color = Color.White)
+                        locationError?.let { Text(it, color = Color(0xFFFFB4AB), style = MaterialTheme.typography.bodySmall) }
                         Button(onClick = onLocate, modifier = Modifier.fillMaxWidth()) { Text("REFRESH GPS LOCATION") }
                     }
                 }
