@@ -204,7 +204,8 @@ fun CourseHoleArtworkPanel(
         val hole = reconstructedHoles.firstOrNull { it.number == selected }
         val imageryToken = aerialReference?.cacheToken.orEmpty()
         if (hole != null && !aerialLoading && renderedTokens[hole.number] != imageryToken) {
-            generating = true
+            val showGenerating = hole.number !in generatedImages
+            if (showGenerating) generating = true
             try {
                 val rendered = withContext(Dispatchers.Default) {
                     CourseHoleArtworkRenderer.render(
@@ -222,7 +223,7 @@ fun CourseHoleArtworkPanel(
                 renderError = error.localizedMessage
                     ?: "The hole illustration could not be generated."
             } finally {
-                generating = false
+                if (showGenerating) generating = false
             }
         }
     }
