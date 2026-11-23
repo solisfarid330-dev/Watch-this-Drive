@@ -87,8 +87,15 @@ private fun WatchThisDriveApp() {
     }
     var courseGeometry by remember(activeCourse?.id) { mutableStateOf<CourseGeometry?>(null) }
     var geometryError by remember(activeCourse?.id) { mutableStateOf<String?>(null) }
-    val reconstructedHoles = remember(courseGeometry) {
-        courseGeometry?.let { HoleReconstructor.reconstruct(it) }.orEmpty()
+    var reconstructedHoles by remember {
+        mutableStateOf<List<ReconstructedHole>>(emptyList())
+    }
+    LaunchedEffect(courseGeometry) {
+        reconstructedHoles = emptyList()
+        val geometrySnapshot = courseGeometry ?: return@LaunchedEffect
+        reconstructedHoles = withContext(Dispatchers.Default) {
+            HoleReconstructor.reconstruct(geometrySnapshot)
+        }
     }
     LaunchedEffect(activeCourse?.id) {
         courseGeometry = null
