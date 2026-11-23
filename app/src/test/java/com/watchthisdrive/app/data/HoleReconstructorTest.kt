@@ -294,4 +294,52 @@ class HoleReconstructorTest {
         assertTrue(hole.usesMappedFairway)
     }
 
+    @Test
+    fun parAndHandicapComeOnlyFromTheMatchingHoleMetadata() {
+        val geometry = CourseGeometry(99, "Metadata fixture", listOf(
+            CourseFeature(1, "way", "tee", "1", null, listOf(GeoPoint(0.0, 0.0))),
+            CourseFeature(2, "way", "green", "1", null, listOf(GeoPoint(0.004, 0.0))),
+            CourseFeature(3, "relation", "hole", "1", null,
+                listOf(GeoPoint(0.0, 0.0), GeoPoint(0.002, 0.0), GeoPoint(0.004, 0.0)),
+                par = 5, handicap = 7),
+            CourseFeature(4, "relation", "hole", "2", null,
+                listOf(GeoPoint(0.0, 0.01), GeoPoint(0.004, 0.01)),
+                par = 3, handicap = 1)
+        ))
+
+        val hole = HoleReconstructor.reconstruct(geometry).single()
+
+        assertEquals(5, hole.par)
+        assertEquals(7, hole.handicap)
+    }
+
+    @Test
+    fun centerlineAndFairwayMustAgreeAcrossTheFullRoute() {
+        val fairway = listOf(
+            GeoPoint(0.0002, -0.00035),
+            GeoPoint(0.0038, -0.00035),
+            GeoPoint(0.0038, 0.00035),
+            GeoPoint(0.0002, 0.00035),
+            GeoPoint(0.0002, -0.00035)
+        )
+        val route = listOf(
+            GeoPoint(0.0, 0.0),
+            GeoPoint(0.001, 0.00015),
+            GeoPoint(0.002, 0.00018),
+            GeoPoint(0.003, -0.00012),
+            GeoPoint(0.004, 0.0)
+        )
+        val geometry = CourseGeometry(99, "Alignment fixture", listOf(
+            feature(1, "tee", 0.0, 0.0),
+            feature(2, "green", 0.004, 0.0),
+            feature(3, "fairway", 0.0, 0.0, points = fairway),
+            feature(4, "hole", 0.0, 0.0, points = route)
+        ))
+
+        val hole = HoleReconstructor.reconstruct(geometry).single()
+
+        assertEquals(route, hole.mappedCenterline?.points)
+        assertTrue(hole.usesMappedFairway)
+    }
+
 }
