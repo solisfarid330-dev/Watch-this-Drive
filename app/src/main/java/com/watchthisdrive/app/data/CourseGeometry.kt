@@ -865,30 +865,35 @@ internal object ZommaGeoJsonParser {
                 ?.lowercase()?.replace(Regex("[^a-z0-9]+"), "_")?.trim('_') ?: continue
             val featureType = normalizeType(kind) ?: continue
             val geometry = feature.optJSONObject("geometry") ?: continue
-            val points = readCoordinates(geometry) ?: continue
-            if (points.isEmpty()) continue
+            val parts = readCoordinateParts(geometry).orEmpty()
+            if (parts.isEmpty()) continue
             val hole = firstValue(tags, "hole_number", "holeNumber", "hole", "golf:hole", "ref")
             val par = firstValue(tags, "par")?.toIntOrNull()?.takeIf { it in 3..6 }
             val handicap = firstValue(tags, "handicap", "stroke_index")?.toIntOrNull()?.takeIf { it in 1..36 }
             val rawId = feature.opt("id")?.toString()
                 ?: firstValue(properties, "id", "osm_id")
                 ?: "zomma-$index-$featureType"
-            val id = stableId(rawId, index, featureType)
-            result += CourseFeature(
-                id = id,
-                elementType = "zomma",
-                featureType = featureType,
-                holeNumber = hole,
-                name = firstValue(tags, "name", "label"),
-                points = points,
-                par = par,
-                handicap = handicap,
-                source = firstValue(properties, "source", "geometry_source", "provenance", "origin")
-                    ?: firstValue(tags, "source", "provenance"),
-                confidence = firstValue(properties, "confidence", "model_confidence", "prediction_confidence")
-                    ?: firstValue(tags, "confidence", "model_confidence", "prediction_confidence"),
-                isPredicted = isPredicted(properties, tags)
-            )
+            val source = firstValue(properties, "source", "geometry_source", "provenance", "origin")
+                ?: firstValue(tags, "source", "provenance")
+            val confidence = firstValue(properties, "confidence", "model_confidence", "prediction_confidence")
+                ?: firstValue(tags, "confidence", "model_confidence", "prediction_confidence")
+            val predicted = isPredicted(properties, tags)
+            parts.forEachIndexed { partIndex, points ->
+                if (points.isEmpty()) return@forEachIndexed
+                result += CourseFeature(
+                    id = stableId("$rawId:$partIndex", index, featureType),
+                    elementType = "zomma",
+                    featureType = featureType,
+                    holeNumber = hole,
+                    name = firstValue(tags, "name", "label"),
+                    points = points,
+                    par = par,
+                    handicap = handicap,
+                    source = source,
+                    confidence = confidence,
+                    isPredicted = predicted
+                )
+            }
         }
         return result.distinctBy { Triple(it.elementType, it.id, it.featureType) }
     }
@@ -936,45 +941,52 @@ internal object ZommaGeoJsonParser {
         else -> null
     }
 
-    private fun readCoordinates(geometry: JSONObject): List<GeoPoint>? {
-        val type = geometry.optString("type")
-        val coordinates = geometry.optJSONArray("coordinates") ?: return null
-        val rawPoints = mutableListOf<GeoPoint>()
-        fun collect(value: Any?) {
-            when (value) {
-                is JSONArray -> {
-                    if (value.length() >= 2 && value.opt(0) is Number && value.opt(1) is Number) {
-                        val lon = value.optDouble(0, Double.NaN)
-                        val lat = value.optDouble(1, Double.NaN)
-                        if (lat.isFinite() && lon.isFinite() && lat in -90.0..90.0 && lon in -180.0..180.0) {
-                            rawPoints += GeoPoint(lat, lon)
-                        }
-                    } else {
-                        for (i in 0 until value.length()) collect(value.opt(i))
-                    }
-                }
+    /** Preserve every disjoint line/polygon component instead of dropping all but the largest. */
+    private fun readCoordinateParts(geometry: JSONObject): List<List<GeoPoint>>? {
+        return when (geometry.optString("type")) {
+            "Point" -> {
+                val pair = geometry.optJSONArray("coordinates") ?: return null
+                coordinatePoint(pair)?.let { listOf(listOf(it)) }
             }
-        }
-        when (type) {
-            "Point", "MultiPoint", "LineString", "MultiLineString", "Polygon", "MultiPolygon",
-            "GeometryCollection" -> collect(coordinates)
-            else -> return null
-        }
-        if (type == "Polygon" || type == "MultiPolygon") {
-            // GeoJSON polygons begin with the exterior ring. Keep the largest
-            // ring when a multi-polygon is represented as a single feature.
-            val rings = when (type) {
-                "Polygon" -> (0 until coordinates.length()).mapNotNull { ring ->
-                    coordinateRing(coordinates.optJSONArray(ring))
-                }
-                else -> (0 until coordinates.length()).flatMap { polygonIndex ->
-                    val polygon = coordinates.optJSONArray(polygonIndex) ?: return@flatMap emptyList()
-                    (0 until polygon.length()).mapNotNull { ring -> coordinateRing(polygon.optJSONArray(ring)) }
-                }
+            "MultiPoint", "LineString" -> {
+                val coordinates = geometry.optJSONArray("coordinates") ?: return null
+                coordinateRing(coordinates)?.let { listOf(it) }
             }
-            return rings.maxByOrNull { it.size }?.takeIf { it.isNotEmpty() }
+            "MultiLineString" -> {
+                val coordinates = geometry.optJSONArray("coordinates") ?: return null
+                (0 until coordinates.length()).mapNotNull { index ->
+                    coordinateRing(coordinates.optJSONArray(index))
+                }.takeIf { it.isNotEmpty() }
+            }
+            "Polygon" -> {
+                val rings = geometry.optJSONArray("coordinates") ?: return null
+                coordinateRing(rings.optJSONArray(0))?.let { listOf(it) }
+            }
+            "MultiPolygon" -> {
+                val polygons = geometry.optJSONArray("coordinates") ?: return null
+                (0 until polygons.length()).mapNotNull { index ->
+                    val polygon = polygons.optJSONArray(index) ?: return@mapNotNull null
+                    coordinateRing(polygon.optJSONArray(0))
+                }.takeIf { it.isNotEmpty() }
+            }
+            "GeometryCollection" -> {
+                val geometries = geometry.optJSONArray("geometries") ?: return null
+                (0 until geometries.length()).flatMap { index ->
+                    val child = geometries.optJSONObject(index) ?: return@flatMap emptyList()
+                    readCoordinateParts(child).orEmpty()
+                }.takeIf { it.isNotEmpty() }
+            }
+            else -> null
         }
-        return rawPoints
+    }
+
+    private fun coordinatePoint(pair: JSONArray): GeoPoint? {
+        if (pair.length() < 2) return null
+        val longitude = pair.optDouble(0, Double.NaN)
+        val latitude = pair.optDouble(1, Double.NaN)
+        return if (latitude.isFinite() && longitude.isFinite() &&
+            latitude in -90.0..90.0 && longitude in -180.0..180.0
+        ) GeoPoint(latitude, longitude) else null
     }
 
     private fun coordinateRing(array: JSONArray?): List<GeoPoint>? {
