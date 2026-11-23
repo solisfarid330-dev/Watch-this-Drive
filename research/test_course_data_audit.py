@@ -128,5 +128,16 @@ class CourseDataAuditTests(unittest.TestCase):
         self.assertEqual(result["metadata"]["license"], "ODbL-1.0")
 
 
+    def test_inventory_flags_unnumbered_hole_lines(self):
+        report = audit.inventory({"elements": [
+            {"type": "way", "id": 1, "tags": {"golf": "hole", "ref": "1"}},
+            {"type": "way", "id": 2, "tags": {"golf": "hole", "handicap": "8"}},
+        ]})
+        numbering = report["hole_numbering"]
+        self.assertEqual(numbering["hole_line_count"], 2)
+        self.assertEqual(numbering["numbered_hole_line_count"], 1)
+        self.assertEqual(numbering["unnumbered_hole_lines"][0]["osm_id"], 2)
+
+
 if __name__ == "__main__":
     unittest.main()
