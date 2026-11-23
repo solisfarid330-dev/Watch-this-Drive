@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import androidx.compose.ui.Modifier
@@ -76,6 +77,7 @@ fun CourseHoleArtworkPanel(course: GolfCourse, geometry: CourseGeometry?) {
     var image by remember(course.elementType, course.id) { mutableStateOf<Bitmap?>(null) }
     var generatedImages by remember(course.elementType, course.id) { mutableStateOf<Map<Int, File>>(emptyMap()) }
     var generating by remember(course.elementType, course.id) { mutableStateOf(false) }
+    var renderError by remember(course.elementType, course.id) { mutableStateOf<String?>(null) }
     // Reconstruction is pure but non-trivial; do it once per geometry snapshot,
     // not on every Compose recomposition (chip selection, loading, bitmap updates).
     val reconstructedHoles = remember(geometry) {
@@ -111,6 +113,12 @@ fun CourseHoleArtworkPanel(course: GolfCourse, geometry: CourseGeometry?) {
                     )
                 }
                 generatedImages = generatedImages + (hole.number to rendered)
+                renderError = null
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                renderError = error.localizedMessage
+                    ?: "The hole illustration could not be generated."
             } finally {
                 generating = false
             }
@@ -137,8 +145,9 @@ fun CourseHoleArtworkPanel(course: GolfCourse, geometry: CourseGeometry?) {
                 loading || generating -> CircularProgressIndicator(color = Color(0xFFB8F36B))
                 artwork?.holes.isNullOrEmpty() && generatedImages.isEmpty() -> Text(
                     if (geometry == null) "Course geometry is loading. Hole illustrations will be generated when it arrives."
-                    else "There is not enough mapped tee/green geometry to reconstruct holes for this course yet. Satellite maps and mapped course details remain available.",
-                    color = Color(0xFFB6C1B9))
+                    else renderError
+                        ?: "There is not enough mapped tee/green geometry to reconstruct holes for this course yet. Satellite maps and mapped course details remain available.",
+                    color = if (renderError != null) Color(0xFFFFB4AB) else Color(0xFFB6C1B9))
                 else -> {
                     val availableNumbers = (
                         artwork?.holes?.map { it.number }.orEmpty() +
@@ -207,20 +216,32 @@ fun CourseHoleArtworkForHole(
 
     LaunchedEffect(course.elementType, course.id, holeNumber, reconstructedHole) {
         loading = true
-        val pack = withContext(Dispatchers.IO) {
-            CourseHoleArtworkRepository.load(context, course)
-        }
-        val entry = pack?.holes?.firstOrNull { it.number == holeNumber }
-        val generatedFile = reconstructedHole?.let { hole ->
-            withContext(Dispatchers.Default) {
-                CourseHoleArtworkRenderer.render(hole, context.cacheDir, course.elementType + "-" + course.id)
+        bitmap = null
+        try {
+            val pack = withContext(Dispatchers.IO) {
+                CourseHoleArtworkRepository.load(context, course)
             }
+            val entry = pack?.holes?.firstOrNull { it.number == holeNumber }
+            val generatedFile = reconstructedHole?.let { hole ->
+                withContext(Dispatchers.Default) {
+                    CourseHoleArtworkRenderer.render(
+                        hole, context.cacheDir, course.elementType + "-" + course.id
+                    )
+                }
+            }
+            bitmap = withContext(Dispatchers.IO) {
+                generatedFile?.let { BitmapFactory.decodeFile(it.absolutePath) }
+                    ?: entry?.let { CourseHoleArtworkRepository.bitmap(context, it.assetPath) }
+            }
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            // Keep the existing GPS-aware fallback visible if rendering or
+            // image decoding fails; never leave Play stuck on a spinner.
+            bitmap = null
+        } finally {
+            loading = false
         }
-        bitmap = withContext(Dispatchers.IO) {
-            generatedFile?.let { BitmapFactory.decodeFile(it.absolutePath) }
-                ?: entry?.let { CourseHoleArtworkRepository.bitmap(context, it.assetPath) }
-        }
-        loading = false
     }
 
     when {
