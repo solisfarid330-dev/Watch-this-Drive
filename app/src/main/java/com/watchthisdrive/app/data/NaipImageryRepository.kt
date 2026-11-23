@@ -193,10 +193,10 @@ object NaipImageryRepository {
         // upsampling every small hole to 4,000 pixels. This preserves the
         // imagery's real detail while reducing bandwidth and bitmap memory.
         val targetGsdMeters = selection.resolutionMeters ?: 0.6
-        val width = (widthMeters / targetGsdMeters).roundToInt()
-            .coerceIn(256, MAX_EXPORT_DIMENSION)
-        val height = (heightMeters / targetGsdMeters).roundToInt()
-            .coerceIn(256, MAX_EXPORT_DIMENSION)
+        val exportScale = minOf(1.0, MAX_EXPORT_DIMENSION * targetGsdMeters /
+            max(widthMeters, heightMeters))
+        val width = (widthMeters / targetGsdMeters * exportScale).roundToInt().coerceAtLeast(1)
+        val height = (heightMeters / targetGsdMeters * exportScale).roundToInt().coerceAtLeast(1)
         val params = linkedMapOf(
             "bbox" to "${bounds.west},${bounds.south},${bounds.east},${bounds.north}",
             "bboxSR" to "4326",
