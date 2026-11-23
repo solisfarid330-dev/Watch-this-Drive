@@ -1,0 +1,72 @@
+{
+  "target_hole_osm_id": 1383052934,
+  "training_source": "South Padre Island Golf Club Hole 1 OSM fairway and rough polygons",
+  "training_samples": {
+    "fairway": 40000,
+    "rough": 40000
+  },
+  "features": [
+    "NDVI",
+    "excess_green",
+    "local_RGB_texture_stddev_9x9"
+  ],
+  "linear_discriminant_weights": [
+    -1.2558515168331938,
+    1.8930854801429078,
+    -0.012149043272783131
+  ],
+  "standardization_mean": [
+    0.1641847938299179,
+    0.18363872170448303,
+    0.013143091462552547
+  ],
+  "standardization_scale": [
+    0.0844544917345047,
+    0.054419394582509995,
+    0.013391568325459957
+  ],
+  "bias": 0.0009396109796141139,
+  "south_padre_random_pixel_holdout": {
+    "fairway_true_positive_rate": 0.8886,
+    "rough_false_positive_rate": 0.2767,
+    "fairway_holdout_pixels": 8000,
+    "rough_holdout_pixels": 8000,
+    "warning": "Random pixel holdout is optimistic because spatially adjacent pixels are correlated and labels are OSM-derived."
+  },
+  "target_seed_positive_rates": {
+    "fairway": {
+      "pixels": 60379,
+      "positive_fraction": 0.8733
+    },
+    "rough": {
+      "pixels": 90826,
+      "positive_fraction": 0.2085
+    },
+    "green": {
+      "pixels": 4391,
+      "positive_fraction": 0.0
+    },
+    "bunker": {
+      "pixels": 3261,
+      "positive_fraction": 0.0
+    },
+    "water_hazard": {
+      "pixels": 0,
+      "positive_fraction": null
+    },
+    "tee": {
+      "pixels": 5008,
+      "positive_fraction": 0.0
+    }
+  },
+  "candidate_corridor_m": 55,
+  "candidate_pixels": 146784,
+  "corridor_pixels": 448333,
+  "candidate_fraction_of_corridor": 0.3274,
+  "interpretation": "Experimental fairway-like turf candidates only. Classifier was trained from one course's OSM labels and may not transfer to other grass, lighting, season, or imagery conditions. Do not treat output as accepted fairway geometry.",
+  "files": [
+    "fairway-candidate-overlay.png",
+    "fairway-score-preview.png",
+    "classifier-report.json"
+  ]
+}
