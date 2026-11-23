@@ -1,6 +1,7 @@
 import java.io.File
 import java.io.InputStream
 import java.net.URL
+import java.net.URLConnection
 import java.security.MessageDigest
 import java.util.zip.GZIPInputStream
 
@@ -43,7 +44,7 @@ val ensureOpenGolfOfflineCatalog = tasks.register("ensureOpenGolfOfflineCatalog"
         val expectedCompressed = "c3b3bd4b1b3894fe5b9a6f0e84df43472f55aaad2602faeb58ef56a709db1a39"
         val expectedGeoJson = "fb4aa24aa8bce2fe338812bc316a2067720c6ffb7874429f5c037b31578300db"
 
-        fun sha256(stream: java.io.InputStream): String {
+        fun sha256(stream: InputStream): String {
             val digest = MessageDigest.getInstance("SHA-256")
             stream.use { input ->
                 val buffer = ByteArray(32 * 1024)
@@ -59,7 +60,7 @@ val ensureOpenGolfOfflineCatalog = tasks.register("ensureOpenGolfOfflineCatalog"
         catalogFile.parentFile.mkdirs()
         if (!catalogFile.exists() || sha256(catalogFile.inputStream()) != expectedCompressed) {
             val temporary = File(catalogFile.parentFile, catalogFile.name + ".download")
-            val connection: java.net.URLConnection = URL(
+            val connection: URLConnection = URL(
                 "https://github.com/opengolfapi/data/releases/download/v2.1.0/opengolfapi-us.geojson.gz"
             ).openConnection().apply {
                 connectTimeout = 10_000
