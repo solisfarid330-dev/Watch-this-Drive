@@ -877,7 +877,11 @@ internal object ZommaGeoJsonParser {
                 name = firstValue(tags, "name", "label"),
                 points = points,
                 par = par,
-                handicap = handicap
+                handicap = handicap,
+                source = firstValue(properties, "source", "geometry_source", "provenance", "origin")
+                    ?: firstValue(tags, "source", "provenance"),
+                confidence = firstValue(properties, "confidence", "model_confidence", "prediction_confidence"),
+                isPredicted = isPredicted(properties, tags)
             )
         }
         return result.distinctBy { Triple(it.elementType, it.id, it.featureType) }
