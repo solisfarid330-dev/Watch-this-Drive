@@ -536,6 +536,17 @@ private fun SettingsScreen(locationMessage: String, location: Location?, onLocat
             }
         }
         ClubDistancesSettings()
+        Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF1D2A22))) {
+            Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                Text("MAP & DATA SOURCES", color = Color(0xFFB8F36B), fontWeight = FontWeight.Bold)
+                Text("Course directory and scorecard data: OpenGolfAPI (ODbL 1.0) and TeeTime.AI (ODbL 1.0 / CC BY-SA 4.0).",
+                    color = Color.White, style = MaterialTheme.typography.bodySmall)
+                Text("Mapped course features: © OpenStreetMap contributors (ODbL 1.0).",
+                    color = Color.White, style = MaterialTheme.typography.bodySmall)
+                Text("Aerial imagery evaluation: USDA Farm Production and Conservation Business Center, Geospatial Enterprise Operations (NAIP).",
+                    color = Color(0xFFB6C1B9), style = MaterialTheme.typography.bodySmall)
+            }
+        }
     }
 }
 
