@@ -43,6 +43,11 @@ data class GolfCourse(
     val scorecard: List<CourseHoleInfo> = emptyList(),
     val sourceNames: Set<String> = emptySet()
 ) {
+    val persistenceKey: String
+        get() = openGolfId?.let { "opengolf:$it" }
+            ?: teeTimeId?.let { "teetime:$it" }
+            ?: "${elementType.lowercase()}:$id"
+
     val distanceMiles: Double
         get() = distanceMeters / 1609.344
 }
