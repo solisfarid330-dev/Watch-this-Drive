@@ -1,0 +1,58 @@
+name: Course data integration experiment
+
+on:
+  push:
+    branches:
+      - research/generic-course-pipeline
+    paths:
+      - "research/course_data_audit.py"
+      - ".github/workflows/course-data-integration.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  retrieve-course-data:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run South Padre Island Golf Club extraction
+        id: south-padre
+        continue-on-error: true
+        run: |
+          python research/course_data_audit.py \
+            --course "South Padre Island Golf Club" \
+            --location "Laguna Vista, Texas, USA" \
+            --out output/south-padre
+      - name: Run independent second-course extraction
+        id: second-course
+        continue-on-error: true
+        run: |
+          python research/course_data_audit.py \
+            --course "Rancho Viejo Resort and Country Club" \
+            --location "Rancho Viejo, Texas, USA" \
+            --out output/rancho-viejo
+      - name: Upload raw source snapshots and reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: generic-course-data-experiment
+          path: output/
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Summarize integration outcomes
+        if: always()
+        run: |
+          echo "South Padre extraction outcome: ${{ steps.south-padre.outcome }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Rancho Viejo extraction outcome: ${{ steps.second-course.outcome }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "A successful run means data retrieval completed, not that course geometry is validated." >> "$GITHUB_STEP_SUMMARY"
+      - name: Fail if either extraction failed
+        if: always()
+        run: |
+          test "${{ steps.south-padre.outcome }}" = "success"
+          test "${{ steps.second-course.outcome }}" = "success"
