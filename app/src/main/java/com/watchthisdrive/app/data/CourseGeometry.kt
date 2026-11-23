@@ -240,7 +240,10 @@ object CourseGeometryLoader {
         // Rank candidates by distance to their actual outline, not only by the
         // polygon centroid (which can be hundreds of metres away).
         val marker = GeoPoint(course.latitude, course.longitude)
-        val chosen = candidates.minByOrNull { element ->
+        val normalizedCourseName = course.name.lowercase().replace(Regex("[^a-z0-9]"), "")
+        val rankedCandidates = candidates.map { element ->
+            val candidateName = element.optJSONObject("tags")?.optString("name").orEmpty()
+                .lowercase().replace(Regex("[^a-z0-9]"), "")
             val candidateBoundary = mutableListOf<CourseFeature>()
             val ownGeometry = readGeometry(element.optJSONArray("geometry"))
             if (ownGeometry.isNotEmpty()) candidateBoundary += CourseFeature(
@@ -260,7 +263,7 @@ object CourseGeometryLoader {
             }
             val outline = candidateBoundary.flatMap { it.points }
             val rings = stitchBoundaryRings(candidateBoundary)
-            when {
+            val distance = when {
                 rings.any { pointInRing(marker, it) } -> 0.0
                 outline.isNotEmpty() -> outlineDistanceMeters(marker, outline)
                 else -> {
@@ -270,7 +273,17 @@ object CourseGeometryLoader {
                     haversineMeters(course.latitude, course.longitude, lat, lon)
                 }
             }
-        } ?: return null
+            Triple(element, candidateName == normalizedCourseName && normalizedCourseName.isNotBlank(), distance)
+        }
+        // Prefer an exact course-name match. If OSM uses a different or missing
+        // name, only accept a nearby outline; never attach a distant neighboring
+        // course simply because it is the closest polygon in the search radius.
+        val chosen = rankedCandidates
+            .filter { it.second || it.third <= 1_000.0 }
+            .minWithOrNull(
+                compareBy<Triple<JSONObject, Boolean, Double>> { if (it.second) 0 else 1 }
+                    .thenBy { it.third }
+            )?.first ?: return null
 
         val points = mutableListOf<GeoPoint>()
         val features = mutableListOf<CourseFeature>()
