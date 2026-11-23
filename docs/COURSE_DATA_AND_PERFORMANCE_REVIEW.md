@@ -188,3 +188,6 @@ Additional performance and data-quality refinements:
 - Course records use collision-resistant stable provider IDs, and saved round/scorecard preferences use a canonical provider identity so switching between a catalog point and its matched OSM boundary does not split a golfer's scores.
 - Total course yardage is retained and displayed when a provider supplies it; hole yardage is shown only when the provider actually provides a per-hole value.
 - The offline catalog is generated as a build asset and verified before Android asset merging; packaging is being checked inside the APK, not inferred from a successful build.
+
+
+Local build prerequisite: run `bash scripts/download_opengolf_catalog.sh` before invoking Gradle. The script verifies both the compressed release asset and the uncompressed GeoJSON content; CI runs it before Gradle configures Android assets.
