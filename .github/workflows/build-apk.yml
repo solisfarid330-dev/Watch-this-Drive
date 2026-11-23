@@ -7,6 +7,12 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+# Rapid feature-branch commits should validate the newest tree, not queue
+# several expensive Android builds for superseded intermediate commits.
+concurrency:
+  group: android-build-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
