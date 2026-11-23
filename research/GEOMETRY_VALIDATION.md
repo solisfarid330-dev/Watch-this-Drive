@@ -42,6 +42,25 @@ Coverage is the sampled proportion of the OSM hole centerline that falls inside 
 - Mapped fairway polygons cover 53.0% of the Hole 1 centerline. This indicates incomplete or non-centerline-aligned OSM fairway coverage; the aerial image is needed to identify the missing extent.
 - One nearby water-hazard polygon is a candidate, not a confirmed Hole 1 hazard.
 
+## Conventional image-processing experiments
+
+The 4-band TIFF export preserves the source RGB + near-infrared bands. Two simple spectral indices were sampled inside OSM feature polygons as weak labels:
+
+- At South Padre, fairway-vs-rough NDVI separation was modest (absolute Cohen's d = 0.47); excess-green separation was stronger (d = 1.10).
+- Westwood had no mapped rough seed polygon in this Hole 1 crop, so fairway-vs-rough spectral separability could not be measured there.
+- Both courses showed much clearer spectral separation between mapped fairway and sand bunker samples. This is useful for hazard exclusion, but it does not solve the fairway/rough boundary.
+
+A lightweight linear discriminant trained on South Padre fairway/rough pixels achieved 84.8% fairway true-positive rate and 30.1% rough false-positive rate on a spatial block holdout (64×64 exported pixels, approximately 21 m blocks at this crop's export scale). This is more honest than a random pixel split, but still relies on incomplete OSM labels from one hole.
+
+The same South Padre classifier recognized only 7.5% of Westwood's mapped fairway seed pixels. **A fixed cross-course color classifier does not generalize adequately.**
+
+A per-course k-means experiment performed better against the available weak labels:
+- South Padre's selected cluster covered 78.6% of mapped fairway seed pixels, with 68.9% precision among fairway/rough seed pixels (F1 = 0.734).
+- Westwood's selected cluster covered 77.8% of mapped fairway seed pixels, but there were no mapped rough seed pixels in the crop, so precision could not be measured.
+- The resulting candidate masks remain broad/noisy, even after morphological smoothing. They are not accurate enough to promote as reconstructed fairway geometry.
+
+These results support continuing with conventional image processing, but not a one-threshold or one-course-trained solution. Per-course adaptation and stronger spatial constraints are likely necessary. All of these Python experiments are research harnesses only; they are not production dependencies or cloud inference requirements.
+
 ## What this proves
 
 1. The public NAIP service can be queried programmatically for course-scale imagery without manually downloading or preparing a course image.
@@ -62,6 +81,6 @@ Coverage is the sampled proportion of the OSM hole centerline that falls inside 
 
 **Do not use OSM fairway polygons as the sole fairway geometry source.** Retain OSM as a strong seed for known greens, bunkers, tees, water and some fairway extents, but treat gaps as unknown.
 
-The next research step is to test conventional image processing against the aerial imagery: color/texture segmentation, vegetation/mown-turf region extraction, and spatial constraints from known tee/green/centerline geometry. Compare inferred polygons with visible boundaries and report confidence. Avoid heavyweight learned segmentation models and do not silently fill uncertain areas.
+The next research step is to improve per-course region extraction with stronger spatial continuity, mowing-texture cues, and hole-direction constraints, then test on more holes and a third aerially validated course. The current classical CV output is only a candidate layer, not accepted geometry. Avoid heavyweight learned segmentation models and do not silently fill uncertain areas.
 
 Hole-feature association also needs more than a fixed distance threshold. Candidate scoring should consider tee-to-green direction, whether a green lies near the centerline endpoint, fairway intersection/continuity, bunker proximity to likely landing/green zones, and ambiguity with neighboring hole corridors.
