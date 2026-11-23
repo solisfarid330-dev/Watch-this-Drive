@@ -79,6 +79,77 @@ object CourseCatalogSources {
         return mergeCatalogs(result.ifEmpty { offline + cached.orEmpty() }).filterNearby(latitude, longitude)
     }
 
+    /** Direct course-name search; unlike nearby search this does not require geocoding. */
+    fun searchByText(context: Context, query: String): List<GolfCourse> {
+        val normalizedQuery = query.trim()
+        if (normalizedQuery.isBlank()) return emptyList()
+        val cacheFile = File(
+            context.filesDir,
+            "course_query_${normalizedQuery.lowercase(Locale.ROOT).hashCode()}.json"
+        )
+        val cached = readCache(cacheFile)
+        if (cached != null && System.currentTimeMillis() - cacheFile.lastModified() < CACHE_MAX_AGE_MS) {
+            return cached
+        }
+        val results = linkedMapOf<String, GolfCourse>()
+        runCatching { fetchOpenGolfSearch(normalizedQuery, null) }
+            .onSuccess { list -> list.forEach { course -> course.openGolfId?.let { results["open:$it"] = course } } }
+        runCatching { fetchTeeTimeSearch(normalizedQuery) }
+            .onSuccess { list -> list.forEach { course -> course.teeTimeId?.let { results["tee:$it"] = course } } }
+        val merged = mergeCatalogs(results.values.toList())
+        if (merged.isNotEmpty()) writeCache(cacheFile, merged)
+        return merged.ifEmpty { cached.orEmpty() }
+    }
+
+    private fun fetchTeeTimeSearch(query: String): List<GolfCourse> {
+        val connection = URL("https://teetime.ai/api/mcp").openConnection() as HttpURLConnection
+        try {
+            connection.requestMethod = "POST"
+            connection.connectTimeout = 6_000
+            connection.readTimeout = 12_000
+            connection.doOutput = true
+            connection.setRequestProperty("Content-Type", "application/json")
+            connection.setRequestProperty("Accept", "application/json")
+            connection.setRequestProperty("User-Agent", "WatchThisDrive/0.2 (Android golf app)")
+            val body = JSONObject()
+                .put("jsonrpc", "2.0")
+                .put("id", 1)
+                .put("method", "tools/call")
+                .put("params", JSONObject()
+                    .put("name", "search_golf_courses")
+                    .put("arguments", JSONObject().put("query", query).put("country", "US").put("limit", 30)))
+            connection.outputStream.use { it.write(body.toString().toByteArray(Charsets.UTF_8)) }
+            val code = connection.responseCode
+            if (code !in 200..299) throw IllegalStateException("TeeTime.AI search returned HTTP $code")
+            val root = JSONObject(connection.inputStream.bufferedReader().use { it.readText() })
+            val result = root.optJSONObject("result") ?: return emptyList()
+            val structured = result.optJSONObject("structuredContent")
+            val structuredCourses = structured?.optJSONArray("courses")
+            if (structuredCourses != null) {
+                return (0 until structuredCourses.length())
+                    .mapNotNull { parseTeeTime(structuredCourses.optJSONObject(it)) }
+            }
+            val content = result.optJSONArray("content") ?: return emptyList()
+            for (index in 0 until content.length()) {
+                val text = content.optJSONObject(index)?.optString("text").orEmpty()
+                if (text.isBlank()) continue
+                val parsed = runCatching { JSONObject(text) }.getOrNull()
+                val courses = parsed?.optJSONArray("courses")
+                if (courses != null) {
+                    return (0 until courses.length())
+                        .mapNotNull { parseTeeTime(courses.optJSONObject(it)) }
+                }
+                val array = runCatching { JSONArray(text) }.getOrNull()
+                if (array != null) {
+                    return (0 until array.length()).mapNotNull { parseTeeTime(array.optJSONObject(it)) }
+                }
+            }
+            return emptyList()
+        } finally {
+            connection.disconnect()
+        }
+    }
+
     private fun mergeCatalogs(courses: List<GolfCourse>): List<GolfCourse> {
         val groups = mutableListOf<MutableList<GolfCourse>>()
         courses.sortedBy { it.distanceMeters }.forEach { course ->
@@ -169,9 +240,10 @@ object CourseCatalogSources {
         return (0 until courses.length()).mapNotNull { parseOpenGolf(courses.optJSONObject(it)) }
     }
 
-    private fun fetchOpenGolfSearch(query: String, stateCode: String): List<GolfCourse> {
+    private fun fetchOpenGolfSearch(query: String, stateCode: String?): List<GolfCourse> {
+        val stateFilter = stateCode?.let { "&state=${enc(it)}" }.orEmpty()
         val envelope = requestJson(
-            URL("$OPEN_GOLF_BASE/courses/search?q=${enc(query)}&state=${enc(stateCode)}&limit=100")
+            URL("$OPEN_GOLF_BASE/courses/search?q=${enc(query)}$stateFilter&limit=100")
         )
         val courses = envelope.optJSONArray("courses") ?: JSONArray()
         return (0 until courses.length()).mapNotNull { parseOpenGolf(courses.optJSONObject(it)) }
