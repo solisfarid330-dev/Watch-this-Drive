@@ -31,7 +31,8 @@ data class CourseFeature(
 data class CourseGeometry(
     val courseId: Long,
     val courseName: String,
-    val features: List<CourseFeature>
+    val features: List<CourseFeature>,
+    val courseElementType: String = "unknown"
 )
 
 /**
