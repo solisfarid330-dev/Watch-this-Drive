@@ -20,6 +20,10 @@ https://zommagolf.com/data-sources
 https://zommagolf.com/coverage
 https://opendatacommons.org/licenses/odbl/1-0/
 
+SatlasPretrain
+Where Zomma geometry contains model-predicted course outlines or hole lines derived from SatlasPretrain, the illustration identifies those features as model-predicted and displays this attribution beside the map.
+Contains information from SatlasPretrain, made available under the ODC Attribution License.
+
 OpenStreetMap
 Mapped course features and geographic data are © OpenStreetMap contributors.
 License: Open Database License (ODbL) 1.0.
