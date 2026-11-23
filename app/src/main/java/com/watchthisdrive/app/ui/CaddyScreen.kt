@@ -61,7 +61,7 @@ private fun PlayingCaddyScreen(
     activeHole: Int,
     geometry: CourseGeometry?,
     geometryError: String?,
-    reconstructedHoles: List<ReconstructedHole>?,
+    reconstructedHoles: List<ReconstructedHole>,
     modifier: Modifier = Modifier
 ) {
     var selectedGreenId by remember(course?.id, activeHole) { mutableStateOf<Long?>(null) }
