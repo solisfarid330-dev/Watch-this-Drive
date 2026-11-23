@@ -496,7 +496,7 @@ internal object CourseHoleArtworkRenderer {
             hole.woodland.any { it.isPredicted } || hole.paths.any { it.isPredicted } ||
             hole.trees.any { it.isPredicted }
         if (hasPredictedGeometry) {
-            text("MODEL-PREDICTED FEATURES · SATLASPRETRAIN (ODC-AT)",
+            text("PREDICTED FEATURES · CONTAINS INFORMATION FROM SATLASPRETRAIN (ODC ATTRIBUTION LICENSE)",
                 WIDTH - 56f, HEIGHT - 66f, 0xFFD4E1D0.toInt(), 14f, Paint.Align.RIGHT)
         }
         if (aerialBitmap != null && aerialBounds != null) {
