@@ -68,7 +68,7 @@ object NaipImageryRepository {
         val valid = records.filter { it.id > 0 && it.bandCount >= 4 }
         if (valid.isEmpty()) return null
         val latestYear = valid.mapNotNull { it.year }.maxOrNull()
-        val vintage = if (latestYear != null) valid.filter { it.year == latestYear }
+        val newestVintage = if (latestYear != null) valid.filter { it.year == latestYear }
             else {
                 val latestDate = valid.mapNotNull { it.acquisitionDateEpochMs }.maxOrNull()
                 if (latestDate != null) valid.filter { it.acquisitionDateEpochMs == latestDate } else valid
@@ -81,16 +81,21 @@ object NaipImageryRepository {
                 else -> value
             }
         }
-        val bestGsd = vintage.mapNotNull(::meters).minOrNull()
-        val selected = if (bestGsd == null) vintage else vintage.filter {
-            meters(it)?.let { gsd -> gsd <= bestGsd * 1.05 } == true
-        }
+        val bestGsd = newestVintage.mapNotNull(::meters).minOrNull()
+        // Keep older intersecting rasters after the preferred vintage as a
+        // pixel-level fallback. A newer acquisition may not cover every edge
+        // of a course; MT_FIRST can then use an older valid pixel there.
+        val ordered = valid.sortedWith(
+            compareByDescending<RasterRecord> { it.year ?: 0 }
+                .thenBy { meters(it) ?: Double.POSITIVE_INFINITY }
+                .thenByDescending { it.acquisitionDateEpochMs ?: 0L }
+        )
         return ImagerySelection(
-            rasterIds = selected.map { it.id }.distinct(),
+            rasterIds = ordered.map { it.id }.distinct(),
             year = latestYear,
-            acquisitionDateEpochMs = selected.mapNotNull { it.acquisitionDateEpochMs }.maxOrNull(),
-            resolutionMeters = selected.mapNotNull(::meters).minOrNull(),
-            bandCount = selected.minOf { it.bandCount }
+            acquisitionDateEpochMs = newestVintage.mapNotNull { it.acquisitionDateEpochMs }.maxOrNull(),
+            resolutionMeters = bestGsd,
+            bandCount = newestVintage.minOf { it.bandCount }
         )
     }
 
