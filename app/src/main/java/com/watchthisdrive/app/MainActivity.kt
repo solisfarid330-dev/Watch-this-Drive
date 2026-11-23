@@ -182,8 +182,12 @@ private fun WatchThisDriveApp() {
 
     DisposableEffect(hasLocationPermission, selected, activeCourse?.id) {
         if (hasLocationPermission && selected == Tab.PLAY && activeCourse != null) {
-            val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 2_000L)
-                .setMinUpdateIntervalMillis(1_500L)
+            // Golf positioning does not need 1 Hz updates. A modest interval
+            // and movement threshold reduce main-thread/map churn while keeping
+            // the live marker and green distance responsive.
+            val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 3_000L)
+                .setMinUpdateIntervalMillis(2_500L)
+                .setMinUpdateDistanceMeters(2.5f)
                 .setWaitForAccurateLocation(false)
                 .build()
             val callback = object : LocationCallback() {
