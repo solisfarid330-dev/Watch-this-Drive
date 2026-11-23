@@ -723,6 +723,7 @@ private fun NearbyCoursesScreen(
         searchDescription = "Searching within 15 km of your current GPS location."
 
         CourseDiscovery.searchNearby(
+            context = androidx.compose.ui.platform.LocalContext.current,
             latitude = current.latitude,
             longitude = current.longitude
         ) { result ->
@@ -749,7 +750,10 @@ private fun NearbyCoursesScreen(
         hasSearched = true
         searchDescription = "Searching around \"$query\". GPS is not required."
 
-        CourseDiscovery.searchByText(query) { result ->
+        CourseDiscovery.searchByText(
+            context = androidx.compose.ui.platform.LocalContext.current,
+            searchText = query
+        ) { result ->
             result.onSuccess { found ->
                 courses = found
                 errorMessage = null
@@ -867,7 +871,7 @@ private fun NearbyCoursesScreen(
                 ) {
                     CircularProgressIndicator(color = Color(0xFFB8F36B))
                     Spacer(Modifier.width(14.dp))
-                    Text("Searching OpenStreetMap...", color = Color.White)
+                    Text("Searching course directories and OpenStreetMap...", color = Color.White)
                 }
             }
 
@@ -1124,6 +1128,43 @@ private fun CourseDetailScreen(
             color = Color(0xFFB6C1B9),
             style = MaterialTheme.typography.bodyLarge
         )
+
+        val courseFacts = listOfNotNull(
+            course.city?.let { "City" to it },
+            course.region?.let { "State / region" to it },
+            course.countryCode?.let { "Country" to it },
+            course.holes?.let { "Holes" to it.toString() },
+            course.par?.let { "Par" to it.toString() },
+            course.courseType?.let { "Type" to it },
+            course.address?.let { "Address" to it },
+            course.postalCode?.let { "Postal code" to it },
+            course.phone?.let { "Phone" to it },
+            course.website?.let { "Website" to it }
+        )
+        if (courseFacts.isNotEmpty()) {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF1B2520)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                    Text("COURSE INFORMATION", color = Color(0xFFB8F36B), fontWeight = FontWeight.Bold)
+                    courseFacts.forEach { (label, value) ->
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text(label, color = Color(0xFFB6C1B9))
+                            Text(value, color = Color.White, modifier = Modifier.weight(1f, fill = false))
+                        }
+                    }
+                    if (course.sourceNames.isNotEmpty()) {
+                        Text("Data sources: ${course.sourceNames.sorted().joinToString(", ")}",
+                            color = Color(0xFFB6C1B9), style = MaterialTheme.typography.bodySmall)
+                    }
+                    if (course.scorecard.isNotEmpty()) {
+                        Text("Hole-by-hole par and handicap information is available.",
+                            color = Color(0xFFB6C1B9), style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            }
+        }
 
         CourseHoleArtworkPanel(course = course, geometry = geometry)
 
