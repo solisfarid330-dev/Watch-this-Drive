@@ -157,40 +157,6 @@ against independently drawn reference boundaries—not merely the same OSM
 polygons used to select the clusters.
 
 
-## Endpoint-based hole-feature association
-
-A separate conservative audit now uses the endpoints of each OSM hole line to
-score tee, green, and pin candidates. It compares both line orientations:
-nearest tee plus nearest green, or the nearest pin when tee/green polygons are
-not mapped. It does not force assignments. Fairway, bunker, rough, and water
-features remain centerline-corridor candidates.
-
-| Course | Hole lines audited | Direction resolved | Tee endpoint candidates | Green endpoint candidates | Pin endpoint candidates |
-|---|---:|---:|---:|---:|---:|
-| South Padre Island GC | 18 | 18/18 | 17/18 | 18/18 | 0/18 |
-| Westwood CC | 18 | 18/18 | 18/18 | 18/18 | 18/18 |
-| Cottonwood Creek CC | 9 | 9/9 | 0/9 | 0/9 | 9/9 |
-
-This is a promising result: the OSM line orientation is consistent with tee to
-green across these 45 mapped hole lines. At Cottonwood, where tee and green
-polygons are absent, the pin endpoint provides direction evidence. For Hole 1,
-the pin at the line end is 0 m away, while another nearby pin is 37.2 m from
-the line start; only the green-end pin passes the conservative endpoint rule.
-
-These are still OSM-derived candidate relationships, not independent ground
-truth. Neighboring holes may share tee complexes, greens, or pin candidates.
-The method is useful for reducing ambiguity, but should be combined with
-imagery, feature topology, and confidence reporting before production use.
-
-The association audit outputs are stored at:
-- \`research/results/south-padre/hole-association-audit.json\`
-- \`research/results/westwood/hole-association-audit.json\`
-- \`research/results/cottonwood-creek/hole-association-audit.json\`
-
-Four additional unit tests cover endpoint tee/green matching, reversed line
-direction, rejecting a tee-end pin as a green-end pin, and keeping corridor
-features unassigned. The combined research suite now has 15 passing tests.
-
 ## What this proves
 
 1. The public NAIP service can be queried programmatically for course-scale imagery without manually downloading or preparing a course image.
