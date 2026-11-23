@@ -590,11 +590,7 @@ object CourseGeometryLoader {
                 name = name,
                 points = points,
                 par = par,
-                handicap = handicap,
-                source = firstValue(properties, "source", "geometry_source", "provenance", "origin")
-                    ?: firstValue(tags, "source", "provenance"),
-                confidence = firstValue(properties, "confidence", "model_confidence", "prediction_confidence"),
-                isPredicted = isPredicted(properties, tags)
+                handicap = handicap
             ))
         }
         return features.distinctBy { Triple(it.elementType, it.id, it.featureType) }
