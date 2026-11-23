@@ -166,6 +166,8 @@ def inventory(payload: dict) -> dict:
     type_counts = Counter()
     missing_geometry = Counter()
     hole_refs = Counter()
+    unnumbered_holes = []
+    numbered_hole_count = 0
     features = []
 
     for element in elements:
@@ -182,6 +184,14 @@ def inventory(payload: dict) -> dict:
         hole_ref = tags.get("ref") or tags.get("golf:hole")
         if hole_ref:
             hole_refs[f"{golf}:{hole_ref}"] += 1
+            if golf == "hole":
+                numbered_hole_count += 1
+        elif golf == "hole":
+            unnumbered_holes.append({
+                "osm_type": element.get("type"),
+                "osm_id": element.get("id"),
+                "tags": tags,
+            })
 
         features.append({
             "osm_type": element.get("type"),
@@ -202,6 +212,11 @@ def inventory(payload: dict) -> dict:
         "counts_by_element_and_tag": dict(sorted(type_counts.items())),
         "features_missing_direct_geometry": dict(sorted(missing_geometry.items())),
         "hole_reference_counts": dict(sorted(hole_refs.items())),
+        "hole_numbering": {
+            "hole_line_count": counts.get("hole", 0),
+            "numbered_hole_line_count": numbered_hole_count,
+            "unnumbered_hole_lines": unnumbered_holes,
+        },
         "features": features,
         "limitations": [
             "OSM feature counts are element counts, not guaranteed counts of physical objects.",
