@@ -188,10 +188,13 @@ not just a preview image:
 The GeoJSON uses \`golf=fairway_candidate\` and
 \`status=unverified_candidate\`. Polygon rings are closed, correctly wound, and
 include inner rings where the mask contains exclusions. The Hole 1 result
-contains five polygon components; Hole 2 contains one. A 6,000-superpixel
-variant was also tested; it did not improve the spatial-block metrics and
-produced more fragmented components, so 2,400 remains the better research
-setting for these crops.
+contains five polygon components; Hole 2 contains one. Shapely topology
+validation reports all four vector outputs (2,400- and 6,000-superpixel
+variants for both holes) as valid, non-empty Polygon/MultiPolygon geometries.
+The 6,000-superpixel variant produced seven components and eleven inner rings
+for Hole 1, and two components and seven inner rings for Hole 2. It also had
+worse spatial-block scores (89.2%/29.4% fairway TPR/rough FPR on Hole 1 and
+80.0%/20.2% on Hole 2), so 2,400 remains the better research setting.
 
 **Important limitation:** these percentages measure agreement with OSM seed
 polygons, not true fairway accuracy. The component filter is explicitly
