@@ -70,17 +70,30 @@ private suspend fun analyzeNdviEvidence(
     hole: ReconstructedHole
 ): List<Pair<String, NdviBoundaryAnalyzer.Result>> = withContext(Dispatchers.Default) {
     if (bitmap.isRecycled || bitmap.width < 2 || bitmap.height < 2) return@withContext emptyList()
-    val pixels = IntArray(bitmap.width * bitmap.height)
-    bitmap.getPixels(pixels, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
-    buildList {
-        hole.mappedFairways.forEachIndexed { index, feature ->
-            NdviBoundaryAnalyzer.evaluate(pixels, bitmap.width, bitmap.height, bounds, feature.points)
-                ?.let { add("Fairway ${index + 1}" to it) }
+    // Boundary evidence only needs a coarse spatial grid. Cap the working
+    // raster so a high-resolution NAIP export cannot create a huge temporary
+    // ARGB array on a phone; retain the original bitmap for artwork rendering.
+    val scale = minOf(1.0, 512.0 / maxOf(bitmap.width, bitmap.height))
+    val sampleWidth = (bitmap.width * scale).roundToInt().coerceAtLeast(2)
+    val sampleHeight = (bitmap.height * scale).roundToInt().coerceAtLeast(2)
+    val sampled = if (sampleWidth != bitmap.width || sampleHeight != bitmap.height) {
+        Bitmap.createScaledBitmap(bitmap, sampleWidth, sampleHeight, true)
+    } else bitmap
+    try {
+        val pixels = IntArray(sampled.width * sampled.height)
+        sampled.getPixels(pixels, 0, sampled.width, 0, 0, sampled.width, sampled.height)
+        buildList {
+            hole.mappedFairways.forEachIndexed { index, feature ->
+                NdviBoundaryAnalyzer.evaluate(pixels, sampled.width, sampled.height, bounds, feature.points)
+                    ?.let { add("Fairway ${index + 1}" to it) }
+            }
+            if (hole.greenBoundary.size >= 3) {
+                NdviBoundaryAnalyzer.evaluate(pixels, sampled.width, sampled.height, bounds, hole.greenBoundary)
+                    ?.let { add("Green" to it) }
+            }
         }
-        if (hole.greenBoundary.size >= 3) {
-            NdviBoundaryAnalyzer.evaluate(pixels, bitmap.width, bitmap.height, bounds, hole.greenBoundary)
-                ?.let { add("Green" to it) }
-        }
+    } finally {
+        if (sampled !== bitmap && !sampled.isRecycled) sampled.recycle()
     }
 }
 
