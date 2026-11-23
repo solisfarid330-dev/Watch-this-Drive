@@ -10,6 +10,8 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLEncoder
 import java.util.Locale
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
 
 data class CourseHoleInfo(
@@ -48,6 +50,7 @@ data class GolfCourse(
 object CourseDiscovery {
 
     private const val SEARCH_RADIUS_METERS = 15000
+    private val sourceExecutor = Executors.newFixedThreadPool(3)
 
     private val OVERPASS_SERVERS = listOf(
         "https://ovp.dresel.systems/api-na/interpreter",
@@ -67,10 +70,14 @@ object CourseDiscovery {
         onResult: (Result<List<GolfCourse>>) -> Unit
     ) {
         thread(name = "combined-course-search") {
-            val osm = runCatching { searchAtCoordinates(latitude, longitude) }
-            val catalogs = runCatching {
+            val osmFuture = sourceExecutor.submit<List<GolfCourse>> {
+                searchAtCoordinates(latitude, longitude)
+            }
+            val catalogFuture = sourceExecutor.submit<List<GolfCourse>> {
                 CourseCatalogSources.searchNearby(context.applicationContext, latitude, longitude)
             }
+            val osm = runCatching { osmFuture.get(65, TimeUnit.SECONDS) }
+            val catalogs = runCatching { catalogFuture.get(65, TimeUnit.SECONDS) }
             val result = when {
                 osm.isSuccess || catalogs.isSuccess -> Result.success(
                     mergeCourseSources(osm.getOrDefault(emptyList()), catalogs.getOrDefault(emptyList()))
@@ -92,7 +99,10 @@ object CourseDiscovery {
         onResult: (Result<List<GolfCourse>>) -> Unit
     ) {
         thread(name = "combined-course-text-search") {
-            val result = runCatching {
+            val directFuture = sourceExecutor.submit<List<GolfCourse>> {
+                CourseCatalogSources.searchByText(context.applicationContext, searchText)
+            }
+            val locationFuture = sourceExecutor.submit<List<GolfCourse>> {
                 val point = geocode(searchText)
                 val osm = runCatching { searchAtCoordinates(point.latitude, point.longitude) }
                 val catalogs = runCatching {
@@ -101,9 +111,22 @@ object CourseDiscovery {
                     )
                 }
                 if (osm.isFailure && catalogs.isFailure) {
-                    throw Exception("Course search services are unavailable. Try again shortly.")
+                    throw Exception("Location-based course search is unavailable.")
                 }
                 mergeCourseSources(osm.getOrDefault(emptyList()), catalogs.getOrDefault(emptyList()))
+            }
+            val direct = runCatching { directFuture.get(20, TimeUnit.SECONDS) }
+            val nearby = runCatching { locationFuture.get(65, TimeUnit.SECONDS) }
+            val result = when {
+                direct.isSuccess || nearby.isSuccess -> Result.success(
+                    mergeCourseSources(
+                        nearby.getOrDefault(emptyList()),
+                        direct.getOrDefault(emptyList())
+                    )
+                )
+                else -> Result.failure(
+                    Exception("Course search services are unavailable. Try a course name with its city or state.")
+                )
             }
             Handler(Looper.getMainLooper()).post { onResult(result) }
         }
