@@ -76,6 +76,16 @@ object CourseDiscovery {
         onResult: (Result<List<GolfCourse>>) -> Unit
     ) {
         thread(name = "combined-course-search") {
+            // Return bundled catalog matches immediately so nearby discovery
+            // remains useful in airplane mode and does not wait on Overpass.
+            val offline = runCatching {
+                OfflineCourseCatalog.searchNearby(context.applicationContext, latitude, longitude)
+            }.getOrDefault(emptyList())
+            if (offline.isNotEmpty()) {
+                Handler(Looper.getMainLooper()).post {
+                    onResult(Result.success(offline))
+                }
+            }
             val osmFuture = sourceExecutor.submit<List<GolfCourse>> {
                 searchAtCoordinates(latitude, longitude)
             }
@@ -105,6 +115,18 @@ object CourseDiscovery {
         onResult: (Result<List<GolfCourse>>) -> Unit
     ) {
         thread(name = "combined-course-text-search") {
+            // Prefer an immediate exact/local catalog response. Do not make
+            // users wait for geocoding and multiple remote providers when the
+            // bundled catalog already knows the requested course.
+            val offline = runCatching {
+                OfflineCourseCatalog.searchByName(context.applicationContext, searchText)
+            }.getOrDefault(emptyList())
+            if (offline.isNotEmpty()) {
+                Handler(Looper.getMainLooper()).post {
+                    onResult(Result.success(offline))
+                }
+                return@thread
+            }
             val directFuture = sourceExecutor.submit<List<GolfCourse>> {
                 CourseCatalogSources.searchByText(context.applicationContext, searchText)
             }
