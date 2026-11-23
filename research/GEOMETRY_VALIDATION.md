@@ -118,8 +118,8 @@ boundaries.
 ## Updated engineering decision
 
 The data-retrieval and imagery-overlay stages now work on three courses and
-three hole examples (South Padre Holes 1 and 2, Westwood Hole 1, plus the sparse
-Cottonwood Hole 1 overlay). The remaining gap is not obtaining pixels; it is
+four hole examples (South Padre Holes 1 and 2, Westwood Hole 1, and sparse
+Cottonwood Hole 1). The remaining gap is not obtaining pixels; it is
 reliably turning pixels into fairway geometry.
 
 The experiments so far do **not** justify promoting the spectral or clustering
