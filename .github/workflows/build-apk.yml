@@ -40,9 +40,13 @@ jobs:
         run: |
           echo "Source assets:"
           find app/src/main/assets -maxdepth 1 -type f -printf '%p %s bytes\\n'
-          echo "Merged assets:"
-          find app/build/intermediates/merged_assets -type f -printf '%p %s bytes\\n' | sort || true
+          echo "Build asset directories:"
+          find app/build -type d -iname '*asset*' -print
+          echo "Catalog copies in build outputs:"
+          find app/build -type f -name 'opengolfapi-us.geojson.gz' -printf '%p %s bytes\\n'
           apk="app/build/outputs/apk/debug/app-debug.apk"
+          echo "Packaged APK assets:"
+          unzip -l "$apk" | grep 'assets/' || true
           unzip -l "$apk" | grep -q "assets/opengolfapi-us.geojson.gz"
           catalog_sha=$(unzip -p "$apk" assets/opengolfapi-us.geojson.gz | sha256sum | cut -d ' ' -f 1)
           test "$catalog_sha" = "c3b3bd4b1b3894fe5b9a6f0e84df43472f55aaad2602faeb58ef56a709db1a39"
