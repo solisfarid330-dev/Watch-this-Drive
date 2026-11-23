@@ -34,11 +34,12 @@ Repeat with another course simply by changing the two input arguments.
 
 ## Current scope and known limitations
 
-This is a **data-discovery and audit prototype**, not the final reconstruction
-engine. It now assembles the tested OSM multipolygon relations into GeoJSON, including
-inner rings (for example, greens cut out of fairway polygons). It does not yet
-infer hole membership for unnumbered features, repair incomplete boundaries,
-download aerial imagery, or claim that mapped features match the real course.
+This is a **data-discovery and geometry-research prototype**, not the final
+reconstruction engine. It assembles tested OSM multipolygon relations into
+GeoJSON, including inner rings (for example, greens cut out of fairway polygons).
+It can fetch Texas NAIP aerial imagery and create OSM overlays, but it does not
+yet reliably infer hole membership for unnumbered features or reconstruct
+missing fairway boundaries. Visual overlays are diagnostics, not ground truth.
 
 The prototype intentionally refuses to treat an arbitrary geocoder result or
 an OSM node as a usable course boundary. It reports uncertainty instead of
@@ -92,7 +93,31 @@ inventory counting, multipolygon outer/inner rings, segmented-ring stitching
 in both directions, open hole lines, and GeoJSON polygon winding. The GitHub
 Actions test workflow has passed.
 
-Do not port this prototype to Android until a third unrelated course is tested,
-relation handling is validated on more complex multipolygons, and geometry is
-compared with aerial imagery. The present prototype proves data discovery and
-serialization, not reconstruction accuracy or on-device performance.
+### Aerial validation milestone
+
+The branch now contains repeatable NAIP 2022 RGB and four-band RGBIR exports,
+OSM overlays, spectral previews, and fairway-candidate experiments for Hole 1
+at South Padre Island Golf Club and Westwood Country Club. See
+[GEOMETRY_VALIDATION.md](GEOMETRY_VALIDATION.md) for the method and findings.
+
+Key findings:
+- South Padre Hole 1 OSM length is 389.9 yd versus the club's published 396 yd
+  (1.54% difference, inside the project's 5% yardage tolerance).
+- OSM fairway polygons cover only 55.3% of the South Padre Hole 1 centerline
+  and 53.0% at Westwood. The aerials show that OSM alone is incomplete.
+- Four nearby South Padre bunker polygons and the green appear visually
+  consistent with visible aerial features; assignments remain proximity
+  candidates, not confirmed per-hole relationships.
+- A South Padre-trained spectral classifier performs poorly when transferred
+  to Westwood (only 7.5% of mapped fairway seed pixels classified as fairway).
+- Per-course unsupervised clustering captures many mapped fairway seed pixels,
+  but the resulting boundaries are still broad/noisy and cannot be promoted
+  as accepted geometry.
+
+Do not port the reconstruction engine to Android yet. The research prototype
+proves generic discovery, relation serialization, imagery retrieval, and a
+repeatable visual/spectral experiment. It does **not** yet prove generic
+fairway reconstruction, reliable hole-feature assignment, accuracy across
+many holes, or on-device performance. The next research stage is to improve
+spatially constrained region extraction and validate it against more holes
+before making a go/no-go decision on the reconstruction approach.
