@@ -32,8 +32,11 @@ jobs:
         run: |
           mkdir -p app/src/main/assets
           curl --fail --location --retry 3 \
-            https://github.com/opengolfapi/data/releases/download/v2.1.0/opengolfapi-us.geojson.gz \
+            -H "Accept: application/octet-stream" \
+            https://api.github.com/repos/opengolfapi/data/releases/assets/400987846 \
             -o app/src/main/assets/opengolfapi-us.geojson.gz
+          sha256sum app/src/main/assets/opengolfapi-us.geojson.gz
+          gzip --test app/src/main/assets/opengolfapi-us.geojson.gz
           echo "c3b3bd4b1b3894fe2b9a6f0e84df43472f55aaad2602faeb58ef56a709db1a39  app/src/main/assets/opengolfapi-us.geojson.gz" | sha256sum --check
 
       - name: Build debug APK
