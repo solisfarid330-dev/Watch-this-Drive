@@ -3,6 +3,7 @@ package com.watchthisdrive.app.ui
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.LinearGradient
+import android.graphics.Matrix
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RadialGradient
@@ -11,6 +12,7 @@ import android.graphics.Shader
 import android.graphics.Typeface
 import com.watchthisdrive.app.data.GeoPoint
 import com.watchthisdrive.app.data.ReconstructedHole
+import com.watchthisdrive.app.data.NaipImageryRepository
 import java.io.File
 import java.io.FileOutputStream
 import java.security.MessageDigest
@@ -18,7 +20,7 @@ import kotlin.math.*
 
 /** Rich tee-bottom/green-top artwork, fitted to the complete reconstructed hole. */
 internal object CourseHoleArtworkRenderer {
-    private const val VERSION = 14
+    private const val VERSION = 15
     private const val WIDTH = 1200
     private const val HEIGHT = 1800
     private const val LEFT = 48.0
@@ -27,10 +29,18 @@ internal object CourseHoleArtworkRenderer {
     private const val BOTTOM = HEIGHT - 112.0
     private data class XY(val x: Double, val y: Double)
 
-    fun render(hole: ReconstructedHole, cacheDirectory: File, cacheKey: String): File {
+    fun render(
+        hole: ReconstructedHole,
+        cacheDirectory: File,
+        cacheKey: String,
+        aerialBitmap: Bitmap? = null,
+        aerialBounds: NaipImageryRepository.Bounds? = null,
+        aerialCacheToken: String = ""
+    ): File {
         val folder = File(cacheDirectory, "generated-course-holes").apply { mkdirs() }
         val signature = buildString {
             append("renderer=").append(VERSION).append('|').append(cacheKey).append('|').append(hole.number)
+            append("|naip:").append(aerialCacheToken).append('|').append(aerialBounds)
             append('|').append(hole.tee).append('|').append(hole.green).append('|').append(hole.greenBoundary)
             append('|').append(hole.fairwayEstimate).append('|').append(hole.lengthMeters)
             append('|').append(hole.par).append('|').append(hole.handicap)
@@ -112,6 +122,37 @@ internal object CourseHoleArtworkRenderer {
         paint.shader = LinearGradient(0f, 0f, WIDTH.toFloat(), HEIGHT.toFloat(),
             intArrayOf(0xFFE4E8D2.toInt(), 0xFFD5DFC0.toInt(), 0xFFE9E7D2.toInt()), null, Shader.TileMode.CLAMP)
         canvas.drawRect(full, paint); paint.shader = null
+
+        // Georeferenced NAIP is a subdued terrain underlay, not a substitute for
+        // mapped vectors. Its WGS84 corners use the same projection as hole data.
+        if (aerialBitmap != null && aerialBounds != null &&
+            !aerialBitmap.isRecycled && aerialBitmap.width > 0 && aerialBitmap.height > 0
+        ) {
+            val bounds = aerialBounds
+            val source = floatArrayOf(
+                0f, 0f, aerialBitmap.width.toFloat(), 0f,
+                aerialBitmap.width.toFloat(), aerialBitmap.height.toFloat(),
+                0f, aerialBitmap.height.toFloat()
+            )
+            val nw = xy(GeoPoint(bounds.north, bounds.west))
+            val ne = xy(GeoPoint(bounds.north, bounds.east))
+            val se = xy(GeoPoint(bounds.south, bounds.east))
+            val sw = xy(GeoPoint(bounds.south, bounds.west))
+            val destination = floatArrayOf(
+                nw.first, nw.second, ne.first, ne.second,
+                se.first, se.second, sw.first, sw.second
+            )
+            val imageMatrix = Matrix()
+            if (imageMatrix.setPolyToPoly(source, 0, destination, 0, 4)) {
+                val aerialPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG).apply {
+                    alpha = 158
+                }
+                canvas.drawBitmap(aerialBitmap, imageMatrix, aerialPaint)
+                paint.color = 0x55E8EAD8
+                canvas.drawRect(full, paint)
+                paint.color = android.graphics.Color.WHITE
+            }
+        }
         paint.style = Paint.Style.STROKE
         for (i in 0..18) {
             val y = 195f + i * 86f
