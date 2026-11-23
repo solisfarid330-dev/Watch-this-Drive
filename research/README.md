@@ -127,7 +127,8 @@ Key findings:
   83.7% and 87.4% of mapped fairway seed pixels while retaining 0.0% and 1.1%
   of mapped rough seed pixels, respectively. These are OSM-seed agreement
   diagnostics, not independent accuracy scores. The vector outputs are marked
-  `unverified_candidate` and are not accepted production geometry.
+  `unverified_candidate`, are Shapely-validated as valid GeoJSON polygons, and
+  are not accepted production geometry.
 - Cottonwood demonstrates sparse source coverage: its nine hole lines and nine
   pins are mapped, but no fairway/tee/green/bunker polygons are present. The
   extractor reports that absence rather than inventing those features.
