@@ -416,6 +416,16 @@ private fun RoundHubScreen(
     onLocate: () -> Unit,
     onFindCourse: () -> Unit
 ) {
+    val playedScores = scores.filter { it > 0 }
+    val roundStrokes = playedScores.sum()
+    val roundPar = scores.indices.filter { scores[it] > 0 }.sumOf { pars[it] }
+    val holesPlayed = playedScores.size
+    val scoreToPar = roundStrokes - roundPar
+    val roundSummary = if (holesPlayed == 0) {
+        "ROUND TOTAL  ·  No scores entered"
+    } else {
+        "ROUND TOTAL  ·  $roundStrokes strokes  ·  ${if (scoreToPar > 0) "+" else ""}$scoreToPar to par  ·  $holesPlayed holes"
+    }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 8.dp)) {
         Text("YOUR ROUND", color = Color(0xFFB8F36B), style = MaterialTheme.typography.labelLarge,
             modifier = Modifier.padding(start = 18.dp, top = 14.dp))
@@ -440,6 +450,7 @@ private fun RoundHubScreen(
             shape = RoundedCornerShape(18.dp)
         ) {
             Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(roundSummary, color = Color(0xFFB8F36B), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Column {
                         Text("HOLE SCORE", color = Color(0xFFB8F36B), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
