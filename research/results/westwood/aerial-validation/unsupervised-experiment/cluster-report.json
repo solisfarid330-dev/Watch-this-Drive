@@ -1,0 +1,85 @@
+{
+  "hole_osm_id": 1209483110,
+  "method": "Per-course k-means on NDVI, excess-green, and local RGB texture; known green/bunker/water/tee polygons excluded from cluster fitting.",
+  "clusters": 6,
+  "corridor_m": 55,
+  "analysis_pixels": 377528,
+  "fairway_seed_pixels": 65964,
+  "rough_seed_pixels": 0,
+  "selected_candidate_cluster": 0,
+  "selected_cluster_score": 0.7777,
+  "cluster_statistics": [
+    {
+      "cluster": 0,
+      "pixels": 148782,
+      "fairway_seed_pixels": 51302,
+      "rough_seed_pixels": 0,
+      "fairway_seed_recall": 0.7777,
+      "fairway_vs_rough_seed_precision": 1.0,
+      "fairway_vs_rough_seed_f1": 0.875
+    },
+    {
+      "cluster": 1,
+      "pixels": 37773,
+      "fairway_seed_pixels": 666,
+      "rough_seed_pixels": 0,
+      "fairway_seed_recall": 0.0101,
+      "fairway_vs_rough_seed_precision": 1.0,
+      "fairway_vs_rough_seed_f1": 0.02
+    },
+    {
+      "cluster": 2,
+      "pixels": 19568,
+      "fairway_seed_pixels": 149,
+      "rough_seed_pixels": 0,
+      "fairway_seed_recall": 0.0023,
+      "fairway_vs_rough_seed_precision": 1.0,
+      "fairway_vs_rough_seed_f1": 0.0045
+    },
+    {
+      "cluster": 3,
+      "pixels": 37924,
+      "fairway_seed_pixels": 23,
+      "rough_seed_pixels": 0,
+      "fairway_seed_recall": 0.0003,
+      "fairway_vs_rough_seed_precision": 1.0,
+      "fairway_vs_rough_seed_f1": 0.0007
+    },
+    {
+      "cluster": 4,
+      "pixels": 41292,
+      "fairway_seed_pixels": 988,
+      "rough_seed_pixels": 0,
+      "fairway_seed_recall": 0.015,
+      "fairway_vs_rough_seed_precision": 1.0,
+      "fairway_vs_rough_seed_f1": 0.0295
+    },
+    {
+      "cluster": 5,
+      "pixels": 92189,
+      "fairway_seed_pixels": 12836,
+      "rough_seed_pixels": 0,
+      "fairway_seed_recall": 0.1946,
+      "fairway_vs_rough_seed_precision": 1.0,
+      "fairway_vs_rough_seed_f1": 0.3258
+    }
+  ],
+  "features_standardization": {
+    "mean": [
+      0.14594513177871704,
+      0.144952654838562,
+      0.023669488728046417
+    ],
+    "scale": [
+      0.10492315888404846,
+      0.06411699950695038,
+      0.02498750202357769
+    ]
+  },
+  "warning": "Cluster selection is guided by incomplete OSM seed labels; unsupervised cluster membership is not ground truth. If no rough seed exists, selection uses fairway-seed recall only and cannot estimate precision.",
+  "files": [
+    "unsupervised-fairway-candidate.png",
+    "cluster-label-preview.png",
+    "cluster-report.json"
+  ]
+}
