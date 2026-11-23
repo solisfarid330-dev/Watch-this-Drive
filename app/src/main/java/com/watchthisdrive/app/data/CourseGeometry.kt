@@ -940,14 +940,13 @@ internal object ZommaGeoJsonParser {
         "hole", "hole_line", "hole_centerline", "centerline", "playing_line", "route" -> "hole"
         "bunker", "sand", "sand_trap" -> "bunker"
         "water", "water_hazard", "pond", "lake" -> "water"
-        "rough", "semi_rough", "rough_in_play", "in_play" -> "rough"
-        "wood", "woodland", "forest", "trees" -> "woodland"
+        "rough", "semi_rough", "rough_in_play", "in_play", "grass", "meadow" -> "rough"
+        "wood", "natural_wood", "woodland", "forest", "trees", "scrub" -> "woodland"
         "tree" -> "tree"
-        "path", "footway", "cart_path", "cartpath", "golf_cart_path" -> "path"
+        "path", "footway", "track", "cart_path", "cartpath", "golf_cart_path" -> "path"
         "water", "natural_water", "pond", "lake", "reservoir", "river", "stream",
         "canal", "riverbank", "river_bank", "waterway_river", "waterway_stream",
         "waterway_canal" -> "water"
-        "wood", "natural_wood", "forest", "landuse_forest", "woodland" -> "woodland"
         "course", "golf_course", "leisure_golf_course",
         "course_boundary", "boundary", "outline" -> "course_boundary"
         else -> null
