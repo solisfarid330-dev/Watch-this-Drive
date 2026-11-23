@@ -275,11 +275,11 @@ object HoleReconstructor {
                 }
             }
             val alignment = fairwayAlignmentMeters(line.points, nearbyFairways)
-            if (nearbyFairways.isNotEmpty() && alignment != null && alignment > 58.0) {
+            if (nearbyFairways.isNotEmpty() && alignment != null && alignment > 42.0) {
                 return@mapNotNull null
             }
             val explicitBonus = if (holeNumber != null && number(line.holeNumber) == holeNumber) -35.0 else 0.0
-            val alignmentPenalty = alignment?.times(1.8) ?: 0.0
+            val alignmentPenalty = alignment?.times(2.2) ?: 0.0
             line to (endpoint + alignmentPenalty + explicitBonus)
         }.minByOrNull { it.second }?.first
     }
