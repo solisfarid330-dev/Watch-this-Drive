@@ -43,20 +43,12 @@ private data class AerialReference(
 private suspend fun loadAerialReference(
     context: android.content.Context,
     course: GolfCourse,
-    geometry: CourseGeometry?,
-    hole: ReconstructedHole? = null
+    hole: ReconstructedHole
 ): AerialReference? = withContext(Dispatchers.IO) {
     runCatching {
-        val file = if (hole != null) {
-            NaipImageryRepository.loadOrFetchForHole(context, course, hole)
-        } else {
-            NaipImageryRepository.loadOrFetch(context, course, geometry)
-        } ?: return@runCatching null
-        val bounds = if (hole != null) {
-            NaipImageryRepository.boundsForHole(hole)
-        } else {
-            NaipImageryRepository.boundsFor(course, geometry)
-        } ?: return@runCatching null
+        val file = NaipImageryRepository.loadOrFetchForHole(context, course, hole)
+            ?: return@runCatching null
+        val bounds = NaipImageryRepository.boundsForHole(hole) ?: return@runCatching null
         val bitmap = BitmapFactory.decodeFile(file.absolutePath) ?: return@runCatching null
         AerialReference(bitmap, bounds, file.name + ":" + file.lastModified() + ":" + file.length())
     }.getOrNull()
@@ -120,7 +112,7 @@ fun CourseHoleArtworkPanel(
     }
     LaunchedEffect(course.elementType, course.id, geometry, selected, reconstructedHoles) {
         val hole = reconstructedHoles.firstOrNull { it.number == selected }
-        aerialReference = loadAerialReference(context, course, geometry, hole)
+        aerialReference = if (hole != null) loadAerialReference(context, course, hole) else null
     }
     LaunchedEffect(geometry, course.scorecard) {
         reconstructedHoles = emptyList()
@@ -272,7 +264,7 @@ fun CourseHoleArtworkForHole(
     val context = LocalContext.current
     var aerialReference by remember(course.elementType, course.id) { mutableStateOf<AerialReference?>(null) }
     LaunchedEffect(course.elementType, course.id, geometry, reconstructedHole) {
-        aerialReference = loadAerialReference(context, course, geometry, reconstructedHole)
+        aerialReference = reconstructedHole?.let { loadAerialReference(context, course, it) }
     }
     val playerMarker = remember(playerLocation?.latitude, playerLocation?.longitude, reconstructedHole) {
         if (playerLocation != null && reconstructedHole != null) {
