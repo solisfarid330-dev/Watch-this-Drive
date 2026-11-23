@@ -11,6 +11,7 @@ import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.cos
 import kotlin.math.max
+import kotlin.math.roundToInt
 
 /**
  * Fetches georeferenced USDA NAIP imagery and a matching NDVI product for
@@ -187,14 +188,15 @@ object NaipImageryRepository {
             cos(Math.toRadians(course.latitude)).coerceAtLeast(0.1)
         val heightMeters = (bounds.north - bounds.south) * 111_320.0
         if (widthMeters <= 0.0 || heightMeters <= 0.0) return null
-        val aspect = widthMeters / heightMeters
-        val width = if (aspect >= 1.0) MAX_EXPORT_DIMENSION else
-            (MAX_EXPORT_DIMENSION * aspect).toInt().coerceIn(256, MAX_EXPORT_DIMENSION)
-        val height = if (aspect >= 1.0)
-            (MAX_EXPORT_DIMENSION / aspect).toInt().coerceIn(256, MAX_EXPORT_DIMENSION)
-        else MAX_EXPORT_DIMENSION
-
         val selection = selectionFor(bounds, key, metadataFile)
+        // Request close to native ground resolution instead of blindly
+        // upsampling every small hole to 4,000 pixels. This preserves the
+        // imagery's real detail while reducing bandwidth and bitmap memory.
+        val targetGsdMeters = selection.resolutionMeters ?: 0.6
+        val width = (widthMeters / targetGsdMeters).roundToInt()
+            .coerceIn(256, MAX_EXPORT_DIMENSION)
+        val height = (heightMeters / targetGsdMeters).roundToInt()
+            .coerceIn(256, MAX_EXPORT_DIMENSION)
         val params = linkedMapOf(
             "bbox" to "${bounds.west},${bounds.south},${bounds.east},${bounds.north}",
             "bboxSR" to "4326",
