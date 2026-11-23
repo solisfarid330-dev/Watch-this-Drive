@@ -20,7 +20,7 @@ import kotlin.math.*
 
 /** Rich tee-bottom/green-top artwork, fitted to the complete reconstructed hole. */
 internal object CourseHoleArtworkRenderer {
-    private const val VERSION = 16
+    private const val VERSION = 17
     private const val WIDTH = 1200
     private const val HEIGHT = 1800
     private const val LEFT = 48.0
@@ -342,6 +342,21 @@ internal object CourseHoleArtworkRenderer {
             paint.style = Paint.Style.FILL; canvas.restore()
             paint.style = Paint.Style.STROKE; paint.color = 0x99F0F4C8.toInt()
             paint.strokeWidth = 3f; canvas.drawPath(green, paint); paint.style = Paint.Style.FILL
+        } else {
+            // A point-only OSM green has no surveyed perimeter. Show a modest,
+            // dashed estimated putting surface rather than omitting the green
+            // or drawing a falsely precise boundary.
+            val estimatedGreen = RectF(
+                greenCenter.first - 46f, greenCenter.second - 29f,
+                greenCenter.first + 46f, greenCenter.second + 29f
+            )
+            paint.color = 0xB89DBF65.toInt()
+            canvas.drawOval(estimatedGreen, paint)
+            paint.style = Paint.Style.STROKE; paint.strokeWidth = 4f
+            paint.color = 0xD8F0F4C8.toInt()
+            paint.pathEffect = android.graphics.DashPathEffect(floatArrayOf(10f, 8f), 0f)
+            canvas.drawOval(estimatedGreen, paint)
+            paint.pathEffect = null; paint.style = Paint.Style.FILL
         }
 
         // Bunkers: warm sand, sculpted lip and fine rake texture.
@@ -388,7 +403,7 @@ internal object CourseHoleArtworkRenderer {
         paint.color = 0xFFE65E4E.toInt(); canvas.drawPath(flag, paint)
         paint.color = 0xFF344B35.toInt(); canvas.drawCircle(pin.first, pin.second + 20f, 8f, paint)
         text("TEE", tee.first, tee.second + 48f, 0xFF344B35.toInt(), 19f)
-        text("GREEN", greenCenter.first, greenCenter.second + 72f, 0xFF344B35.toInt(), 19f)
+        text(if (green != null) "GREEN" else "GREEN · EST.", greenCenter.first, greenCenter.second + 72f, 0xFF344B35.toInt(), 19f)
 
         // Header/footer are kept outside the fitted course viewport.
         paint.shader = LinearGradient(0f, 0f, 0f, 158f, 0xE610251D.toInt(), 0x0010251D, Shader.TileMode.CLAMP)
