@@ -1145,11 +1145,20 @@ private fun CourseDetailScreen(
             fontWeight = FontWeight.Bold
         )
 
-        Text(
-            "${"%.1f".format(Locale.US, course.distanceMiles)} miles from your location",
-            color = Color(0xFFB6C1B9),
-            style = MaterialTheme.typography.bodyLarge
-        )
+        if (course.distanceMeters.isFinite() && course.distanceMeters < 1.0e20f) {
+            Text(
+                "${"%.1f".format(Locale.US, course.distanceMiles)} miles from your location",
+                color = Color(0xFFB6C1B9),
+                style = MaterialTheme.typography.bodyLarge
+            )
+        } else {
+            Text(
+                listOfNotNull(course.city, course.region, course.countryCode).joinToString(", ")
+                    .ifBlank { "Course directory listing" },
+                color = Color(0xFFB6C1B9),
+                style = MaterialTheme.typography.bodyLarge
+            )
+        }
 
         val courseFacts = listOfNotNull(
             course.city?.let { "City" to it },
