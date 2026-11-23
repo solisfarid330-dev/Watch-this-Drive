@@ -53,6 +53,24 @@ jobs:
             --geojson research/results/cottonwood-creek/features.geojson \
             --hole-ref 1 \
             --out research/results/cottonwood-creek/aerial-validation
+      - name: Create compact aerial overlay previews
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from PIL import Image
+          files = [
+              "research/results/south-padre/aerial-validation/hole-1-osm-overlay.png",
+              "research/results/south-padre/aerial-validation/hole-2-osm-overlay.png",
+              "research/results/westwood/aerial-validation/hole-1-osm-overlay.png",
+              "research/results/cottonwood-creek/aerial-validation/hole-1-osm-overlay.png",
+          ]
+          for name in files:
+              source = Path(name)
+              if source.exists():
+                  target = source.with_name(source.stem + "-preview.jpg")
+                  Image.open(source).convert("RGB").save(target, format="JPEG", quality=82, optimize=True)
+                  print(f"Created {target}")
+          PY
       - name: Run RGBIR spectral experiment for South Padre
         run: |
           python research/naip_spectral_experiment.py \
