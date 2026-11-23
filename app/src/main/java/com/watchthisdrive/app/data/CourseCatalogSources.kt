@@ -193,7 +193,12 @@ object CourseCatalogSources {
                     (candidate.par?.let { 1 } ?: 0) +
                     (candidate.holes?.let { 1 } ?: 0)
             } ?: group.first()
+            val identity = group.firstOrNull { it.openGolfId != null }
+                ?: group.firstOrNull { it.teeTimeId != null }
+                ?: best
             best.copy(
+                id = identity.id,
+                elementType = identity.elementType,
                 city = best.city ?: group.firstNotNullOfOrNull { it.city },
                 region = best.region ?: group.firstNotNullOfOrNull { it.region },
                 countryCode = best.countryCode ?: group.firstNotNullOfOrNull { it.countryCode },
