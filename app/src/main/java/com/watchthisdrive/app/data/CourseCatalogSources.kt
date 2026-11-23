@@ -40,15 +40,21 @@ object CourseCatalogSources {
         longitude: Double,
         searchTerm: String? = null
     ): List<GolfCourse> {
-        val region = reverseRegion(latitude, longitude) ?: return emptyList()
+        val offline = runCatching {
+            OfflineCourseCatalog.searchNearby(context.applicationContext, latitude, longitude)
+        }.getOrDefault(emptyList())
+        val region = reverseRegion(latitude, longitude) ?: return offline
         val cacheKey = listOf(region.countryCode, region.stateCode ?: region.admin1.orEmpty())
             .joinToString("_").lowercase(Locale.US).replace(Regex("[^a-z0-9_-]"), "_")
         val cacheFile = File(context.filesDir, "course_catalog_$cacheKey.json")
         val cached = readCache(cacheFile)
         val cacheFresh = cached != null && System.currentTimeMillis() - cacheFile.lastModified() < CACHE_MAX_AGE_MS
-        if (cacheFresh) return cached!!.filterNearby(latitude, longitude)
+        if (cacheFresh) return mergeCatalogs(offline + cached!!).filterNearby(latitude, longitude)
 
         val records = linkedMapOf<String, GolfCourse>()
+        offline.forEach { course ->
+            course.openGolfId?.let { records["open:$it"] = course }
+        }
         val failures = mutableListOf<Throwable>()
 
         runCatching { fetchTeeTimeRegion(region) }
@@ -68,9 +74,43 @@ object CourseCatalogSources {
             }
         }
 
-        val result = records.values.toList()
+        val result = mergeCatalogs(records.values.toList())
         if (result.isNotEmpty()) writeCache(cacheFile, result)
-        return (result.ifEmpty { cached.orEmpty() }).filterNearby(latitude, longitude)
+        return mergeCatalogs(result.ifEmpty { offline + cached.orEmpty() }).filterNearby(latitude, longitude)
+    }
+
+    private fun mergeCatalogs(courses: List<GolfCourse>): List<GolfCourse> {
+        val groups = mutableListOf<MutableList<GolfCourse>>()
+        courses.sortedBy { it.distanceMeters }.forEach { course ->
+            val normalized = course.name.lowercase(Locale.ROOT).replace(Regex("[^a-z0-9]"), "")
+            val group = groups.firstOrNull { existing ->
+                val first = existing.first()
+                val firstName = first.name.lowercase(Locale.ROOT).replace(Regex("[^a-z0-9]"), "")
+                if (firstName != normalized) false else {
+                    val distance = FloatArray(1)
+                    Location.distanceBetween(
+                        course.latitude, course.longitude,
+                        first.latitude, first.longitude, distance
+                    )
+                    distance[0] <= 1_500f
+                }
+            }
+            if (group == null) groups += mutableListOf(course) else group += course
+        }
+        return groups.map { group ->
+            val best = group.maxByOrNull { candidate ->
+                listOfNotNull(candidate.address, candidate.phone, candidate.website).size * 10 +
+                    candidate.scorecard.size * 2 +
+                    (candidate.par?.let { 1 } ?: 0) +
+                    (candidate.holes?.let { 1 } ?: 0)
+            } ?: group.first()
+            best.copy(
+                sourceNames = group.flatMap { it.sourceNames }.toSet(),
+                openGolfId = group.firstNotNullOfOrNull { it.openGolfId },
+                teeTimeId = group.firstNotNullOfOrNull { it.teeTimeId },
+                scorecard = group.maxByOrNull { it.scorecard.size }?.scorecard.orEmpty().ifEmpty { best.scorecard }
+            )
+        }
     }
 
     private fun List<GolfCourse>.filterNearby(latitude: Double, longitude: Double): List<GolfCourse> =
