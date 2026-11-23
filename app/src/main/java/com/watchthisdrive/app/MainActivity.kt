@@ -91,10 +91,6 @@ private fun WatchThisDriveApp() {
             }
         }
     }
-    LaunchedEffect(selected, activeCourse?.id) {
-        if (selected == Tab.PLAY && activeCourse != null && location == null) locate()
-    }
-
     LaunchedEffect(courseGeometry, activeCourse?.id) {
         val geometry = courseGeometry ?: return@LaunchedEffect
         val courseId = activeCourse?.id ?: return@LaunchedEffect
@@ -180,6 +176,10 @@ private fun WatchThisDriveApp() {
             requestCurrentLocation()
         }
     }
+    LaunchedEffect(selected, activeCourse?.id) {
+        if (selected == Tab.PLAY && activeCourse != null && location == null) locate()
+    }
+
     DisposableEffect(hasLocationPermission, selected, activeCourse?.id) {
         if (hasLocationPermission && selected == Tab.PLAY && activeCourse != null) {
             val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 2_000L)
