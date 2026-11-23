@@ -566,7 +566,7 @@ private fun SettingsScreen(locationMessage: String, location: Location?, onLocat
                     color = Color.White, style = MaterialTheme.typography.bodySmall)
                 Text("Mapped course features: © OpenStreetMap contributors (ODbL 1.0).",
                     color = Color.White, style = MaterialTheme.typography.bodySmall)
-                Text("Aerial reference imagery: USDA Farm Production and Conservation Business Center, Geospatial Enterprise Operations (NAIP). Public domain; source credit requested.",
+                Text("Aerial reference imagery: USGS, USDA, The National Map: Orthoimagery (NAIP). Public domain; source credit requested.",
                     color = Color(0xFFB6C1B9), style = MaterialTheme.typography.bodySmall)
             }
         }
