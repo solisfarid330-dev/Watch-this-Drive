@@ -519,10 +519,51 @@ object HoleReconstructor {
     private fun number(value: String?): Int? =
         value?.trim()?.let { Regex("\\d+").find(it)?.value?.toIntOrNull() }
 
-    private fun center(points: List<GeoPoint>) = GeoPoint(
-        points.map { it.latitude }.average(),
-        points.map { it.longitude }.average()
-    )
+    /**
+     * Polygon rings use their area centroid rather than averaging vertices.
+     * Averaging a closed ring counts its first vertex twice and can materially
+     * shift small green/tee polygons toward whichever corner starts the ring.
+     */
+    private fun center(points: List<GeoPoint>): GeoPoint {
+        if (points.size < 3) {
+            return GeoPoint(
+                points.map { it.latitude }.average(),
+                points.map { it.longitude }.average()
+            )
+        }
+        val closed = isClosedPolygon(points)
+        val count = if (closed) points.size - 1 else points.size
+        if (count < 3) return GeoPoint(
+            points.map { it.latitude }.average(),
+            points.map { it.longitude }.average()
+        )
+        val originLat = points.first().latitude
+        val originLon = points.first().longitude
+        var twiceArea = 0.0
+        var centroidX = 0.0
+        var centroidY = 0.0
+        for (index in 0 until count) {
+            val next = (index + 1) % count
+            val ax = points[index].longitude - originLon
+            val ay = points[index].latitude - originLat
+            val bx = points[next].longitude - originLon
+            val by = points[next].latitude - originLat
+            val cross = ax * by - bx * ay
+            twiceArea += cross
+            centroidX += (ax + bx) * cross
+            centroidY += (ay + by) * cross
+        }
+        if (kotlin.math.abs(twiceArea) < 1e-14) {
+            return GeoPoint(
+                points.take(count).map { it.latitude }.average(),
+                points.take(count).map { it.longitude }.average()
+            )
+        }
+        return GeoPoint(
+            originLat + centroidY / (3.0 * twiceArea),
+            originLon + centroidX / (3.0 * twiceArea)
+        )
+    }
 
     /** Builds an estimated fairway envelope along every mapped route vertex,
      * preserving doglegs instead of inventing a straight tee-to-green strip. */
