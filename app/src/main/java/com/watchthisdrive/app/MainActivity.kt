@@ -1215,7 +1215,11 @@ private fun CourseDetailScreen(
         }
 
         CourseHoleArtworkPanel(course = course, geometry = geometry)
-        NaipCourseAerialPreview(course = course, geometry = geometry)
+        NaipCourseAerialPreview(
+            course = course,
+            geometry = geometry,
+            courseGeometryLoading = loading
+        )
 
         Card(
             colors = CardDefaults.cardColors(
