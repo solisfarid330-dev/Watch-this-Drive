@@ -125,6 +125,13 @@ class ZommaGeoJsonParserTest {
                   ]}
                 },
                 {
+                  "type": "Feature", "id": "river",
+                  "properties": {"tags": {"waterway": "river"}},
+                  "geometry": {"type": "LineString", "coordinates": [
+                    [-97.0,32.0],[-96.999,32.001]
+                  ]}
+                },
+                {
                   "type": "Feature", "id": "course-outline",
                   "properties": {"tags": {"leisure": "golf_course"}},
                   "geometry": {"type": "Polygon", "coordinates": [[
@@ -139,6 +146,7 @@ class ZommaGeoJsonParserTest {
         assertTrue(parsed.any { it.featureType == "water" && it.holeNumber == "4" })
         assertTrue(parsed.any { it.featureType == "woodland" })
         assertTrue(parsed.any { it.featureType == "path" })
+        assertTrue(parsed.any { it.featureType == "water" && it.holeNumber == null })
         assertTrue(parsed.any { it.featureType == "course_boundary" })
     }
 
