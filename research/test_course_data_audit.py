@@ -103,5 +103,23 @@ class CourseDataAuditTests(unittest.TestCase):
         self.assertGreater(audit._ring_area(ring), 0)
 
 
+    def test_multipolygon_stitches_segments_at_both_ring_ends(self):
+        segments = [
+            [{"lat": 0, "lon": 0}, {"lat": 0, "lon": 1}],
+            [{"lat": 1, "lon": 0}, {"lat": 0, "lon": 0}],
+            [{"lat": 0, "lon": 1}, {"lat": 1, "lon": 1}],
+            [{"lat": 1, "lon": 1}, {"lat": 1, "lon": 0}],
+        ]
+        relation = {"members": [
+            {"type": "way", "ref": i, "role": "outer", "geometry": segment}
+            for i, segment in enumerate(segments)
+        ]}
+        geometry, errors = audit._relation_multipolygon_geometry(relation)
+        self.assertEqual(geometry["type"], "Polygon")
+        self.assertEqual(geometry["coordinates"][0][0],
+                         geometry["coordinates"][0][-1])
+        self.assertEqual(errors, [])
+
+
 if __name__ == "__main__":
     unittest.main()
