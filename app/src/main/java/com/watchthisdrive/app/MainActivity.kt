@@ -31,6 +31,7 @@ import com.watchthisdrive.app.data.CourseDiscovery
 import com.watchthisdrive.app.data.CourseGeometry
 import com.watchthisdrive.app.data.CourseGeometryLoader
 import com.watchthisdrive.app.data.GolfCourse
+import com.watchthisdrive.app.ui.CourseGeometryPreview
 import com.watchthisdrive.app.ui.GolfMap
 import com.watchthisdrive.app.ui.GolfTheme
 import java.util.Locale
@@ -863,6 +864,16 @@ private fun CourseDetailScreen(
 
                     else -> {
                         val features = geometry?.features.orEmpty()
+
+                        geometry?.takeIf { it.features.any { feature -> feature.hasUsableGeometry } }?.let {
+                            Text("Decoded course layout", color = Color.White, fontWeight = FontWeight.SemiBold)
+                            CourseGeometryPreview(it, Modifier.fillMaxWidth())
+                            Text(
+                                "Geographic feature preview only — not satellite imagery or verified hole assignments.",
+                                color = Color(0xFFB6C1B9),
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
 
                         Text(
                             "${features.size} mapped features found",
