@@ -53,7 +53,8 @@ object NaipImageryRepository {
         NDVI(".ndvi.png", "png", "BandArithmetic")
     }
 
-    private val selectionCache = ConcurrentHashMap<String, ImagerySelection>()
+    private data class CachedSelection(val cachedAtEpochMs: Long, val value: ImagerySelection)
+    private val selectionCache = ConcurrentHashMap<String, CachedSelection>()
     internal data class RasterRecord(
         val id: Long,
         val year: Int?,
@@ -281,8 +282,14 @@ object NaipImageryRepository {
     }
 
     private fun selectionFor(bounds: Bounds, key: String, metadataFile: File): ImagerySelection {
-        selectionCache[key]?.let { return it }
-        if (metadataFile.exists() && metadataFile.length() <= MAX_METADATA_BYTES) {
+        val now = System.currentTimeMillis()
+        selectionCache[key]?.let { cached ->
+            if (now - cached.cachedAtEpochMs < CACHE_MAX_AGE_MS) return cached.value
+            selectionCache.remove(key, cached)
+        }
+        if (metadataFile.exists() && metadataFile.length() <= MAX_METADATA_BYTES &&
+            now - metadataFile.lastModified() < CACHE_MAX_AGE_MS
+        ) {
             runCatching {
                 val json = JSONObject(metadataFile.readText())
                 val ids = json.optJSONArray("rasterIds") ?: JSONArray()
@@ -295,13 +302,13 @@ object NaipImageryRepository {
                         resolutionMeters = json.optDouble("resolutionMeters").takeIf { it.isFinite() && it > 0 },
                         bandCount = json.optInt("bandCount", 4)
                     )
-                    selectionCache[key] = restored
+                    selectionCache[key] = CachedSelection(now, restored)
                     return restored
                 }
             }
         }
         val queried = queryBestImagery(bounds) ?: ImagerySelection(emptyList(), null, null, null, 4)
-        selectionCache[key] = queried
+        selectionCache[key] = CachedSelection(now, queried)
         return queried
     }
 
