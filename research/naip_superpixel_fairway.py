@@ -10,7 +10,7 @@ from pathlib import Path
 import numpy as np
 from PIL import Image,ImageDraw
 from skimage.segmentation import slic
-from skimage.measure import label
+from skimage.measure import label, find_contours
 
 R=6378137.0
 CLASSES=("fairway","rough","green","bunker","water_hazard","tee")
@@ -40,6 +40,59 @@ def build_masks(fc,px,w,h):
                 for inner in poly[1:]:d.polygon([px(p) for p in inner],fill=0)
         masks[cls]=np.asarray(im,dtype=bool)
     return masks
+def signed_area(ring):
+    return 0.5*sum(ring[i][0]*ring[i+1][1]-ring[i+1][0]*ring[i][1] for i in range(len(ring)-1))
+def point_in_xy_ring(point,ring):
+    x,y=point;inside=False
+    for i in range(len(ring)-1):
+        x1,y1=ring[i];x2,y2=ring[i+1]
+        if (y1>y)!=(y2>y) and x<(x2-x1)*(y-y1)/(y2-y1)+x1:inside=not inside
+    return inside
+def vectorize_candidate(mask,bbox,width,height):
+    minx,miny,maxx,maxy=bbox
+    rings_out=[]
+    for contour in find_contours(mask.astype(np.uint8),0.5,fully_connected="high"):
+        if len(contour)<4:continue
+        if np.linalg.norm(contour[0]-contour[-1])>1.5:continue
+        xy=[];ll=[]
+        for row,col in contour:
+            x=minx+(col/(width-1))*(maxx-minx)
+            y=maxy-(row/(height-1))*(maxy-miny)
+            xy.append([float(x),float(y)])
+            lon=math.degrees(x/R)
+            lat=math.degrees(2*math.atan(math.exp(y/R))-math.pi/2)
+            ll.append([lon,lat])
+        if ll[0]!=ll[-1]:ll.append(ll[0]);xy.append(xy[0])
+        area=abs(signed_area(xy))
+        if area>=5.0:rings_out.append({"xy":xy,"ll":ll,"area":area,"parent":None,"depth":0})
+    # Nest rings by smallest containing larger ring.
+    for i,item in enumerate(rings_out):
+        containers=[]
+        for j,other in enumerate(rings_out):
+            if i!=j and other["area"]>item["area"] and point_in_xy_ring(item["xy"][0],other["xy"]):
+                containers.append(j)
+        if containers:
+            item["parent"]=min(containers,key=lambda j:rings_out[j]["area"])
+            depth=0;parent=item["parent"]
+            while parent is not None:
+                depth+=1;parent=rings_out[parent]["parent"]
+            item["depth"]=depth
+    polygons=[]
+    for i,item in enumerate(rings_out):
+        if item["depth"]%2!=0:continue
+        outer=item["ll"][:]
+        if signed_area(outer)<0:outer.reverse()
+        polygon=[outer]
+        for j,inner in enumerate(rings_out):
+            if inner["parent"]==i and inner["depth"]==item["depth"]+1:
+                ring=inner["ll"][:]
+                if signed_area(ring)>0:ring.reverse()
+                polygon.append(ring)
+        polygons.append(polygon)
+    if not polygons:return None
+    if len(polygons)==1:return {"type":"Polygon","coordinates":polygons[0]}
+    return {"type":"MultiPolygon","coordinates":polygons}
+
 def lda_fit(x,y):
     p=x[y==1];n=x[y==0]
     if len(p)<5 or len(n)<5:raise SystemExit(f"Insufficient superpixel seed labels: fairway={len(p)}, rough={len(n)}")
@@ -135,6 +188,31 @@ def main():
     Image.fromarray(overlay,"RGB").save(out/f"hole-{a.hole_ref}-superpixel-fairway-candidate.jpg",quality=92)
     def rate(mask):
         n=int(mask.sum());return {"pixels":n,"candidate_fraction":round(float(candidate[mask].mean()),4) if n else None}
+    candidate_geometry=vectorize_candidate(candidate,[minx,miny,maxx,maxy],w,h)
+    geojson_path=out/f"hole-{a.hole_ref}-fairway-candidate.geojson"
+    candidate_feature=None
+    if candidate_geometry:
+        candidate_feature={
+            "type":"Feature",
+            "properties":{
+                "golf":"fairway_candidate",
+                "hole_ref":a.hole_ref,
+                "source_osm_hole_id":hole["properties"].get("osm_id"),
+                "method":"SLIC RGBIR superpixels + weak-label LDA + fairway-seeded connected components",
+                "status":"unverified_candidate",
+                "source_imagery":"Texas NAIP 2022",
+                "osm_attribution":"© OpenStreetMap contributors"
+            },
+            "geometry":candidate_geometry
+        }
+        geojson={"type":"FeatureCollection","features":[candidate_feature],"metadata":{
+            "coordinate_reference_system":"EPSG:4326",
+            "status":"candidate_only_not_ground_truth",
+            "osm_attribution":"© OpenStreetMap contributors",
+            "imagery_attribution":"Texas Geographic Information Office, USDA",
+            "warning":"Do not use as accepted fairway geometry without independent visual/reference validation."
+        }}
+        geojson_path.write_text(json.dumps(geojson,indent=2)+"\n")
     report={
         "hole_ref":a.hole_ref,"hole_osm_id":hole["properties"].get("osm_id"),
         "method":"SLIC superpixels over RGBIR imagery, weak-label LDA on clean OSM fairway/rough superpixels, spatial block holdout, and hole-corridor/exclusion masks.",
@@ -144,7 +222,7 @@ def main():
         "target_seed_candidate_rates":{"fairway":rate(masks["fairway"]&corridor_mask),"rough":rate(masks["rough"]&corridor_mask)},
         "candidate_pixels_before_component_filter":int(candidate_raw.sum()),"component_count_before_filter":component_count,"seeded_components_retained":int(len(seed_component_ids)),"component_seed_filter_applied":component_filter_applied,"candidate_pixels":int(candidate.sum()),"corridor_pixels":int(corridor_mask.sum()),"candidate_fraction_of_corridor":round(float(candidate.sum()/max(corridor_mask.sum(),1)),4),
         "limitations":["OSM polygons are weak labels and may be incomplete or offset.","SLIC segmentation is a conventional CV experiment, not a trained neural model.","Output remains a candidate mask; no independently traced fairway reference is available.","No feature is assigned to a hole by proximity alone."],
-        "files":[f"hole-{a.hole_ref}-superpixel-fairway-candidate.png",f"hole-{a.hole_ref}-superpixel-fairway-candidate.jpg","superpixel-report.json"]
+        "candidate_geojson":geojson_path.name if candidate_feature else None,"files":[f"hole-{a.hole_ref}-superpixel-fairway-candidate.png",f"hole-{a.hole_ref}-superpixel-fairway-candidate.jpg",geojson_path.name if candidate_feature else None,"superpixel-report.json"]
     }
     (out/"superpixel-report.json").write_text(json.dumps(report,indent=2)+"\n")
     print(json.dumps(report,indent=2))
