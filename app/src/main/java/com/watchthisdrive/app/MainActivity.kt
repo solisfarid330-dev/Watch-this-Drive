@@ -69,10 +69,15 @@ private fun WatchThisDriveApp() {
     var showNearbyCourses by remember { mutableStateOf(false) }
     var selectedCourse by remember { mutableStateOf<GolfCourse?>(null) }
     var activeCourse by remember { mutableStateOf<GolfCourse?>(null) }
-    var activeHole by remember(activeCourse?.id) { mutableIntStateOf(1) }
-    val scorePrefs = remember(activeCourse?.id) { context.getSharedPreferences("watch_this_drive_scorecard_${activeCourse?.id ?: 0}", android.content.Context.MODE_PRIVATE) }
-    var scores by remember(activeCourse?.id) { mutableStateOf((1..18).map { scorePrefs.getInt("strokes_$it", 0) }) }
-    var pars by remember(activeCourse?.id) {
+    var activeHole by remember(activeCourse?.persistenceKey) { mutableIntStateOf(1) }
+    val scorePrefs = remember(activeCourse?.persistenceKey) {
+        context.getSharedPreferences(
+            "watch_this_drive_scorecard_${activeCourse?.persistenceKey ?: "none"}",
+            android.content.Context.MODE_PRIVATE
+        )
+    }
+    var scores by remember(activeCourse?.persistenceKey) { mutableStateOf((1..18).map { scorePrefs.getInt("strokes_$it", 0) }) }
+    var pars by remember(activeCourse?.persistenceKey) {
         mutableStateOf((1..18).map { hole ->
             scorePrefs.getInt(
                 "par_$hole",
