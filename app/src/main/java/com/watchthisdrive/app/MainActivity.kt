@@ -1002,7 +1002,8 @@ private fun NearbyCoursesScreen(
                                                 fontWeight = FontWeight.SemiBold
                                             )
                                             Text(
-                                                "${"%.1f".format(Locale.US, candidate.distanceMiles)} mi from search center",
+                                                if (directoryPoint) "Directory coordinate · OSM geometry lookup on selection"
+                                                else "${"%.1f".format(Locale.US, candidate.distanceMiles)} mi from search center",
                                                 color = Color(0xFFB6C1B9),
                                                 style = MaterialTheme.typography.bodySmall
                                             )
