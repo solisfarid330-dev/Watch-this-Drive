@@ -90,11 +90,21 @@ private fun WatchThisDriveApp() {
     var reconstructedHoles by remember {
         mutableStateOf<List<ReconstructedHole>>(emptyList())
     }
-    LaunchedEffect(courseGeometry) {
+    LaunchedEffect(courseGeometry, activeCourse?.id, activeCourse?.scorecard) {
         reconstructedHoles = emptyList()
         val geometrySnapshot = courseGeometry ?: return@LaunchedEffect
-        reconstructedHoles = withContext(Dispatchers.Default) {
+        val scorecardSnapshot = activeCourse?.scorecard.orEmpty()
+        val baseHoles = withContext(Dispatchers.Default) {
             HoleReconstructor.reconstruct(geometrySnapshot)
+        }
+        // Keep Play's hole model identical to Illustrated Holes, including
+        // scorecard par/handicap labels and the shared artwork cache signature.
+        reconstructedHoles = baseHoles.map { hole ->
+            val card = scorecardSnapshot.firstOrNull { it.number == hole.number }
+            hole.copy(
+                par = hole.par ?: card?.par,
+                handicap = hole.handicap ?: card?.handicap
+            )
         }
     }
     LaunchedEffect(activeCourse?.id) {
