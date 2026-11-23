@@ -71,7 +71,14 @@ private fun WatchThisDriveApp() {
     var activeHole by remember(activeCourse?.id) { mutableIntStateOf(1) }
     val scorePrefs = remember(activeCourse?.id) { context.getSharedPreferences("watch_this_drive_scorecard_${activeCourse?.id ?: 0}", android.content.Context.MODE_PRIVATE) }
     var scores by remember(activeCourse?.id) { mutableStateOf((1..18).map { scorePrefs.getInt("strokes_$it", 0) }) }
-    var pars by remember(activeCourse?.id) { mutableStateOf((1..18).map { scorePrefs.getInt("par_$it", 4) }) }
+    var pars by remember(activeCourse?.id) {
+        mutableStateOf((1..18).map { hole ->
+            scorePrefs.getInt(
+                "par_$hole",
+                activeCourse?.scorecard?.firstOrNull { it.number == hole }?.par ?: 4
+            )
+        })
+    }
     var courseGeometry by remember(activeCourse?.id) { mutableStateOf<CourseGeometry?>(null) }
     var geometryError by remember(activeCourse?.id) { mutableStateOf<String?>(null) }
     val reconstructedHoles = remember(courseGeometry) {
@@ -202,11 +209,14 @@ private fun WatchThisDriveApp() {
         val updated = pars.toMutableList()
         var changed = false
         val editor = scorePrefs.edit()
-        reconstructedHoles.forEach { hole ->
-            val index = hole.number - 1
-            if (index in 0..17 && hole.par != null && !scorePrefs.contains("par_${hole.number}")) {
-                updated[index] = hole.par
-                editor.putInt("par_${hole.number}", hole.par)
+        for (holeNumber in 1..18) {
+            if (scorePrefs.contains("par_$holeNumber")) continue
+            val mappedPar = reconstructedHoles.firstOrNull { it.number == holeNumber }?.par
+            val catalogPar = activeCourse?.scorecard?.firstOrNull { it.number == holeNumber }?.par
+            val value = mappedPar ?: catalogPar
+            if (value != null && value in 3..6) {
+                updated[holeNumber - 1] = value
+                editor.putInt("par_$holeNumber", value)
                 changed = true
             }
         }
