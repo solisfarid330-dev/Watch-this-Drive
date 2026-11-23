@@ -924,7 +924,7 @@ internal object ZommaGeoJsonParser {
             // Keep golf/explicit layer labels first to avoid treating a generic
             // surrounding road or land-use tag as a golf feature.
             val kind = firstValue(
-                tags, "golf", "feature_type", "featureType", "kind", "class",
+                tags, properties, "golf", "feature_type", "featureType", "kind", "class",
                 "layer", "feature", "natural", "water", "waterway", "highway",
                 "landuse", "leisure", "type"
             )?.lowercase()?.replace(Regex("[^a-z0-9]+"), "_")?.trim('_') ?: continue
@@ -932,9 +932,10 @@ internal object ZommaGeoJsonParser {
             val geometry = feature.optJSONObject("geometry") ?: continue
             val parts = readCoordinateParts(geometry).orEmpty()
             if (parts.isEmpty()) continue
-            val hole = firstValue(tags, "hole_number", "holeNumber", "hole", "golf:hole", "ref")
-            val par = firstValue(tags, "par")?.toIntOrNull()?.takeIf { it in 3..6 }
-            val handicap = firstValue(tags, "handicap", "stroke_index")?.toIntOrNull()?.takeIf { it in 1..36 }
+            val hole = firstValue(tags, properties, "hole_number", "holeNumber", "hole", "golf:hole", "ref")
+            val par = firstValue(tags, properties, "par")?.toIntOrNull()?.takeIf { it in 3..6 }
+            val handicap = firstValue(tags, properties, "handicap", "stroke_index")
+                ?.toIntOrNull()?.takeIf { it in 1..36 }
             val rawId = feature.opt("id")?.toString()
                 ?: firstValue(properties, "id", "osm_id")
                 ?: "zomma-$index-$featureType"
@@ -950,7 +951,7 @@ internal object ZommaGeoJsonParser {
                     elementType = "zomma",
                     featureType = featureType,
                     holeNumber = hole,
-                    name = firstValue(tags, "name", "label"),
+                    name = firstValue(tags, properties, "name", "label"),
                     points = points,
                     par = par,
                     handicap = handicap,
@@ -990,6 +991,9 @@ internal object ZommaGeoJsonParser {
                 else -> null
             }
         }
+
+    private fun firstValue(primary: JSONObject, fallback: JSONObject, vararg keys: String): String? =
+        firstValue(primary, *keys) ?: if (primary === fallback) null else firstValue(fallback, *keys)
 
     private fun normalizeType(value: String): String? = when (value) {
         "tee", "tee_box", "tee_pad", "teeing_ground", "start" -> "tee"
