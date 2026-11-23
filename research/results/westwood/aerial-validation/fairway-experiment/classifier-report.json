@@ -11,32 +11,35 @@
     "local_RGB_texture_stddev_9x9"
   ],
   "linear_discriminant_weights": [
-    -1.2558515168331938,
-    1.8930854801429078,
-    -0.012149043272783131
+    -1.375472593996591,
+    2.1283386223967913,
+    0.03352130087946097
   ],
   "standardization_mean": [
-    0.1641847938299179,
-    0.18363872170448303,
-    0.013143091462552547
+    0.15940164029598236,
+    0.18219108879566193,
+    0.012782195582985878
   ],
   "standardization_scale": [
-    0.0844544917345047,
-    0.054419394582509995,
-    0.013391568325459957
+    0.07919156551361084,
+    0.05462845787405968,
+    0.013537443242967129
   ],
-  "bias": 0.0009396109796141139,
-  "south_padre_random_pixel_holdout": {
-    "fairway_true_positive_rate": 0.8886,
-    "rough_false_positive_rate": 0.2767,
-    "fairway_holdout_pixels": 8000,
-    "rough_holdout_pixels": 8000,
-    "warning": "Random pixel holdout is optimistic because spatially adjacent pixels are correlated and labels are OSM-derived."
+  "bias": -0.07871281193244557,
+  "south_padre_spatial_block_holdout": {
+    "method": "spatial block holdout; 64x64 pixel blocks (~38m square at 0.6m GSD) assigned wholly to train or test",
+    "fairway_true_positive_rate": 0.8483,
+    "rough_false_positive_rate": 0.3005,
+    "fairway_holdout_pixels": 7526,
+    "rough_holdout_pixels": 5927,
+    "fairway_train_pixels": 32474,
+    "rough_train_pixels": 34073,
+    "warning": "Spatial blocks reduce neighboring-pixel leakage, but labels are still OSM-derived and the test covers only one hole and one acquisition."
   },
   "target_seed_positive_rates": {
     "fairway": {
       "pixels": 133893,
-      "positive_fraction": 0.0903
+      "positive_fraction": 0.0748
     },
     "rough": {
       "pixels": 0,
@@ -60,9 +63,9 @@
     }
   },
   "candidate_corridor_m": 55,
-  "candidate_pixels": 91621,
+  "candidate_pixels": 86656,
   "corridor_pixels": 396516,
-  "candidate_fraction_of_corridor": 0.2311,
+  "candidate_fraction_of_corridor": 0.2185,
   "interpretation": "Experimental fairway-like turf candidates only. Classifier was trained from one course's OSM labels and may not transfer to other grass, lighting, season, or imagery conditions. Do not treat output as accepted fairway geometry.",
   "files": [
     "fairway-candidate-overlay.png",

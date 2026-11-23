@@ -8,6 +8,8 @@
   "rough_seed_pixels": 0,
   "selected_candidate_cluster": 0,
   "selected_cluster_score": 0.7777,
+  "raw_candidate_pixels": 148782,
+  "smoothed_candidate_pixels": 157579,
   "cluster_statistics": [
     {
       "cluster": 0,
@@ -79,6 +81,7 @@
   "warning": "Cluster selection is guided by incomplete OSM seed labels; unsupervised cluster membership is not ground truth. If no rough seed exists, selection uses fairway-seed recall only and cannot estimate precision.",
   "files": [
     "unsupervised-fairway-candidate.png",
+    "unsupervised-fairway-smoothed.png",
     "cluster-label-preview.png",
     "cluster-report.json"
   ]
