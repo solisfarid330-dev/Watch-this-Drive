@@ -11,6 +11,8 @@ import kotlin.concurrent.thread
 import kotlin.math.max
 import kotlin.math.min
 import java.util.concurrent.Executors
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.TimeUnit
 
 data class GeoPoint(
     val latitude: Double,
@@ -118,11 +120,20 @@ object CourseGeometryLoader {
         // Zomma publishes downloadable GeoJSON for courses it has processed.
         // Treat it as an additional geometry provider: never make it a hard
         // dependency, and retain OSM as the broad-coverage fallback.
-        val zomma = runCatching { fetchZommaGeometry(course) }
-            .onFailure { android.util.Log.d("CourseGeometry", "Zomma unavailable for ${course.name}: ${it.message}") }
-            .getOrDefault(emptyList())
+        // Start both providers together. Zomma must not add another network
+        // round-trip to an already slow Overpass request.
+        val zommaFuture = CompletableFuture.supplyAsync {
+            runCatching { fetchZommaGeometry(course) }
+                .onFailure { android.util.Log.d("CourseGeometry", "Zomma unavailable for ${course.name}: ${it.message}") }
+                .getOrDefault(emptyList())
+        }
         val osmResult = runCatching { loadOsmGeometry(course) }
         val osm = osmResult.getOrNull()
+        val zomma = runCatching { zommaFuture.get(12, TimeUnit.SECONDS) }
+            .onFailure {
+                zommaFuture.cancel(true)
+                android.util.Log.d("CourseGeometry", "Zomma request timed out for ${course.name}")
+            }.getOrDefault(emptyList())
 
         if (zomma.isEmpty() && osm == null) {
             throw osmResult.exceptionOrNull()
