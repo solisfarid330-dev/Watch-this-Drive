@@ -58,35 +58,49 @@ def main():
         if values.size==0: return {"pixels":0}
         q=np.quantile(values,[.1,.25,.5,.75,.9])
         return {"pixels":int(values.size),"p10":round(float(q[0]),4),"p25":round(float(q[1]),4),"median":round(float(q[2]),4),"p75":round(float(q[3]),4),"p90":round(float(q[4]),4)}
-    class_stats={}
+    class_stats={}; class_values={}
     for cls,mask in masks.items():
         use=mask&valid
+        class_values[cls]={"ndvi":ndvi[use],"excess_green":exg[use]}
         class_stats[cls]={
             "ndvi":stats(ndvi[use]),
             "excess_green":stats(exg[use]),
         }
-    fair=ndvi[masks["fairway"]&valid]; rough=ndvi[masks["rough"]&valid]
-    if fair.size and rough.size:
-        pooled=math.sqrt((float(fair.var())+float(rough.var()))/2)
-        effect=(float(fair.mean())-float(rough.mean()))/pooled if pooled>1e-9 else 0.0
-        separability={"fairway_minus_rough_ndvi_mean":round(float(fair.mean()-rough.mean()),4),"cohens_d":round(effect,4),"absolute_cohens_d":round(abs(effect),4)}
-    else:
-        separability={"status":"insufficient mapped fairway or rough seed pixels"}
+    pairwise={}
+    for other in ("rough","green","bunker","water_hazard","tee"):
+        pair={}
+        for feature in ("ndvi","excess_green"):
+            first=class_values["fairway"][feature]; second=class_values[other][feature]
+            if first.size and second.size:
+                pooled=math.sqrt((float(first.var())+float(second.var()))/2)
+                effect=(float(first.mean())-float(second.mean()))/pooled if pooled>1e-9 else 0.0
+                pair[feature]={
+                    "fairway_minus_other_mean":round(float(first.mean()-second.mean()),4),
+                    "cohens_d":round(effect,4),
+                    "absolute_cohens_d":round(abs(effect),4),
+                    "sample_pixels":{"fairway":int(first.size),"other":int(second.size)}
+                }
+            else:
+                pair[feature]={"status":"insufficient mapped seed pixels"}
+        pairwise[f"fairway_vs_{other}"]=pair
     # Grayscale NDVI preview; values outside the display range are clipped.
     preview=np.clip((ndvi+0.2)/1.0*255,0,255).astype(np.uint8)
     preview[~valid]=0
     Image.fromarray(preview,mode="L").save(out/"ndvi-preview.png")
+    exg_preview=np.clip((exg+0.5)*255,0,255).astype(np.uint8)
+    exg_preview[~valid]=0
+    Image.fromarray(exg_preview,mode="L").save(out/"excess-green-preview.png")
     report={
         "course_hole_osm_id":meta["hole_osm_id"],
         "source":"Texas NAIP 2022 RGBIR 4-band orthophotography",
         "band_order_assumption":["red","green","blue","near_infrared"],
-        "tiff_mode":im.mode,"tiff_dimensions":[w,h],
+        "tiff_mode":im.mode,"tiff_dimensions":[w,h],"channel_semantics":["red","green","blue","near_infrared"],
         "ndvi_formula":"(NIR - Red) / (NIR + Red)",
         "weak_seed_label_warning":"OSM polygons may be incomplete, generalized, misclassified, or offset. Pixel samples are spatially correlated and are not independent ground truth.",
         "class_samples":class_stats,
-        "fairway_vs_rough_ndvi_separability":separability,
+        "pairwise_fairway_seed_separability":pairwise,
         "interpretation":"Spectral separability is exploratory only. NDVI alone does not identify fairway boundaries; compare seed distributions and the preview with the aerial image.",
-        "files":["ndvi-preview.png","spectral-summary.json"]
+        "files":["ndvi-preview.png","excess-green-preview.png","spectral-summary.json"]
     }
     (out/"spectral-summary.json").write_text(json.dumps(report,indent=2)+"\n")
     print(json.dumps(report,indent=2))
