@@ -8,6 +8,7 @@ on:
       - "research/naip_fairway_classifier.py"
       - "research/naip_unsupervised_turf.py"
       - "research/hole_feature_association.py"
+      - "research/naip_superpixel_fairway.py"
       - ".github/workflows/aerial-hole-validation.yml"
   workflow_dispatch:
 permissions:
@@ -25,7 +26,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install Pillow
-        run: python -m pip install --disable-pip-version-check Pillow numpy
+        run: python -m pip install --disable-pip-version-check Pillow numpy scikit-image
       - name: South Padre Hole 1 imagery and overlay
         run: |
           if [ ! -s research/results/south-padre/aerial-validation/hole-1-naip-2022.png ] || [ ! -s research/results/south-padre/aerial-validation/hole-1-naip-2022-rgbir.tif ]; then
@@ -193,6 +194,22 @@ jobs:
           python research/hole_feature_association.py \
             --geojson research/results/cottonwood-creek/features.geojson \
             --out research/results/cottonwood-creek/hole-association-audit.json
+      - name: Run SLIC superpixel fairway experiment for South Padre Hole 1
+        run: |
+          python research/naip_superpixel_fairway.py \
+            --geojson research/results/south-padre/features.geojson \
+            --metadata research/results/south-padre/aerial-validation/hole-1-validation.json \
+            --tiff research/results/south-padre/aerial-validation/hole-1-naip-2022-rgbir.tif \
+            --hole-ref 1 \
+            --out research/results/south-padre/aerial-validation/hole-1-superpixel-experiment
+      - name: Run SLIC superpixel fairway experiment for South Padre Hole 2
+        run: |
+          python research/naip_superpixel_fairway.py \
+            --geojson research/results/south-padre/features.geojson \
+            --metadata research/results/south-padre/aerial-validation/hole-2-validation.json \
+            --tiff research/results/south-padre/aerial-validation/hole-2-naip-2022-rgbir.tif \
+            --hole-ref 2 \
+            --out research/results/south-padre/aerial-validation/hole-2-superpixel-experiment
       - name: Commit imagery and overlays
         run: |
           git config user.name "github-actions[bot]"
