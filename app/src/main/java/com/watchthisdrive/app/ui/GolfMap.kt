@@ -259,9 +259,17 @@ internal fun loadCachedCourseGeometry(context: android.content.Context, course: 
         val raw = if (file.exists()) {
             GZIPInputStream(file.inputStream()).bufferedReader().use { it.readText() }
         } else {
-            // One-time compatibility with the old SharedPreferences cache.
-            context.getSharedPreferences("course_geometry_cache", android.content.Context.MODE_PRIVATE)
-                .getString("course_geometry_${course.id}", null) ?: return null
+            // One-time migration from the old large SharedPreferences JSON blob.
+            val preferences = context.getSharedPreferences(
+                "course_geometry_cache", android.content.Context.MODE_PRIVATE
+            )
+            val legacy = preferences.getString("course_geometry_${course.id}", null) ?: return null
+            runCatching {
+                file.parentFile?.mkdirs()
+                GZIPOutputStream(file.outputStream().buffered()).bufferedWriter().use { it.write(legacy) }
+                preferences.edit().remove("course_geometry_${course.id}").apply()
+            }
+            legacy
         }
         val root = JSONObject(raw)
         val array = root.getJSONArray("features")
