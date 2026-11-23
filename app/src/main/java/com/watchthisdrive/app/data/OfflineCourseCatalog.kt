@@ -295,7 +295,7 @@ internal object OfflineCourseCatalog {
             val cursor = helper.readableDatabase.rawQuery(
                 """
                 SELECT id, name, latitude, longitude, country, state, city, course_type,
-                       holes, par, phone, website, address, postal_code, scorecard
+                       holes, par, phone, website, address, postal_code, scorecard, total_yardage
                 FROM courses
                 WHERE country = 'US'
                   AND latitude BETWEEN ? AND ?
@@ -345,6 +345,7 @@ internal object OfflineCourseCatalog {
                         postalCode = it.getStringOrNull(13),
                         holes = it.getIntOrNull(8),
                         par = it.getIntOrNull(9),
+                        totalYardage = it.getIntOrNull(15),
                         courseType = it.getStringOrNull(7),
                         website = it.getStringOrNull(11),
                         phone = it.getStringOrNull(10),
@@ -398,6 +399,7 @@ internal object OfflineCourseCatalog {
                         postalCode = it.getStringOrNull(13),
                         holes = it.getIntOrNull(8),
                         par = it.getIntOrNull(9),
+                        totalYardage = it.getIntOrNull(15),
                         courseType = it.getStringOrNull(7),
                         website = it.getStringOrNull(11),
                         phone = it.getStringOrNull(10),
