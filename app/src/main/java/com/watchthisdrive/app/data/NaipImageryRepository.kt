@@ -16,8 +16,12 @@ import kotlin.math.max
 object NaipImageryRepository {
     private const val IMAGE_SERVER =
         "https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer"
-    private const val CACHE_MAX_AGE_MS = 30L * 24L * 60L * 60L * 1000L
-    private const val MAX_IMAGE_BYTES = 12 * 1024 * 1024
+    private const val CACHE_MAX_AGE_MS = 180L * 24L * 60L * 60L * 1000L
+    // USGS advertises a 4,000 x 4,000 maximum export for this ImageServer.
+    // Requesting its full supported dimensions avoids the old 1,024-pixel
+    // bottleneck that discarded most of the source imagery's spatial detail.
+    private const val MAX_EXPORT_DIMENSION = 4_000
+    private const val MAX_IMAGE_BYTES = 24 * 1024 * 1024
 
     data class Bounds(
         val west: Double,
@@ -96,9 +100,16 @@ object NaipImageryRepository {
         val heightMeters = (bounds.north - bounds.south) * 111_320.0
         if (widthMeters <= 0.0 || heightMeters <= 0.0) return null
         val aspect = widthMeters / heightMeters
-        val width = if (aspect >= 1.0) 1024 else (1024 * aspect).toInt().coerceIn(256, 1024)
-        val height = if (aspect >= 1.0) (1024 / aspect).toInt().coerceIn(256, 1024) else 1024
-        val request = URL("$IMAGE_SERVER/exportImage?bbox=${bounds.west},${bounds.south},${bounds.east},${bounds.north}&bboxSR=4326&imageSR=4326&size=$width,$height&format=jpg&f=image")
+        val width = if (aspect >= 1.0) MAX_EXPORT_DIMENSION else
+            (MAX_EXPORT_DIMENSION * aspect).toInt().coerceIn(256, MAX_EXPORT_DIMENSION)
+        val height = if (aspect >= 1.0)
+            (MAX_EXPORT_DIMENSION / aspect).toInt().coerceIn(256, MAX_EXPORT_DIMENSION)
+        else MAX_EXPORT_DIMENSION
+        val request = URL(
+            "$IMAGE_SERVER/exportImage?bbox=${bounds.west},${bounds.south},${bounds.east},${bounds.north}" +
+                "&bboxSR=4326&imageSR=4326&size=$width,$height&format=jpg" +
+                "&compressionQuality=95&f=image"
+        )
         val connection = request.openConnection() as HttpURLConnection
         val temporary = File(directory, imageFile.name + ".tmp")
         try {
@@ -130,6 +141,10 @@ object NaipImageryRepository {
             metadataFile.writeText(JSONObject()
                 .put("source", IMAGE_SERVER)
                 .put("provider", "USDA NAIP via USGS The National Map")
+                .put("imageryProduct", "NAIP natural-color mosaic")
+                .put("maxExportDimension", MAX_EXPORT_DIMENSION)
+                .put("compressionQuality", 95)
+                .put("note", "RGB display export from a four-band NAIP image service; source imagery resolution varies by location and acquisition year.")
                 .put("attribution", "USDA Farm Production and Conservation Business Center, Geospatial Enterprise Operations")
                 .put("license", "Public domain; source credit requested")
                 .put("retrievedAtEpochMs", System.currentTimeMillis())
