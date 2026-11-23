@@ -1,5 +1,6 @@
 package com.watchthisdrive.app.data
 
+import android.content.Context
 import android.location.Location
 import android.os.Handler
 import android.os.Looper
@@ -10,13 +11,34 @@ import java.net.URL
 import java.net.URLEncoder
 import kotlin.concurrent.thread
 
+data class CourseHoleInfo(
+    val number: Int,
+    val par: Int?,
+    val handicap: Int?,
+    val yardage: Int?
+)
+
 data class GolfCourse(
     val id: Long,
     val elementType: String,
     val name: String,
     val latitude: Double,
     val longitude: Double,
-    val distanceMeters: Float
+    val distanceMeters: Float,
+    val city: String? = null,
+    val region: String? = null,
+    val countryCode: String? = null,
+    val address: String? = null,
+    val postalCode: String? = null,
+    val holes: Int? = null,
+    val par: Int? = null,
+    val courseType: String? = null,
+    val website: String? = null,
+    val phone: String? = null,
+    val openGolfId: String? = null,
+    val teeTimeId: String? = null,
+    val scorecard: List<CourseHoleInfo> = emptyList(),
+    val sourceNames: Set<String> = emptySet()
 ) {
     val distanceMiles: Double
         get() = distanceMeters / 1609.344
@@ -36,6 +58,100 @@ object CourseDiscovery {
         val latitude: Double,
         val longitude: Double
     )
+
+    fun searchNearby(
+        context: Context,
+        latitude: Double,
+        longitude: Double,
+        onResult: (Result<List<GolfCourse>>) -> Unit
+    ) {
+        thread(name = "combined-course-search") {
+            val osm = runCatching { searchAtCoordinates(latitude, longitude) }
+            val catalogs = runCatching {
+                CourseCatalogSources.searchNearby(context.applicationContext, latitude, longitude)
+            }
+            val result = when {
+                osm.isSuccess || catalogs.isSuccess -> Result.success(
+                    mergeCourseSources(osm.getOrDefault(emptyList()), catalogs.getOrDefault(emptyList()))
+                )
+                else -> Result.failure(
+                    Exception(
+                        "Course search services are unavailable. Please try again shortly. " +
+                            (osm.exceptionOrNull()?.message ?: catalogs.exceptionOrNull()?.message.orEmpty())
+                    )
+                )
+            }
+            Handler(Looper.getMainLooper()).post { onResult(result) }
+        }
+    }
+
+    fun searchByText(
+        context: Context,
+        searchText: String,
+        onResult: (Result<List<GolfCourse>>) -> Unit
+    ) {
+        thread(name = "combined-course-text-search") {
+            val result = runCatching {
+                val point = geocode(searchText)
+                val osm = runCatching { searchAtCoordinates(point.latitude, point.longitude) }
+                val catalogs = runCatching {
+                    CourseCatalogSources.searchNearby(
+                        context.applicationContext, point.latitude, point.longitude, searchText
+                    )
+                }
+                if (osm.isFailure && catalogs.isFailure) {
+                    throw Exception("Course search services are unavailable. Try again shortly.")
+                }
+                mergeCourseSources(osm.getOrDefault(emptyList()), catalogs.getOrDefault(emptyList()))
+            }
+            Handler(Looper.getMainLooper()).post { onResult(result) }
+        }
+    }
+
+    private fun mergeCourseSources(
+        osmCourses: List<GolfCourse>,
+        catalogCourses: List<GolfCourse>
+    ): List<GolfCourse> {
+        val unmatchedCatalogs = catalogCourses.toMutableList()
+        val merged = osmCourses.map { osm ->
+            val normalized = normalizeCourseName(osm.name)
+            val matchIndex = unmatchedCatalogs.indexOfFirst { catalog ->
+                normalizeCourseName(catalog.name) == normalized &&
+                    distanceMeters(osm.latitude, osm.longitude, catalog.latitude, catalog.longitude) <= 1_500f
+            }
+            if (matchIndex < 0) {
+                osm.copy(sourceNames = osm.sourceNames + "OpenStreetMap")
+            } else {
+                val catalog = unmatchedCatalogs.removeAt(matchIndex)
+                osm.copy(
+                    city = catalog.city,
+                    region = catalog.region,
+                    countryCode = catalog.countryCode,
+                    address = catalog.address,
+                    postalCode = catalog.postalCode,
+                    holes = catalog.holes,
+                    par = catalog.par,
+                    courseType = catalog.courseType,
+                    website = catalog.website,
+                    phone = catalog.phone,
+                    openGolfId = catalog.openGolfId,
+                    teeTimeId = catalog.teeTimeId,
+                    scorecard = catalog.scorecard,
+                    sourceNames = osm.sourceNames + catalog.sourceNames + "OpenStreetMap"
+                )
+            }
+        }
+        return (merged + unmatchedCatalogs).sortedBy { it.distanceMeters }
+    }
+
+    private fun normalizeCourseName(value: String): String =
+        value.lowercase(Locale.ROOT).replace(Regex("[^a-z0-9]"), "")
+
+    private fun distanceMeters(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Float {
+        val result = FloatArray(1)
+        Location.distanceBetween(lat1, lon1, lat2, lon2, result)
+        return result[0]
+    }
 
     fun searchNearby(
         latitude: Double,
@@ -250,7 +366,8 @@ object CourseDiscovery {
                     name = name,
                     latitude = lat,
                     longitude = lon,
-                    distanceMeters = distance[0]
+                    distanceMeters = distance[0],
+                    sourceNames = setOf("OpenStreetMap")
                 )
             )
         }
