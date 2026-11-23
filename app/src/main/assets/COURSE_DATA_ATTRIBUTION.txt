@@ -22,7 +22,7 @@ https://opendatacommons.org/licenses/odbl/1-0/
 USDA NAIP / USGS The National Map
 Aerial reference imagery is provided through the USGS The National Map NAIP ImageServer.
 Imagery is public domain; source credit is requested.
-Source credit: USDA Farm Production and Conservation Business Center, Geospatial Enterprise Operations.
+Source credit: USGS, USDA, The National Map: Orthoimagery; USDA Farm Production and Conservation Business Center, Geospatial Enterprise Operations.
 https://naip-usdaonline.hub.arcgis.com/
 https://www.usgs.gov/programs/national-geospatial-program/national-map
 
