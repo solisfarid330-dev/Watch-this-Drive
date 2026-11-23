@@ -47,6 +47,36 @@ class NdviBoundaryAnalyzerTest {
     }
 
     @Test
+    fun samplesIrregularPolygonEdgesWithoutRequiringRectangularBounds() {
+        val width = 180
+        val height = 180
+        val pixels = IntArray(width * height) { 0xff505050.toInt() }
+        val irregular = listOf(
+            GeoPoint(33.00075, -97.00065),
+            GeoPoint(33.00065, -96.99935),
+            GeoPoint(33.00005, -96.99955),
+            GeoPoint(32.99935, -96.9994),
+            GeoPoint(32.99925, -97.00055),
+            GeoPoint(32.9999, -97.00025)
+        )
+        for (y in 0 until height) for (x in 0 until width) {
+            val longitude = bounds.west + x.toDouble() / (width - 1) * (bounds.east - bounds.west)
+            val latitude = bounds.north - y.toDouble() / (height - 1) * (bounds.north - bounds.south)
+            // Deliberately use the analyzer's polygon interior test indirectly:
+            // paint the central mapped area with high NDVI, leaving its
+            // rectangular bounding-box corners low.
+            if (longitude in -97.0005..-96.9995 && latitude in 32.9995..33.0005) {
+                pixels[y * width + x] = 0xffd8d8d8.toInt()
+            }
+        }
+        val result = NdviBoundaryAnalyzer.evaluate(pixels, width, height, bounds, irregular)
+        assertNotNull(result)
+        assertTrue(result!!.boundarySamples > 0)
+        assertTrue(result.boundarySupportFraction in 0.0..1.0)
+        assertTrue(result.boundaryVegetationContrast.isFinite())
+    }
+
+    @Test
     fun rejectsDegenerateGeometryAndInsufficientImageData() {
         assertNull(NdviBoundaryAnalyzer.evaluate(
             IntArray(10), 10, 10, bounds, polygon
