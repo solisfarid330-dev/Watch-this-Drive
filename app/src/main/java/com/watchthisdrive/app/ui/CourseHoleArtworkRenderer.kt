@@ -412,6 +412,10 @@ internal object CourseHoleArtworkRenderer {
         canvas.drawRect(0f, HEIGHT - 112f, WIDTH.toFloat(), HEIGHT.toFloat(), paint); paint.shader = null
         text(if (hole.usesMappedFairway) "MAPPED FAIRWAY GEOMETRY" else "ESTIMATED FAIRWAY · NOT SURVEYED",
             56f, HEIGHT - 40f, 0xFFD4E1D0.toInt(), 20f, Paint.Align.LEFT)
+        if (aerialBitmap != null && aerialBounds != null) {
+            text("AERIAL REFERENCE: USDA NAIP · USGS THE NATIONAL MAP",
+                WIDTH - 56f, HEIGHT - 40f, 0xFFD4E1D0.toInt(), 15f, Paint.Align.RIGHT)
+        }
 
         val temporary = File(folder, digest + "-" + Thread.currentThread().id + ".tmp")
         FileOutputStream(temporary).use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
