@@ -92,10 +92,10 @@ relations with zero omissions. A structural validation pass found no open
 polygon rings, no uncontained inner rings, and no incorrect ring winding in
 those two outputs.
 
-Eleven offline unit tests cover boundary query construction, node rejection,
-inventory counting, multipolygon outer/inner rings, segmented-ring stitching
-in both directions, open hole lines, and GeoJSON polygon winding. The GitHub
-Actions test workflow has passed.
+Fourteen offline unit tests cover boundary query construction, node rejection,
+inventory counting, multipolygon outer/inner rings, segmented-ring stitching,
+open hole lines, GeoJSON polygon winding, and conservative endpoint association.
+The GitHub Actions research pipeline checks have passed.
 
 ### Aerial validation milestone
 
@@ -124,6 +124,10 @@ Key findings:
 - Cottonwood demonstrates sparse source coverage: its nine hole lines and nine
   pins are mapped, but no fairway/tee/green/bunker polygons are present. The
   extractor reports that absence rather than inventing those features.
+- Endpoint-based association diagnostics infer line direction and identify
+  tee/green/pin candidates on 17/18, 18/18, and 0/18 South Padre holes;
+  18/18, 18/18, and 18/18 Westwood holes; and 0/9, 0/9, and 9/9 Cottonwood
+  holes, respectively. These remain candidates, not confirmed assignments.
 
 Do not port the reconstruction engine to Android yet. The research prototype
 proves generic discovery, relation serialization, imagery retrieval, and a
