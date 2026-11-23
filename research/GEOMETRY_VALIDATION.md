@@ -72,9 +72,8 @@ course with sparse OSM coverage.
 
 - The hole has an explicit OSM centerline and mapped nearby tee, rough, fairway,
   green, and bunker features. All nearby objects remain proximity candidates.
-- The fairway polygon covers approximately 64% of the sampled centerline. This
-  differs from Hole 1's 55.3%, showing that the amount of mapped fairway varies
-  even within one course.
+- - The OSM centerline measures 395.3 yd versus the club's published Hole 2 yardage of 403 yd, a 1.91% difference (inside the 5% tolerance).
+- The mapped fairway polygon covers 54.3% of the sampled centerline, close to Hole 1's 55.3%. This confirms incomplete OSM fairway coverage on both holes.
 - A classifier trained on Hole 1 fairway/rough labels recognized 59.5% of Hole 2
   fairway seed pixels and incorrectly marked 10.2% of its mapped rough seed
   pixels. This is materially weaker than its spatial-block validation on Hole 1.
