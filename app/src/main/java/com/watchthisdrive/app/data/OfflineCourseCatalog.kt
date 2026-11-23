@@ -6,6 +6,7 @@ import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import android.util.JsonReader
 import android.util.JsonToken
+import android.util.Log
 import java.io.InputStreamReader
 import java.util.Locale
 import java.util.zip.GZIPInputStream
@@ -107,6 +108,8 @@ internal object OfflineCourseCatalog {
                 cursor.getLong(0)
             }
             count > 0L
+        }.onFailure { error ->
+            Log.w("OfflineCourseCatalog", "Unable to import the bundled OpenGolfAPI catalog", error)
         }.getOrDefault(false)
     }
 
