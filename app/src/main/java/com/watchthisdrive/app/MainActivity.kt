@@ -880,21 +880,43 @@ private fun CourseDetailScreen(
                         )
 
                         featureTypes.forEach { (label, type) ->
-                            val count = features.count {
-                                it.featureType == type
-                            }
-
+                            val count = features.count { it.featureType == type }
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Text(label, color = Color.White)
-                                Text(
-                                    count.toString(),
-                                    color = Color(0xFFB8F36B),
-                                    fontWeight = FontWeight.Bold
-                                )
+                                Text(count.toString(), color = Color(0xFFB8F36B), fontWeight = FontWeight.Bold)
                             }
+                        }
+
+                        val polygonCount = features.count {
+                            it.geometryType == com.watchthisdrive.app.data.CourseGeometryType.POLYGON ||
+                                it.geometryType == com.watchthisdrive.app.data.CourseGeometryType.MULTI_POLYGON
+                        }
+                        val lineCount = features.count {
+                            it.geometryType == com.watchthisdrive.app.data.CourseGeometryType.LINE
+                        }
+                        val pointCount = features.count {
+                            it.geometryType == com.watchthisdrive.app.data.CourseGeometryType.POINT
+                        }
+                        Divider(color = Color(0xFF344238))
+                        Text("Geometry successfully decoded", color = Color.White, fontWeight = FontWeight.SemiBold)
+                        Text(
+                            "$polygonCount area features · $lineCount lines · $pointCount points",
+                            color = Color(0xFFB8F36B)
+                        )
+                        Text(
+                            "Multipolygon inner boundaries are retained where the source provides them.",
+                            color = Color(0xFFB6C1B9),
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        geometry?.incompleteRelations?.takeIf { it.isNotEmpty() }?.let { issues ->
+                            Text(
+                                "${issues.size} relation geometries need review; incomplete rings were not silently filled.",
+                                color = Color(0xFFFFCC80),
+                                style = MaterialTheme.typography.bodySmall
+                            )
                         }
 
                         if (features.isEmpty()) {
