@@ -232,7 +232,7 @@ internal object CourseHoleArtworkRenderer {
                 close()
             }
         }
-        fun polygon(points: List<GeoPoint>, fill: Int, edge: Int, width: Float = 6f): Path? {
+        fun polygon(points: List<GeoPoint>, fill: Int, edge: Int, width: Float = 6f, dashedEdge: Boolean = false): Path? {
             val path = shape(points) ?: return null
             paint.setShadowLayer(13f, 0f, 9f, 0x88000000.toInt())
             paint.color = 0x44301E12
@@ -240,7 +240,10 @@ internal object CourseHoleArtworkRenderer {
             paint.clearShadowLayer()
             paint.style = Paint.Style.FILL; paint.color = fill; canvas.drawPath(path, paint)
             paint.style = Paint.Style.STROKE; paint.color = edge; paint.strokeWidth = width
-            paint.strokeJoin = Paint.Join.ROUND; canvas.drawPath(path, paint)
+            paint.strokeJoin = Paint.Join.ROUND
+            if (dashedEdge) paint.pathEffect = android.graphics.DashPathEffect(floatArrayOf(18f, 12f), 0f)
+            canvas.drawPath(path, paint)
+            paint.pathEffect = null
             paint.style = Paint.Style.FILL
             return path
         }
@@ -315,10 +318,17 @@ internal object CourseHoleArtworkRenderer {
         }
 
         // Mapped fairway polygons retain their exact footprint; inferred corridor is softer.
-        val fairways = if (hole.usesMappedFairway) hole.mappedFairways.map { it.points } else listOf(hole.fairwayEstimate)
-        fairways.forEach { points ->
-            val path = polygon(points, if (hole.usesMappedFairway) 0xCC4F8950.toInt() else 0xAA779A60.toInt(),
-                0xFFEAF0D1.toInt(), 10f)
+        val fairways = if (hole.usesMappedFairway) {
+            hole.mappedFairways.map { Triple(it.points, it.isPredicted, false) }
+        } else listOf(Triple(hole.fairwayEstimate, true, true))
+        fairways.forEach { (points, predicted, inferred) ->
+            val fairwayFill = when {
+                inferred -> 0xAA779A60.toInt()
+                predicted -> 0x884F8950.toInt()
+                else -> 0xCC4F8950.toInt()
+            }
+            val path = polygon(points, fairwayFill,
+                0xFFEAF0D1.toInt(), 10f, dashedEdge = predicted)
             if (path != null) {
                 canvas.save(); canvas.clipPath(path)
                 paint.shader = LinearGradient(0f, 0f, WIDTH.toFloat(), 0f,
@@ -349,7 +359,9 @@ internal object CourseHoleArtworkRenderer {
 
         // Water bodies, with soft shore outlines and ripples.
         hole.water.forEach { feature ->
-            val path = polygon(feature.points, 0xD8438F9F.toInt(), 0xFFB9D9D5.toInt(), 8f)
+            val path = polygon(feature.points,
+                if (feature.isPredicted) 0x88438F9F.toInt() else 0xD8438F9F.toInt(),
+                0xFFB9D9D5.toInt(), 8f, dashedEdge = feature.isPredicted)
             if (path != null) {
                 canvas.save(); canvas.clipPath(path)
                 paint.style = Paint.Style.STROKE; paint.strokeWidth = 3f; paint.color = 0x347DE0E8
@@ -367,7 +379,9 @@ internal object CourseHoleArtworkRenderer {
 
         // Green is distinct from fairway, with subtle contours and a soft highlight.
         val greenCenter = xy(hole.green)
-        val green = polygon(hole.greenBoundary, 0xD89DBF65.toInt(), 0xFFF0F4C8.toInt(), 11f)
+        val green = polygon(hole.greenBoundary,
+            if (hole.greenSource.isPredicted) 0x889DBF65.toInt() else 0xD89DBF65.toInt(),
+            0xFFF0F4C8.toInt(), 11f, dashedEdge = hole.greenSource.isPredicted)
         if (green != null) {
             canvas.save(); canvas.clipPath(green)
             paint.shader = RadialGradient(greenCenter.first, greenCenter.second, 420f,
@@ -400,7 +414,9 @@ internal object CourseHoleArtworkRenderer {
 
         // Bunkers: warm sand, sculpted lip and fine rake texture.
         hole.bunkers.forEach { feature ->
-            val path = polygon(feature.points, 0xD8E8D5AA.toInt(), 0xFFFFF0D0.toInt(), 7f)
+            val path = polygon(feature.points,
+                if (feature.isPredicted) 0x88E8D5AA.toInt() else 0xD8E8D5AA.toInt(),
+                0xFFFFF0D0.toInt(), 7f, dashedEdge = feature.isPredicted)
             if (path != null) {
                 canvas.save(); canvas.clipPath(path)
                 paint.style = Paint.Style.STROKE; paint.color = 0x397F6941; paint.strokeWidth = 2f
