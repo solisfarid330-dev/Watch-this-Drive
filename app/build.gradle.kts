@@ -47,15 +47,19 @@ val ensureOpenGolfOfflineCatalog = tasks.register("ensureOpenGolfOfflineCatalog"
                     digest.update(buffer, 0, count)
                 }
             }
-            return digest.digest().joinToString("") { "%02x".format(it) }
+            return digest.digest().joinToString("") { "%02x".format(it.toInt() and 0xff) }
         }
 
         catalogFile.parentFile.mkdirs()
         if (!catalogFile.exists() || sha256(catalogFile.inputStream()) != expectedCompressed) {
             val temporary = java.io.File(catalogFile.parentFile, catalogFile.name + ".download")
-            java.net.URL(
+            val connection = java.net.URL(
                 "https://github.com/opengolfapi/data/releases/download/v2.1.0/opengolfapi-us.geojson.gz"
-            ).openStream().use { input ->
+            ).openConnection().apply {
+                connectTimeout = 10_000
+                readTimeout = 30_000
+            }
+            connection.getInputStream().use { input ->
                 temporary.outputStream().use { output -> input.copyTo(output) }
             }
             val downloadedHash = sha256(temporary.inputStream())
