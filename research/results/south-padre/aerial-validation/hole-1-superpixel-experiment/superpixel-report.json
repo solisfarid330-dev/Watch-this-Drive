@@ -1,0 +1,44 @@
+{
+  "hole_ref": "1",
+  "hole_osm_id": 1383052934,
+  "method": "SLIC superpixels over RGBIR imagery, weak-label LDA on clean OSM fairway/rough superpixels, spatial block holdout, and hole-corridor/exclusion masks.",
+  "superpixel_count": 2492,
+  "segments_requested": 2400,
+  "compactness": 8.0,
+  "seed_superpixels": {
+    "fairway": 166,
+    "rough": 265,
+    "fairway_train": 139,
+    "rough_train": 227,
+    "fairway_test": 27,
+    "rough_test": 38
+  },
+  "spatial_block_holdout": {
+    "fairway_true_positive_rate": 0.963,
+    "rough_false_positive_rate": 0.2895,
+    "warning": "Superpixel blocks reduce pixel leakage, but weak OSM labels are not independent ground truth."
+  },
+  "target_seed_candidate_rates": {
+    "fairway": {
+      "pixels": 58998,
+      "candidate_fraction": 0.8373
+    },
+    "rough": {
+      "pixels": 63707,
+      "candidate_fraction": 0.172
+    }
+  },
+  "candidate_pixels": 88012,
+  "corridor_pixels": 285402,
+  "candidate_fraction_of_corridor": 0.3084,
+  "limitations": [
+    "OSM polygons are weak labels and may be incomplete or offset.",
+    "SLIC segmentation is a conventional CV experiment, not a trained neural model.",
+    "Output remains a candidate mask; no independently traced fairway reference is available.",
+    "No feature is assigned to a hole by proximity alone."
+  ],
+  "files": [
+    "hole-1-superpixel-fairway-candidate.png",
+    "superpixel-report.json"
+  ]
+}
