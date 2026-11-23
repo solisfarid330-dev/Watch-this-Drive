@@ -120,7 +120,8 @@ object CourseGeometryLoader {
         return CourseGeometry(
             courseId = course.id,
             courseName = course.name,
-            features = combined
+            features = combined,
+            courseElementType = course.elementType
         )
     }
 
