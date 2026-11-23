@@ -17,7 +17,6 @@ import androidx.compose.ui.unit.dp
 import com.watchthisdrive.app.data.CourseFeature
 import com.watchthisdrive.app.data.CourseGeometry
 import com.watchthisdrive.app.data.GolfCourse
-import com.watchthisdrive.app.data.HoleReconstructor
 import com.watchthisdrive.app.data.ReconstructedHole
 
 private data class ClubDistance(val name: String, val carryYards: String)
@@ -46,7 +45,7 @@ fun CaddyScreen(
     activeHole: Int,
     geometry: CourseGeometry?,
     geometryError: String? = null,
-    reconstructedHoles: List<ReconstructedHole>? = null,
+    reconstructedHoles: List<ReconstructedHole>,
     modifier: Modifier = Modifier
 ) {
     PlayingCaddyScreen(course, location, locationError, onLocate, onFindCourse, activeHole, geometry, geometryError, reconstructedHoles, modifier)
@@ -70,9 +69,8 @@ private fun PlayingCaddyScreen(
         .filter { it.featureType.equals("green", ignoreCase = true) }
         .sortedWith(compareBy<CourseFeature> { it.holeNumber?.toIntOrNull() ?: Int.MAX_VALUE }.thenBy { it.id })
     val numberedGreens = greens.filter { it.holeNumber?.trim()?.toIntOrNull() == activeHole }
-    val reconstructedHole = remember(reconstructedHoles, geometry, activeHole) {
-        (reconstructedHoles ?: geometry?.let { HoleReconstructor.reconstruct(it) }.orEmpty())
-            .firstOrNull { hole -> hole.number == activeHole }
+    val reconstructedHole = remember(reconstructedHoles, activeHole) {
+        reconstructedHoles.firstOrNull { hole -> hole.number == activeHole }
     }
     val selectedGreen = greens.firstOrNull { it.id == selectedGreenId }
         ?: numberedGreens.firstOrNull()
