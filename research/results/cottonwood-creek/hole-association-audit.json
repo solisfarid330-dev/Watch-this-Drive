@@ -1,0 +1,774 @@
+{
+  "type": "WatchThisDriveHoleAssociationAudit",
+  "method": "Choose line orientation from nearest tee/green endpoints, or pin endpoint when tee/green are unavailable; report conservative endpoint and centerline candidates without forced assignment.",
+  "thresholds_m": {
+    "tee_green_endpoint": 30,
+    "pin_green_endpoint": 20,
+    "corridor": 45
+  },
+  "hole_count": 9,
+  "holes": [
+    {
+      "hole_ref": "1",
+      "hole_osm_id": 1337838559,
+      "line_start": [
+        -97.6866019,
+        26.1507801
+      ],
+      "line_end": [
+        -97.6866157,
+        26.1498889
+      ],
+      "line_direction": {
+        "selected": "forward",
+        "forward_score_m": 0.0,
+        "reverse_score_m": 37.2,
+        "basis": "nearest pin endpoint"
+      },
+      "endpoint_marker_candidates": {
+        "tee": {
+          "role_test": "tee_end_candidate",
+          "strong_endpoint_candidates": [],
+          "nearest_candidates": [],
+          "status": "not_found_with_endpoint_rule"
+        },
+        "green": {
+          "role_test": "green_end_candidate",
+          "strong_endpoint_candidates": [],
+          "nearest_candidates": [],
+          "status": "not_found_with_endpoint_rule"
+        },
+        "pin": {
+          "role_test": "green_end_pin_candidate",
+          "strong_endpoint_candidates": [
+            {
+              "osm_type": "node",
+              "osm_id": 12374869535,
+              "distance_to_start_m": 99.1,
+              "distance_to_end_m": 0.0,
+              "tags": {}
+            }
+          ],
+          "nearest_candidates": [
+            {
+              "osm_type": "node",
+              "osm_id": 12374869535,
+              "distance_to_start_m": 99.1,
+              "distance_to_end_m": 0.0,
+              "tags": {}
+            },
+            {
+              "osm_type": "node",
+              "osm_id": 12374869548,
+              "distance_to_start_m": 37.2,
+              "distance_to_end_m": 111.3,
+              "tags": {}
+            },
+            {
+              "osm_type": "node",
+              "osm_id": 12374869551,
+              "distance_to_start_m": 118.4,
+              "distance_to_end_m": 84.4,
+              "tags": {}
+            },
+            {
+              "osm_type": "node",
+              "osm_id": 12374869538,
+              "distance_to_start_m": 272.5,
+              "distance_to_end_m": 184.6,
+              "tags": {}
+            },
+            {
+              "osm_type": "node",
+              "osm_id": 12374869553,
+              "distance_to_start_m": 330.3,
+              "distance_to_end_m": 256.8,
+              "tags": {}
+            }
+          ],
+          "status": "candidate_only"
+        }
+      },
+      "corridor_feature_candidates": [],
+      "interpretation": "Endpoint proximity is stronger evidence for tee/green/pin association than distance to any part of the hole line, but every result remains a candidate until checked against imagery or trusted course references."
+    },
+    {
+      "hole_ref": "2",
+      "hole_osm_id": 1337838560,
+      "line_start": [
+        -97.6866868,
+        26.1493487
+      ],
+      "line_end": [
+        -97.6876692,
+        26.1485247
+      ],
+      "line_direction": {
+        "selected": "forward",
+        "forward_score_m": 0.0,
+        "reverse_score_m": 60.5,
+        "basis": "nearest pin endpoint"
+      },
+      "endpoint_marker_candidates": {
+        "tee": {
+          "role_test": "tee_end_candidate",
+          "strong_endpoint_candidates": [],
+          "nearest_candidates": [],
+          "status": "not_found_with_endpoint_rule"
+        },
+        "green": {
+          "role_test": "green_end_candidate",
+          "strong_endpoint_candidates": [],
+          "nearest_candidates": [],
+          "status": "not_found_with_endpoint_rule"
+        },
+        "pin": {
+          "role_test": "green_end_pin_candidate",
+          "strong_endpoint_candidates": [
+            {
+              "osm_type": "node",
+              "osm_id": 12374869538,
+              "distance_to_start_m": 134.2,
+              "distance_to_end_m": 0.0,
+              "tags": {}
+            }
+          ],
+          "nearest_candidates": [
+            {
+              "osm_type": "node",
+              "osm_id": 12374869538,
+              "distance_to_start_m": 134.2,
+              "distance_to_end_m": 0.0,
+              "tags": {}
+            },
+            {
+              "osm_type": "node",
+              "osm_id": 12374869535,
+              "distance_to_start_m": 60.5,
+              "distance_to_end_m": 184.6,
+              "tags": {}
+            },
+            {
+              "osm_type": "node",
+              "osm_id": 12374869553,
+              "distance_to_start_m": 216.6,
+              "distance_to_end_m": 92.3,
+              "tags": {}
+            },
+            {
+              "osm_type": "node",
+              "osm_id": 12374869551,
+              "distance_to_start_m": 107.3,
+              "distance_to_end_m": 169.0,
+              "tags": {}
+            },
+            {
+              "osm_type": "node",
+              "osm_id": 12374869540,
+              "distance_to_start_m": 273.4,
+              "distance_to_end_m": 140.5,
+              "tags": {}
+            }
+          ],
+          "status": "candidate_only"
+        }
+      },
+      "corridor_feature_candidates": [],
+      "interpretation": "Endpoint proximity is stronger evidence for tee/green/pin association than distance to any part of the hole line, but every result remains a candidate until checked against imagery or trusted course references."
+    },
+    {
+      "hole_ref": "3",
+      "hole_osm_id": 1337838561,
+      "line_start": [
+        -97.6877787,
+        26.1482067
+      ],
+      "line_end": [
+        -97.6884905,
+        26.1474983
+      ],
+      "line_direction": {
+        "selected": "forward",
+        "forward_score_m": 0.0,
+        "reverse_score_m": 37.0,
+        "basis": "nearest pin endpoint"
+      },
+      "endpoint_marker_candidates": {
+        "tee": {
+          "role_test": "tee_end_candidate",
+          "strong_endpoint_candidates": [],
+          "nearest_candidates": [],
+          "status": "not_found_with_endpoint_rule"
+        },
+        "green": {
+          "role_test": "green_end_candidate",
+          "strong_endpoint_candidates": [],
+          "nearest_candidates": [],
+          "status": "not_found_with_endpoint_rule"
+        },
+        "pin": {
+          "role_test": "green_end_pin_candidate",
+          "strong_endpoint_candidates": [
+            {
+              "osm_type": "node",
+              "osm_id": 12374869540,
+              "distance_to_start_m": 106.1,
+              "distance_to_end_m": 0.0,
+              "tags": {}
+            }
+          ],
+          "nearest_candidates": [
+            {
+              "osm_type": "node",
+              "osm_id": 12374869540,
+              "distance_to_start_m": 106.1,
+              "distance_to_end_m": 0.0,
+              "tags": {}
+            },
+            {
+              "osm_type": "node",
+              "osm_id": 12374869538,
+              "distance_to_start_m": 37.0,
+              "distance_to_end_m": 140.5,
+              "tags": {}
+            },
+            {
+              "osm_type": "node",
+              "osm_id": 12374869553,
+              "distance_to_start_m": 83.2,
+              "distance_to_end_m": 100.8,
+              "tags": {}
+            },
+            {
+              "osm_type": "node",
+              "osm_id": 12374869546,
+              "distance_to_start_m": 186.8,
+              "distance_to_end_m": 88.6,
+              "tags": {}
+            },
+            {
+              "osm_type": "node",
+              "osm_id": 12374869542,
+              "distance_to_start_m": 245.7,
+              "distance_to_end_m": 140.0,
+              "tags": {}
+            }
+          ],
+          "status": "candidate_only"
+        }
+      },
+      "corridor_feature_candidates": [],
+      "interpretation": "Endpoint proximity is stronger evidence for tee/green/pin association than distance to any part of the hole line, but every result remains a candidate until checked against imagery or trusted course references."
+    },
+    {
+      "hole_ref": "4",
+      "hole_osm_id": 1337838562,
+      "line_start": [
+        -97.6886483,
+        26.1470791
+      ],
+      "line_end": [
+        -97.6893118,
+        26.1464777
+      ],
+      "line_direction": {
+        "selected": "forward",
+        "forward_score_m": 0.0,
+        "reverse_score_m": 49.2,
+        "basis": "nearest pin endpoint"
+      },
+      "endpoint_marker_candidates": {
+        "tee": {
+          "role_test": "tee_end_candidate",
+          "strong_endpoint_candidates": [],
+          "nearest_candidates": [],
+          "status": "not_found_with_endpoint_rule"
+        },
+        "green": {
+          "role_test": "green_end_candidate",
+          "strong_endpoint_candidates": [],
+          "nearest_candidates": [],
+          "status": "not_found_with_endpoint_rule"
+        },
+        "pin": {
+          "role_test": "green_end_pin_candidate",
+          "strong_endpoint_candidates": [
+            {
+              "osm_type": "node",
+              "osm_id": 12374869542,
+              "distance_to_start_m": 94.1,
+              "distance_to_end_m": 0.0,
+              "tags": {}
+            }
+          ],
+          "nearest_candidates": [
+            {
+              "osm_type": "node",
+              "osm_id": 12374869542,
+              "distance_to_start_m": 94.1,
+              "distance_to_end_m": 0.0,
+              "tags": {}
+            },
+            {
+              "osm_type": "node",
+              "osm_id": 12374869540,
+              "distance_to_start_m": 49.2,
+              "distance_to_end_m": 140.0,
+              "tags": {}
+            },
+            {
+              "osm_type": "node",
+              "osm_id": 12374869546,
+              "distance_to_start_m": 73.5,
+              "distance_to_end_m": 90.3,
+              "tags": {}
+            },
+            {
+              "osm_type": "node",
+              "osm_id": 12374869553,
+              "distance_to_start_m": 147.2,
+              "distance_to_end_m": 225.9,
+              "tags": {}
+            },
+            {
+              "osm_type": "node",
+              "osm_id": 12374869544,
+              "distance_to_start_m": 274.8,
+              "distance_to_end_m": 180.7,
+              "tags": {}
+            }
+          ],
+          "status": "candidate_only"
+        }
+      },
+      "corridor_feature_candidates": [],
+      "interpretation": "Endpoint proximity is stronger evidence for tee/green/pin association than distance to any part of the hole line, but every result remains a candidate until checked against imagery or trusted course references."
+    },
+    {
+      "hole_ref": "5",
+      "hole_osm_id": 1337838563,
+      "line_start": [
+        -97.689423,
+        26.1461816
+      ],
+      "line_end": [
+        -97.6906298,
+        26.1453638
+      ],
+      "line_direction": {
+        "selected": "forward",
+        "forward_score_m": 0.0,
+        "reverse_score_m": 34.7,
+        "basis": "nearest pin endpoint"
+      },
+      "endpoint_marker_candidates": {
+        "tee": {
+          "role_test": "tee_end_candidate",
+          "strong_endpoint_candidates": [],
+          "nearest_candidates": [],
+          "status": "not_found_with_endpoint_rule"
+        },
+        "green": {
+          "role_test": "green_end_candidate",
+          "strong_endpoint_candidates": [],
+          "nearest_candidates": [],
+          "status": "not_found_with_endpoint_rule"
+        },
+        "pin": {
+          "role_test": "green_end_pin_candidate",
+          "strong_endpoint_candidates": [
+            {
+              "osm_type": "node",
+              "osm_id": 12374869544,
+              "distance_to_start_m": 150.9,
+              "distance_to_end_m": 0.0,
+              "tags": {}
+            }
+          ],
+          "nearest_candidates": [
+            {
+              "osm_type": "node",
+              "osm_id": 12374869544,
+              "distance_to_start_m": 150.9,
+              "distance_to_end_m": 0.0,
+              "tags": {}
+            },
+            {
+              "osm_type": "node",
+              "osm_id": 12374869542,
+              "distance_to_start_m": 34.7,
+              "distance_to_end_m": 180.7,
+              "tags": {}
+            },
+            {
+              "osm_type": "node",
+              "osm_id": 12374869546,
+              "distance_to_start_m": 123.4,
+              "distance_to_end_m": 249.5,
+              "tags": {}
+            },
+            {
+              "osm_type": "node",
+              "osm_id": 12374869540,
+              "distance_to_start_m": 173.5,
+              "distance_to_end_m": 319.3,
+              "tags": {}
+            },
+            {
+              "osm_type": "node",
+              "osm_id": 12374869553,
+              "distance_to_start_m": 260.7,
+              "distance_to_end_m": 394.7,
+              "tags": {}
+            }
+          ],
+          "status": "candidate_only"
+        }
+      },
+      "corridor_feature_candidates": [],
+      "interpretation": "Endpoint proximity is stronger evidence for tee/green/pin association than distance to any part of the hole line, but every result remains a candidate until checked against imagery or trusted course references."
+    },
+    {
+      "hole_ref": "6",
+      "hole_osm_id": 1337838564,
+      "line_start": [
+        -97.690475,
+        26.145598
+      ],
+      "line_end": [
+        -97.6893466,
+        26.1472894
+      ],
+      "line_direction": {
+        "selected": "forward",
+        "forward_score_m": 0.0,
+        "reverse_score_m": 30.3,
+        "basis": "nearest pin endpoint"
+      },
+      "endpoint_marker_candidates": {
+        "tee": {
+          "role_test": "tee_end_candidate",
+          "strong_endpoint_candidates": [],
+          "nearest_candidates": [],
+          "status": "not_found_with_endpoint_rule"
+        },
+        "green": {
+          "role_test": "green_end_candidate",
+          "strong_endpoint_candidates": [],
+          "nearest_candidates": [],
+          "status": "not_found_with_endpoint_rule"
+        },
+        "pin": {
+          "role_test": "green_end_pin_candidate",
+          "strong_endpoint_candidates": [
+            {
+              "osm_type": "node",
+              "osm_id": 12374869546,
+              "distance_to_start_m": 219.2,
+              "distance_to_end_m": 0.0,
+              "tags": {}
+            }
+          ],
+          "nearest_candidates": [
+            {
+              "osm_type": "node",
+              "osm_id": 12374869546,
+              "distance_to_start_m": 219.2,
+              "distance_to_end_m": 0.0,
+              "tags": {}
+            },
+            {
+              "osm_type": "node",
+              "osm_id": 12374869544,
+              "distance_to_start_m": 30.3,
+              "distance_to_end_m": 249.5,
+              "tags": {}
+            },
+            {
+              "osm_type": "node",
+              "osm_id": 12374869540,
+              "distance_to_start_m": 289.6,
+              "distance_to_end_m": 88.6,
+              "tags": {}
+            },
+            {
+              "osm_type": "node",
+              "osm_id": 12374869542,
+              "distance_to_start_m": 151.8,
+              "distance_to_end_m": 90.3,
+              "tags": {}
+            },
+            {
+              "osm_type": "node",
+              "osm_id": 12374869553,
+              "distance_to_start_m": 364.5,
+              "distance_to_end_m": 145.2,
+              "tags": {}
+            }
+          ],
+          "status": "candidate_only"
+        }
+      },
+      "corridor_feature_candidates": [],
+      "interpretation": "Endpoint proximity is stronger evidence for tee/green/pin association than distance to any part of the hole line, but every result remains a candidate until checked against imagery or trusted course references."
+    },
+    {
+      "hole_ref": "9",
+      "hole_osm_id": 1337838565,
+      "line_start": [
+        -97.686953,
+        26.1498784
+      ],
+      "line_end": [
+        -97.6869691,
+        26.1508382
+      ],
+      "line_direction": {
+        "selected": "forward",
+        "forward_score_m": 0.0,
+        "reverse_score_m": 33.7,
+        "basis": "nearest pin endpoint"
+      },
+      "endpoint_marker_candidates": {
+        "tee": {
+          "role_test": "tee_end_candidate",
+          "strong_endpoint_candidates": [],
+          "nearest_candidates": [],
+          "status": "not_found_with_endpoint_rule"
+        },
+        "green": {
+          "role_test": "green_end_candidate",
+          "strong_endpoint_candidates": [],
+          "nearest_candidates": [],
+          "status": "not_found_with_endpoint_rule"
+        },
+        "pin": {
+          "role_test": "green_end_pin_candidate",
+          "strong_endpoint_candidates": [
+            {
+              "osm_type": "node",
+              "osm_id": 12374869548,
+              "distance_to_start_m": 106.7,
+              "distance_to_end_m": 0.0,
+              "tags": {}
+            }
+          ],
+          "nearest_candidates": [
+            {
+              "osm_type": "node",
+              "osm_id": 12374869548,
+              "distance_to_start_m": 106.7,
+              "distance_to_end_m": 0.0,
+              "tags": {}
+            },
+            {
+              "osm_type": "node",
+              "osm_id": 12374869535,
+              "distance_to_start_m": 33.7,
+              "distance_to_end_m": 111.3,
+              "tags": {}
+            },
+            {
+              "osm_type": "node",
+              "osm_id": 12374869551,
+              "distance_to_start_m": 52.1,
+              "distance_to_end_m": 101.5,
+              "tags": {}
+            },
+            {
+              "osm_type": "node",
+              "osm_id": 12374869538,
+              "distance_to_start_m": 166.6,
+              "distance_to_end_m": 266.6,
+              "tags": {}
+            },
+            {
+              "osm_type": "node",
+              "osm_id": 12374869553,
+              "distance_to_start_m": 231.2,
+              "distance_to_end_m": 315.2,
+              "tags": {}
+            }
+          ],
+          "status": "candidate_only"
+        }
+      },
+      "corridor_feature_candidates": [],
+      "interpretation": "Endpoint proximity is stronger evidence for tee/green/pin association than distance to any part of the hole line, but every result remains a candidate until checked against imagery or trusted course references."
+    },
+    {
+      "hole_ref": null,
+      "hole_osm_id": 1337838566,
+      "line_start": [
+        -97.6886117,
+        26.1486323
+      ],
+      "line_end": [
+        -97.6874458,
+        26.1500316
+      ],
+      "line_direction": {
+        "selected": "forward",
+        "forward_score_m": 0.0,
+        "reverse_score_m": 25.8,
+        "basis": "nearest pin endpoint"
+      },
+      "endpoint_marker_candidates": {
+        "tee": {
+          "role_test": "tee_end_candidate",
+          "strong_endpoint_candidates": [],
+          "nearest_candidates": [],
+          "status": "not_found_with_endpoint_rule"
+        },
+        "green": {
+          "role_test": "green_end_candidate",
+          "strong_endpoint_candidates": [],
+          "nearest_candidates": [],
+          "status": "not_found_with_endpoint_rule"
+        },
+        "pin": {
+          "role_test": "green_end_pin_candidate",
+          "strong_endpoint_candidates": [
+            {
+              "osm_type": "node",
+              "osm_id": 12374869551,
+              "distance_to_start_m": 194.3,
+              "distance_to_end_m": 0.0,
+              "tags": {}
+            }
+          ],
+          "nearest_candidates": [
+            {
+              "osm_type": "node",
+              "osm_id": 12374869551,
+              "distance_to_start_m": 194.3,
+              "distance_to_end_m": 0.0,
+              "tags": {}
+            },
+            {
+              "osm_type": "node",
+              "osm_id": 12374869553,
+              "distance_to_start_m": 25.8,
+              "distance_to_end_m": 213.9,
+              "tags": {}
+            },
+            {
+              "osm_type": "node",
+              "osm_id": 12374869535,
+              "distance_to_start_m": 243.3,
+              "distance_to_end_m": 84.4,
+              "tags": {}
+            },
+            {
+              "osm_type": "node",
+              "osm_id": 12374869538,
+              "distance_to_start_m": 94.8,
+              "distance_to_end_m": 169.0,
+              "tags": {}
+            },
+            {
+              "osm_type": "node",
+              "osm_id": 12374869548,
+              "distance_to_start_m": 295.0,
+              "distance_to_end_m": 101.5,
+              "tags": {}
+            }
+          ],
+          "status": "candidate_only"
+        }
+      },
+      "corridor_feature_candidates": [],
+      "interpretation": "Endpoint proximity is stronger evidence for tee/green/pin association than distance to any part of the hole line, but every result remains a candidate until checked against imagery or trusted course references."
+    },
+    {
+      "hole_ref": "7",
+      "hole_osm_id": 1337838567,
+      "line_start": [
+        -97.6891996,
+        26.1475558
+      ],
+      "line_end": [
+        -97.6885832,
+        26.1484014
+      ],
+      "line_direction": {
+        "selected": "forward",
+        "forward_score_m": 0.0,
+        "reverse_score_m": 33.1,
+        "basis": "nearest pin endpoint"
+      },
+      "endpoint_marker_candidates": {
+        "tee": {
+          "role_test": "tee_end_candidate",
+          "strong_endpoint_candidates": [],
+          "nearest_candidates": [],
+          "status": "not_found_with_endpoint_rule"
+        },
+        "green": {
+          "role_test": "green_end_candidate",
+          "strong_endpoint_candidates": [],
+          "nearest_candidates": [],
+          "status": "not_found_with_endpoint_rule"
+        },
+        "pin": {
+          "role_test": "green_end_pin_candidate",
+          "strong_endpoint_candidates": [
+            {
+              "osm_type": "node",
+              "osm_id": 12374869553,
+              "distance_to_start_m": 112.4,
+              "distance_to_end_m": 0.0,
+              "tags": {}
+            }
+          ],
+          "nearest_candidates": [
+            {
+              "osm_type": "node",
+              "osm_id": 12374869553,
+              "distance_to_start_m": 112.4,
+              "distance_to_end_m": 0.0,
+              "tags": {}
+            },
+            {
+              "osm_type": "node",
+              "osm_id": 12374869546,
+              "distance_to_start_m": 33.1,
+              "distance_to_end_m": 145.2,
+              "tags": {}
+            },
+            {
+              "osm_type": "node",
+              "osm_id": 12374869540,
+              "distance_to_start_m": 71.1,
+              "distance_to_end_m": 100.8,
+              "tags": {}
+            },
+            {
+              "osm_type": "node",
+              "osm_id": 12374869538,
+              "distance_to_start_m": 186.9,
+              "distance_to_end_m": 92.3,
+              "tags": {}
+            },
+            {
+              "osm_type": "node",
+              "osm_id": 12374869542,
+              "distance_to_start_m": 120.4,
+              "distance_to_end_m": 225.9,
+              "tags": {}
+            }
+          ],
+          "status": "candidate_only"
+        }
+      },
+      "corridor_feature_candidates": [],
+      "interpretation": "Endpoint proximity is stronger evidence for tee/green/pin association than distance to any part of the hole line, but every result remains a candidate until checked against imagery or trusted course references."
+    }
+  ],
+  "limitations": [
+    "Line orientation is inferred from nearby tee/green markers or pins; when evidence is ambiguous, no strong endpoint candidates are emitted.",
+    "Endpoint proximity does not prove feature membership.",
+    "Multiple nearby markers may belong to neighboring holes.",
+    "Corridor features remain unassigned without stronger topology or imagery evidence."
+  ]
+}
