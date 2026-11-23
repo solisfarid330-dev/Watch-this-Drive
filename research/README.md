@@ -14,7 +14,8 @@ exceptions are embedded in the extractor.
 
 ## Run
 
-Requires Python 3.10+; standard library only:
+The course-data extractor requires Python 3.10+ and the standard library only.
+The optional aerial-image research scripts use Pillow, NumPy, and scikit-image.
 
 \`\`\`bash
 python3 research/course_data_audit.py \
@@ -121,6 +122,12 @@ Key findings:
   but its Hole 2 F1 falls to 0.574 from 0.734 on Hole 1, and corridor-width
   changes trade recall for precision. The resulting boundaries remain broad/noisy
   and cannot be promoted as accepted geometry.
+- A SLIC superpixel experiment with a fairway-seeded connected-component
+  filter produces candidate GeoJSON for South Padre Holes 1 and 2. It retains
+  83.7% and 87.4% of mapped fairway seed pixels while retaining 0.0% and 1.1%
+  of mapped rough seed pixels, respectively. These are OSM-seed agreement
+  diagnostics, not independent accuracy scores. The vector outputs are marked
+  `unverified_candidate` and are not accepted production geometry.
 - Cottonwood demonstrates sparse source coverage: its nine hole lines and nine
   pins are mapped, but no fairway/tee/green/bunker polygons are present. The
   extractor reports that absence rather than inventing those features.
@@ -133,6 +140,6 @@ Do not port the reconstruction engine to Android yet. The research prototype
 proves generic discovery, relation serialization, imagery retrieval, and a
 repeatable visual/spectral experiment. It does **not** yet prove generic
 fairway reconstruction, reliable hole-feature assignment, accuracy across
-many holes, or on-device performance. The next research stage is to improve spatially constrained region extraction
-and validate it against independently traced reference boundaries before
-making a go/no-go decision on the reconstruction approach.
+many holes, or on-device performance. The next research stage is to validate these candidate polygons against
+independently traced reference boundaries and test a seedless fallback for
+courses with no mapped fairway polygons before making a go/no-go decision.
