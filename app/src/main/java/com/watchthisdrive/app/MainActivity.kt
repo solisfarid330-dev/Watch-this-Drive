@@ -832,11 +832,8 @@ private fun NearbyCoursesScreen(
         }
     }
 
-    LaunchedEffect(location) {
-        if (location != null && !hasSearched) {
-            searchNearby()
-        }
-    }
+    // Do not start a nearby search merely because GPS becomes available.
+    // Search is user initiated from the explicit Search / Use My Location controls.
 
     val groupedCourses = remember(courses) {
         groupCourseCandidates(courses)
