@@ -117,72 +117,68 @@ private fun WatchThisDriveApp() {
     }
     var mapTarget by remember { mutableStateOf<Location?>(null) }
     var locationMessage by remember { mutableStateOf("Location not checked yet") }
+    var locationError by remember { mutableStateOf<String?>(null) }
 
     val fused = remember { LocationServices.getFusedLocationProviderClient(context) }
 
-    val permissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestMultiplePermissions()
-    ) { result ->
-        val granted =
-            result[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
-            result[Manifest.permission.ACCESS_COARSE_LOCATION] == true
-
-        if (granted) {
-            hasLocationPermission = true
-            try {
-                fused.lastLocation.addOnSuccessListener { found ->
-                    location = found
-                    locationMessage = if (found != null) {
-                        "GPS fix received"
-                    } else {
-                        "Waiting for a GPS fix — try outdoors"
-                    }
+    fun requestCurrentLocation() {
+        if (!hasLocationPermission) return
+        locationMessage = "Getting a fresh location…"
+        locationError = null
+        try {
+            val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 1_000L).setMinUpdateIntervalMillis(500L).setMaxUpdates(1).setWaitForAccurateLocation(false).build()
+            val callback = object : LocationCallback() {
+                override fun onLocationResult(result: LocationResult) {
+                    val found = result.lastLocation
+                    if (found != null) {
+                        location = found
+                        locationMessage = "Location fix received · accuracy " + found.accuracy.toInt() + " m"
+                        locationError = null
+                    } else locationMessage = "No GPS fix received yet. Check location services and try outdoors."
+                    fused.removeLocationUpdates(this)
                 }
-            } catch (_: SecurityException) {
-                locationMessage = "Location permission unavailable"
             }
+            fused.requestLocationUpdates(request, callback, Looper.getMainLooper()).addOnFailureListener { error ->
+                locationMessage = "Unable to get location"
+                locationError = error.localizedMessage ?: "Check app location permission and device location services."
+            }
+        } catch (_: SecurityException) {
+            locationMessage = "Location permission unavailable"
+            locationError = "Allow precise location for Watch this Drive in Android app settings."
+        } catch (error: Exception) {
+            locationMessage = "Unable to get location"
+            locationError = error.localizedMessage ?: "Check device location services."
+        }
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
+        val fine = result[Manifest.permission.ACCESS_FINE_LOCATION] == true
+        val coarse = result[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        hasLocationPermission = fine || coarse
+        if (fine) requestCurrentLocation()
+        else if (coarse) {
+            locationMessage = "Approximate location only"
+            locationError = "Android granted approximate location. Enable precise location for accurate golf distances."
+            requestCurrentLocation()
         } else {
-            hasLocationPermission = false
             locationMessage = "Location permission was not granted"
+            locationError = "Allow location access in Android app settings to calculate distances."
         }
     }
 
     fun locate() {
-        val fine = ContextCompat.checkSelfPermission(
-            context, Manifest.permission.ACCESS_FINE_LOCATION
-        ) == PackageManager.PERMISSION_GRANTED
-
-        val coarse = ContextCompat.checkSelfPermission(
-            context, Manifest.permission.ACCESS_COARSE_LOCATION
-        ) == PackageManager.PERMISSION_GRANTED
-
-        if (!fine && !coarse) {
-            permissionLauncher.launch(
-                arrayOf(
-                    Manifest.permission.ACCESS_FINE_LOCATION,
-                    Manifest.permission.ACCESS_COARSE_LOCATION
-                )
-            )
-        } else {
+        val fine = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        val coarse = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        if (!fine && !coarse) permissionLauncher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
+        else {
             hasLocationPermission = true
-            try {
-                fused.lastLocation.addOnSuccessListener { found ->
-                    location = found
-                    locationMessage = if (found != null) {
-                        "GPS fix received"
-                    } else {
-                        "No recent location yet — try outdoors"
-                    }
-                }
-            } catch (_: SecurityException) {
-                locationMessage = "Location permission unavailable"
-            }
+            if (!fine) { locationMessage = "Approximate location only"; locationError = "Enable precise location in Android app permissions for golf-distance accuracy." }
+            requestCurrentLocation()
         }
     }
-
     DisposableEffect(hasLocationPermission, selected, activeCourse?.id) {
         if (hasLocationPermission && selected == Tab.PLAY && activeCourse != null) {
-            val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 3_000L)
+            val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 2_000L)
                 .setMinUpdateIntervalMillis(1_500L)
                 .setWaitForAccurateLocation(false)
                 .build()
@@ -190,7 +186,8 @@ private fun WatchThisDriveApp() {
                 override fun onLocationResult(result: LocationResult) {
                     result.lastLocation?.let {
                         location = it
-                        locationMessage = "Live GPS tracking active"
+                        locationMessage = "Live GPS tracking · accuracy " + it.accuracy.toInt() + " m"
+                        locationError = null
                     }
                 }
             }
