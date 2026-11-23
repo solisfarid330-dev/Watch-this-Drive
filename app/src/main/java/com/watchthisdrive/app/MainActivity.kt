@@ -31,6 +31,7 @@ import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.Priority
+import com.google.android.gms.tasks.CancellationTokenSource
 import android.os.Looper
 import com.watchthisdrive.app.data.CourseDiscovery
 import com.watchthisdrive.app.data.CourseGeometry
@@ -125,23 +126,23 @@ private fun WatchThisDriveApp() {
         locationMessage = "Getting a fresh location…"
         locationError = null
         try {
-            val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 1_000L).setMinUpdateIntervalMillis(500L).setMaxUpdates(1).setWaitForAccurateLocation(false).build()
-            val callback = object : LocationCallback() {
-                override fun onLocationResult(result: LocationResult) {
-                    val found = result.lastLocation
+            val tokenSource = CancellationTokenSource()
+            fused.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, tokenSource.token)
+                .addOnSuccessListener { found ->
                     if (found != null) {
                         location = found
                         mapTarget = found
                         locationMessage = "Location fix received · accuracy " + found.accuracy.toInt() + " m"
                         locationError = null
-                    } else locationMessage = "No GPS fix received yet. Check location services and try outdoors."
-                    fused.removeLocationUpdates(this)
+                    } else {
+                        locationMessage = "No fresh GPS fix was available. Check device Location is on and try outdoors."
+                        locationError = "If Location is already enabled, allow precise location for this app and try again."
+                    }
                 }
-            }
-            fused.requestLocationUpdates(request, callback, Looper.getMainLooper()).addOnFailureListener { error ->
-                locationMessage = "Unable to get location"
-                locationError = error.localizedMessage ?: "Check app location permission and device location services."
-            }
+                .addOnFailureListener { error ->
+                    locationMessage = "Unable to get location"
+                    locationError = error.localizedMessage ?: "Check app location permission and device location services."
+                }
         } catch (_: SecurityException) {
             locationMessage = "Location permission unavailable"
             locationError = "Allow precise location for Watch this Drive in Android app settings."
@@ -150,7 +151,6 @@ private fun WatchThisDriveApp() {
             locationError = error.localizedMessage ?: "Check device location services."
         }
     }
-
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
         val fine = result[Manifest.permission.ACCESS_FINE_LOCATION] == true
         val coarse = result[Manifest.permission.ACCESS_COARSE_LOCATION] == true
