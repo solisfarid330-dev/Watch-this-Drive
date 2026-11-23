@@ -10,6 +10,7 @@ from pathlib import Path
 import numpy as np
 from PIL import Image,ImageDraw
 from skimage.segmentation import slic
+from skimage.measure import label
 
 R=6378137.0
 CLASSES=("fairway","rough","green","bunker","water_hazard","tee")
@@ -110,8 +111,18 @@ def main():
     corridor_fraction=fraction(corridor_mask)
     valid_frac=fraction((red+nir)>0)
     selected=(scores>0)&(corridor_fraction>0.5)&(valid_frac>0.5)&(excluded_frac<0.1)
-    candidate=selected[labels]
-    # Smooth the superpixel result only lightly; do not grow it beyond the corridor.
+    candidate_raw=selected[labels]&corridor_mask&~excluded
+    component_labels=label(candidate_raw,connectivity=2)
+    component_count=int(component_labels.max())
+    seed_component_ids=np.unique(component_labels[masks["fairway"]&candidate_raw])
+    seed_component_ids=seed_component_ids[seed_component_ids>0]
+    if len(seed_component_ids):
+        candidate=np.isin(component_labels,seed_component_ids)
+        component_filter_applied=True
+    else:
+        candidate=candidate_raw.copy()
+        component_filter_applied=False
+    # Smooth the retained seeded components only lightly; do not grow beyond corridor.
     binary=Image.fromarray((candidate.astype(np.uint8)*255),"L")
     from PIL import ImageFilter
     smooth=(binary.filter(ImageFilter.MedianFilter(3)).filter(ImageFilter.MaxFilter(5)).filter(ImageFilter.MinFilter(5)))
@@ -131,7 +142,7 @@ def main():
         "seed_superpixels":{"fairway":int(((y==1)&train).sum()+((y==1)&test).sum()),"rough":int(((y==0)&train).sum()+((y==0)&test).sum()),"fairway_train":int((train&(y==1)).sum()),"rough_train":int((train&(y==0)).sum()),"fairway_test":int((test&(y==1)).sum()),"rough_test":int((test&(y==0)).sum())},
         "spatial_block_holdout":{"fairway_true_positive_rate":round(tpr,4),"rough_false_positive_rate":round(fpr,4),"warning":"Superpixel blocks reduce pixel leakage, but weak OSM labels are not independent ground truth."},
         "target_seed_candidate_rates":{"fairway":rate(masks["fairway"]&corridor_mask),"rough":rate(masks["rough"]&corridor_mask)},
-        "candidate_pixels":int(candidate.sum()),"corridor_pixels":int(corridor_mask.sum()),"candidate_fraction_of_corridor":round(float(candidate.sum()/max(corridor_mask.sum(),1)),4),
+        "candidate_pixels_before_component_filter":int(candidate_raw.sum()),"component_count_before_filter":component_count,"seeded_components_retained":int(len(seed_component_ids)),"component_seed_filter_applied":component_filter_applied,"candidate_pixels":int(candidate.sum()),"corridor_pixels":int(corridor_mask.sum()),"candidate_fraction_of_corridor":round(float(candidate.sum()/max(corridor_mask.sum(),1)),4),
         "limitations":["OSM polygons are weak labels and may be incomplete or offset.","SLIC segmentation is a conventional CV experiment, not a trained neural model.","Output remains a candidate mask; no independently traced fairway reference is available.","No feature is assigned to a hole by proximity alone."],
         "files":[f"hole-{a.hole_ref}-superpixel-fairway-candidate.png",f"hole-{a.hole_ref}-superpixel-fairway-candidate.jpg","superpixel-report.json"]
     }
