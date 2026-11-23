@@ -435,8 +435,6 @@ internal object OfflineCourseCatalog {
     private fun android.database.Cursor.getIntOrNull(index: Int): Int? =
         if (isNull(index)) null else getInt(index)
 
-    private fun stableCatalogId(id: String): Long {
-        val key = "opengolf:$id"
-        return -((key.hashCode().toLong() and 0x7fffffffL) + 1L)
-    }
+    private fun stableCatalogId(id: String): Long =
+        stableCourseRecordId("opengolf:$id")
 }
