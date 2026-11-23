@@ -945,7 +945,9 @@ internal object ZommaGeoJsonParser {
         "wood", "woodland", "forest", "trees" -> "woodland"
         "tree" -> "tree"
         "path", "footway", "cart_path", "cartpath", "golf_cart_path" -> "path"
-        "water", "natural_water", "pond", "lake", "reservoir", "riverbank", "river_bank" -> "water"
+        "water", "natural_water", "pond", "lake", "reservoir", "river", "stream",
+        "canal", "riverbank", "river_bank", "waterway_river", "waterway_stream",
+        "waterway_canal" -> "water"
         "wood", "natural_wood", "forest", "landuse_forest", "woodland" -> "woodland"
         "course", "golf_course", "leisure_golf_course",
         "course_boundary", "boundary", "outline" -> "course_boundary"
