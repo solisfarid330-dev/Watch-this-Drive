@@ -85,22 +85,28 @@ object CourseCatalogSources {
     fun searchByText(context: Context, query: String): List<GolfCourse> {
         val normalizedQuery = query.trim()
         if (normalizedQuery.isBlank()) return emptyList()
+        val offline = runCatching {
+            OfflineCourseCatalog.searchByName(context.applicationContext, normalizedQuery)
+        }.getOrDefault(emptyList())
         val cacheFile = File(
             context.filesDir,
             "course_query_${normalizedQuery.lowercase(Locale.ROOT).hashCode()}.json"
         )
         val cached = readCache(cacheFile)
         if (cached != null && System.currentTimeMillis() - cacheFile.lastModified() < CACHE_MAX_AGE_MS) {
-            return cached
+            return mergeCatalogs(offline + cached)
         }
         val results = linkedMapOf<String, GolfCourse>()
+        offline.forEach { course ->
+            course.openGolfId?.let { results["open:$it"] = course }
+        }
         runCatching { fetchOpenGolfSearch(normalizedQuery, null) }
             .onSuccess { list -> list.forEach { course -> course.openGolfId?.let { results["open:$it"] = course } } }
         runCatching { fetchTeeTimeSearch(normalizedQuery) }
             .onSuccess { list -> list.forEach { course -> course.teeTimeId?.let { results["tee:$it"] = course } } }
         val merged = mergeCatalogs(results.values.toList())
         if (merged.isNotEmpty()) writeCache(cacheFile, merged)
-        return merged.ifEmpty { cached.orEmpty() }
+        return mergeCatalogs(merged.ifEmpty { offline + cached.orEmpty() })
     }
 
     private fun fetchTeeTimeSearch(query: String): List<GolfCourse> {
