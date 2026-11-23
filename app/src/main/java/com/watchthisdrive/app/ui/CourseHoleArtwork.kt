@@ -82,10 +82,20 @@ fun CourseHoleArtworkPanel(
     var generatedImages by remember(course.elementType, course.id) { mutableStateOf<Map<Int, File>>(emptyMap()) }
     var generating by remember(course.elementType, course.id) { mutableStateOf(false) }
     var renderError by remember(course.elementType, course.id) { mutableStateOf<String?>(null) }
-    // Reconstruction is pure but non-trivial; do it once per geometry snapshot,
-    // not on every Compose recomposition (chip selection, loading, bitmap updates).
-    val reconstructedHoles = remember(geometry, course.scorecard) {
-        geometry?.let { HoleReconstructor.reconstruct(it) }.orEmpty().map { hole ->
+    // Hole reconstruction can be CPU-heavy on large OSM courses. Keep it
+    // off the main thread and share the result with the panel's render effect.
+    var reconstructedHoles by remember(course.elementType, course.id) {
+        mutableStateOf<List<ReconstructedHole>>(emptyList())
+    }
+    LaunchedEffect(geometry, course.scorecard) {
+        reconstructedHoles = emptyList()
+        generatedImages = emptyMap()
+        renderError = null
+        val geometrySnapshot = geometry ?: return@LaunchedEffect
+        val baseHoles = withContext(Dispatchers.Default) {
+            HoleReconstructor.reconstruct(geometrySnapshot)
+        }
+        reconstructedHoles = baseHoles.map { hole ->
             val catalogHole = course.scorecard.firstOrNull { it.number == hole.number }
             hole.copy(
                 par = hole.par ?: catalogHole?.par,
@@ -110,8 +120,8 @@ fun CourseHoleArtworkPanel(
             loading = false
         }
     }
-    LaunchedEffect(course.elementType, course.id, geometry) {
-        if (selected == null) {
+    LaunchedEffect(course.elementType, course.id, geometry, reconstructedHoles) {
+        if (selected == null || reconstructedHoles.none { it.number == selected }) {
             selected = artwork?.holes?.firstOrNull()?.number ?: reconstructedHoles.firstOrNull()?.number
         }
     }
@@ -119,7 +129,7 @@ fun CourseHoleArtworkPanel(
     // Render only the hole the golfer is viewing. Rendering an entire course at
     // panel-open time caused a long burst of CPU and bitmap allocation on phones.
     // The renderer's disk cache keeps revisited holes inexpensive.
-    LaunchedEffect(course.elementType, course.id, geometry, selected) {
+    LaunchedEffect(course.elementType, course.id, geometry, selected, reconstructedHoles) {
         val hole = reconstructedHoles.firstOrNull { it.number == selected }
         if (hole != null && selected !in generatedImages) {
             generating = true
