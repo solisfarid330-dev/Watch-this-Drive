@@ -33,6 +33,14 @@ jobs:
           MAPTILER_API_KEY: ${{ secrets.MAPTILER_API_KEY }}
         run: gradle --no-daemon testDebugUnitTest assembleDebug
 
+      - name: Verify offline course catalog is packaged
+        run: |
+          apk="app/build/outputs/apk/debug/app-debug.apk"
+          unzip -l "$apk" | grep -q "assets/opengolfapi-us.geojson.gz"
+          catalog_sha=$(unzip -p "$apk" assets/opengolfapi-us.geojson.gz | sha256sum | cut -d ' ' -f 1)
+          test "$catalog_sha" = "c3b3bd4b1b3894fe5b9a6f0e84df43472f55aaad2602faeb58ef56a709db1a39"
+          unzip -p "$apk" assets/COURSE_DATA_ATTRIBUTION.txt | grep -q "OpenGolfAPI"
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
