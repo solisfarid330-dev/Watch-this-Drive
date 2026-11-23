@@ -36,6 +36,31 @@ class CourseDataAuditTests(unittest.TestCase):
         self.assertEqual(report["features"][1]["relation_member_count"], 1)
         self.assertEqual(report["features_missing_direct_geometry"], {"bunker": 1})
 
+
+    def test_geojson_exports_direct_geometries_and_flags_relations(self):
+        payload = {"elements": [
+            {"type": "way", "id": 10, "tags": {"golf": "green"},
+             "geometry": [
+                 {"lat": 1, "lon": 2}, {"lat": 1, "lon": 3},
+                 {"lat": 2, "lon": 3}, {"lat": 1, "lon": 2}]},
+            {"type": "relation", "id": 11, "tags": {"golf": "fairway"},
+             "members": [{"type": "way", "ref": 12, "role": "outer",
+                          "geometry": [{"lat": 1, "lon": 2}]}]},
+        ]}
+        result = audit.to_geojson(payload)
+        self.assertEqual(result["type"], "FeatureCollection")
+        self.assertEqual(len(result["features"]), 1)
+        self.assertEqual(result["features"][0]["geometry"]["type"], "Polygon")
+        self.assertEqual(len(result["metadata"]["relations_omitted"]), 1)
+
+    def test_open_way_exports_as_linestring(self):
+        payload = {"elements": [
+            {"type": "way", "id": 20, "tags": {"golf": "hole"},
+             "geometry": [{"lat": 1, "lon": 2}, {"lat": 2, "lon": 3}]}
+        ]}
+        result = audit.to_geojson(payload)
+        self.assertEqual(result["features"][0]["geometry"]["type"], "LineString")
+
     def test_non_golf_elements_are_not_counted(self):
         report = audit.inventory({"elements": [
             {"type": "way", "id": 1, "tags": {"leisure": "golf_course"}}
