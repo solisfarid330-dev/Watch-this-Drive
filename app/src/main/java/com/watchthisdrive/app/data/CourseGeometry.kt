@@ -10,6 +10,7 @@ import java.net.URLEncoder
 import kotlin.concurrent.thread
 import kotlin.math.max
 import kotlin.math.min
+import java.util.concurrent.Executors
 
 data class GeoPoint(
     val latitude: Double,
@@ -52,6 +53,11 @@ object CourseGeometryLoader {
         "https://overpass-api.de/api/interpreter"
     )
 
+    // Avoid duplicate Overpass downloads when Play, Course Detail, and the map
+    // request the same course together. Bound concurrent course downloads.
+    private val executor = Executors.newFixedThreadPool(2)
+    private val inFlight = mutableMapOf<String, MutableList<(Result<CourseGeometry>) -> Unit>>()
+
     private data class Bounds(
         val south: Double,
         val west: Double,
@@ -78,9 +84,25 @@ object CourseGeometryLoader {
         course: GolfCourse,
         onResult: (Result<CourseGeometry>) -> Unit
     ) {
-        thread(name = "course-geometry-loader") {
+        val key = "${course.elementType.lowercase()}:${course.id}"
+        val shouldStart = synchronized(inFlight) {
+            val callbacks = inFlight[key]
+            if (callbacks != null) {
+                callbacks.add(onResult)
+                false
+            } else {
+                inFlight[key] = mutableListOf(onResult)
+                true
+            }
+        }
+        if (!shouldStart) return
+
+        executor.execute {
             val result = runCatching { loadBlocking(course) }
-            Handler(Looper.getMainLooper()).post { onResult(result) }
+            val callbacks = synchronized(inFlight) { inFlight.remove(key).orEmpty() }
+            Handler(Looper.getMainLooper()).post {
+                callbacks.forEach { callback -> runCatching { callback(result) } }
+            }
         }
     }
 
