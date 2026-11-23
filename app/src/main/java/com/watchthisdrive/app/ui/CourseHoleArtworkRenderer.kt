@@ -18,7 +18,7 @@ import kotlin.math.*
 
 /** Rich tee-bottom/green-top artwork, fitted to the complete reconstructed hole. */
 internal object CourseHoleArtworkRenderer {
-    private const val VERSION = 11
+    private const val VERSION = 12
     private const val WIDTH = 1200
     private const val HEIGHT = 1800
     private const val LEFT = 48.0
@@ -78,13 +78,19 @@ internal object CourseHoleArtworkRenderer {
         // river or woodland boundary must not zoom the playable hole into a sliver.
         // Keep framing focused around the tee-green axis; full feature paths are
         // still drawn at their real coordinates and naturally clipped by canvas.
-        val framing = projected.filter { it.x in -180.0..180.0 && it.y in -100.0..(length + 100.0) }
-        val minX = min(0.0, framing.minOfOrNull { it.x } ?: 0.0)
-        val maxX = max(0.0, framing.maxOfOrNull { it.x } ?: 0.0)
-        val minY = min(0.0, framing.minOfOrNull { it.y } ?: 0.0)
-        val maxY = max(length, framing.maxOfOrNull { it.y } ?: length)
-        val rangeX = (maxX - minX).coerceAtLeast(30.0)
-        val rangeY = (maxY - minY).coerceAtLeast(50.0)
+        // Use a deliberately tight tee-to-green corridor for the camera frame.
+        // Outlying mapped woodland, water and adjacent-hole features are clipped
+        // rather than shrinking the playable hole to fit unrelated geometry.
+        val longitudinalPadding = (length * 0.12).coerceIn(25.0, 55.0)
+        val framing = projected.filter {
+            it.x in -85.0..85.0 && it.y in -longitudinalPadding..(length + longitudinalPadding)
+        }
+        val minX = min(-40.0, framing.minOfOrNull { it.x } ?: -40.0)
+        val maxX = max(40.0, framing.maxOfOrNull { it.x } ?: 40.0)
+        val minY = min(-longitudinalPadding, framing.minOfOrNull { it.y } ?: -longitudinalPadding)
+        val maxY = max(length + longitudinalPadding, framing.maxOfOrNull { it.y } ?: (length + longitudinalPadding))
+        val rangeX = (maxX - minX).coerceAtLeast(80.0)
+        val rangeY = (maxY - minY).coerceAtLeast(80.0)
         val scale = min((RIGHT - LEFT) / rangeX, (BOTTOM - TOP) / rangeY) * 0.975
         val ox = (WIDTH - rangeX * scale) / 2.0 - minX * scale
         val oy = (TOP + BOTTOM - rangeY * scale) / 2.0 + maxY * scale
@@ -397,13 +403,19 @@ internal object CourseHoleArtworkRenderer {
             return XY(e * vx + n * vy, e * ux + n * uy)
         }
         val projected = geographic.map(::local)
-        val framing = projected.filter { it.x in -180.0..180.0 && it.y in -100.0..(length + 100.0) }
-        val minX = min(0.0, framing.minOfOrNull { it.x } ?: 0.0)
-        val maxX = max(0.0, framing.maxOfOrNull { it.x } ?: 0.0)
-        val minY = min(0.0, framing.minOfOrNull { it.y } ?: 0.0)
-        val maxY = max(length, framing.maxOfOrNull { it.y } ?: length)
-        val rangeX = (maxX - minX).coerceAtLeast(30.0)
-        val rangeY = (maxY - minY).coerceAtLeast(50.0)
+        // Use a deliberately tight tee-to-green corridor for the camera frame.
+        // Outlying mapped woodland, water and adjacent-hole features are clipped
+        // rather than shrinking the playable hole to fit unrelated geometry.
+        val longitudinalPadding = (length * 0.12).coerceIn(25.0, 55.0)
+        val framing = projected.filter {
+            it.x in -85.0..85.0 && it.y in -longitudinalPadding..(length + longitudinalPadding)
+        }
+        val minX = min(-40.0, framing.minOfOrNull { it.x } ?: -40.0)
+        val maxX = max(40.0, framing.maxOfOrNull { it.x } ?: 40.0)
+        val minY = min(-longitudinalPadding, framing.minOfOrNull { it.y } ?: -longitudinalPadding)
+        val maxY = max(length + longitudinalPadding, framing.maxOfOrNull { it.y } ?: (length + longitudinalPadding))
+        val rangeX = (maxX - minX).coerceAtLeast(80.0)
+        val rangeY = (maxY - minY).coerceAtLeast(80.0)
         val scale = min((RIGHT - LEFT) / rangeX, (BOTTOM - TOP) / rangeY) * 0.975
         val ox = (WIDTH - rangeX * scale) / 2.0 - minX * scale
         val oy = (TOP + BOTTOM - rangeY * scale) / 2.0 + maxY * scale
