@@ -116,6 +116,33 @@ class ZommaGeoJsonParserTest {
     }
 
     @Test
+    fun preservesEveryMultipolygonComponent() {
+        val json = """
+            {
+              "type": "FeatureCollection",
+              "features": [{
+                "type": "Feature",
+                "id": "split-water",
+                "properties": {"feature_type": "water", "hole": 6},
+                "geometry": {
+                  "type": "MultiPolygon",
+                  "coordinates": [
+                    [[[-97.0,32.0],[-96.999,32.0],[-96.999,32.001],[-97.0,32.0]]],
+                    [[[-96.998,32.0],[-96.997,32.0],[-96.997,32.001],[-96.998,32.0]]]
+                  ]
+                }
+              }]
+            }
+        """.trimIndent()
+
+        val parsed = ZommaGeoJsonParser.parse(json)
+        assertEquals(2, parsed.size)
+        assertTrue(parsed.all { it.featureType == "water" && it.holeNumber == "6" })
+        assertTrue(parsed.all { it.points.size == 4 })
+        assertTrue(parsed.map { it.points.first().longitude }.distinct().size == 2)
+    }
+
+    @Test
     fun ignoresUnknownAndInvalidFeaturesWithoutInventingGeometry() {
         val json = """
             {
