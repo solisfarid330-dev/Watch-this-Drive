@@ -360,6 +360,75 @@ internal object OfflineCourseCatalog {
         }
     }
 
+    fun searchByName(context: Context, query: String): List<GolfCourse> {
+        val term = query.trim()
+        if (term.length < 2) return emptyList()
+        val helper = CatalogDb(context.applicationContext)
+        return try {
+            if (!ensureImported(context.applicationContext, helper)) return emptyList()
+            val pattern = "%$term%"
+            val cursor = helper.readableDatabase.rawQuery(
+                """
+                SELECT id, name, latitude, longitude, country, state, city, course_type,
+                       holes, par, phone, website, address, postal_code, scorecard
+                FROM courses
+                WHERE country = 'US'
+                  AND (name LIKE ? OR city LIKE ? OR state LIKE ? OR address LIKE ?)
+                ORDER BY name
+                LIMIT 100
+                """.trimIndent(),
+                arrayOf(pattern, pattern, pattern, pattern)
+            )
+            cursor.use {
+                val results = mutableListOf<GolfCourse>()
+                while (it.moveToNext()) {
+                    val scorecard = parseStoredScorecard(it.getString(14))
+                    val id = it.getString(0)
+                    results += GolfCourse(
+                        id = stableCatalogId(id),
+                        elementType = "node",
+                        name = it.getString(1),
+                        latitude = it.getDouble(2),
+                        longitude = it.getDouble(3),
+                        distanceMeters = Float.MAX_VALUE,
+                        city = it.getStringOrNull(6),
+                        region = it.getStringOrNull(5),
+                        countryCode = it.getStringOrNull(4),
+                        address = it.getStringOrNull(12),
+                        postalCode = it.getStringOrNull(13),
+                        holes = it.getIntOrNull(8),
+                        par = it.getIntOrNull(9),
+                        courseType = it.getStringOrNull(7),
+                        website = it.getStringOrNull(11),
+                        phone = it.getStringOrNull(10),
+                        openGolfId = id,
+                        scorecard = scorecard,
+                        sourceNames = setOf("OpenGolfAPI offline dataset $DATASET_VERSION")
+                    )
+                }
+                results
+            }
+        } finally {
+            helper.close()
+        }
+    }
+
+    private fun parseStoredScorecard(raw: String): List<CourseHoleInfo> =
+        runCatching {
+            val array = org.json.JSONArray(raw)
+            (0 until array.length()).mapNotNull { index ->
+                val hole = array.optJSONObject(index) ?: return@mapNotNull null
+                val number = hole.optInt("hole", 0)
+                if (number !in 1..18) return@mapNotNull null
+                CourseHoleInfo(
+                    number = number,
+                    par = hole.optInt("par", 0).takeIf { it in 3..6 },
+                    handicap = hole.optInt("handicap_index", 0).takeIf { it in 1..18 },
+                    yardage = null
+                )
+            }
+        }.getOrDefault(emptyList())
+
     private fun android.database.Cursor.getStringOrNull(index: Int): String? =
         if (isNull(index)) null else getString(index)
 
