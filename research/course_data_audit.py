@@ -300,6 +300,8 @@ def main():
     query = build_overpass_query(course)
     payload, endpoint = retrieve_features(query)
     report = inventory(payload)
+    print(f"Overpass endpoint: {endpoint}", flush=True)
+    print(f"OSM data timestamp: {payload.get('osm3s', {}).get('timestamp_osm_base', 'not supplied')}", flush=True)
 
     metadata = {
         "requested_course": args.course,
@@ -335,6 +337,7 @@ def main():
     print(f"\nTotal golf-tagged elements: {report['golf_feature_count']}")
     print(f"Raw response: {(out / 'source-response.json').resolve()}")
     print(f"Report:       {(out / 'inventory-report.json').resolve()}")
+    print(f"GeoJSON:      {(out / 'features.geojson').resolve()}")
 
 
 if __name__ == "__main__":
