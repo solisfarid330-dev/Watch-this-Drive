@@ -105,7 +105,7 @@ def main():
     def score(x): return ((x-mean)/scale)@weight+bias
     ptest_score=score(ptest); ntest_score=score(ntest)
     threshold=0.0
-    holdout={"method":"spatial block holdout; 64x64 pixel blocks (~38m square at 0.6m GSD) assigned wholly to train or test","fairway_true_positive_rate":round(float(np.mean(ptest_score>threshold)),4),"rough_false_positive_rate":round(float(np.mean(ntest_score>threshold)),4),"fairway_holdout_pixels":len(ptest),"rough_holdout_pixels":len(ntest),"fairway_train_pixels":len(pfit),"rough_train_pixels":len(nfit),"warning":"Spatial blocks reduce neighboring-pixel leakage, but labels are still OSM-derived and the test covers only one hole and one acquisition."}
+    holdout={"method":"spatial block holdout; 64x64 export-pixel blocks (~21m square at the 0.33m exported pixel spacing used for South Padre; source GSD is 0.6m) assigned wholly to train or test","fairway_true_positive_rate":round(float(np.mean(ptest_score>threshold)),4),"rough_false_positive_rate":round(float(np.mean(ntest_score>threshold)),4),"fairway_holdout_pixels":len(ptest),"rough_holdout_pixels":len(ntest),"fairway_train_pixels":len(pfit),"rough_train_pixels":len(nfit),"warning":"Spatial blocks reduce neighboring-pixel leakage, but labels are still OSM-derived and the test covers only one hole and one acquisition."}
 
     fc,meta,raw,px,w,h,bbox=test
     x,valid,rgb,ndvi,exg=features(test)
