@@ -98,6 +98,51 @@ class ZommaGeoJsonParserTest {
     }
 
     @Test
+    fun mapsCanonicalOsmNaturalWaterWoodlandAndPathTags() {
+        val json = """
+            {
+              "type": "FeatureCollection",
+              "features": [
+                {
+                  "type": "Feature", "id": "pond",
+                  "properties": {"tags": {"natural": "water", "golf:hole": "4"}},
+                  "geometry": {"type": "Polygon", "coordinates": [[
+                    [-97.0,32.0],[-96.999,32.0],[-96.999,32.001],[-97.0,32.0]
+                  ]]}
+                },
+                {
+                  "type": "Feature", "id": "woods",
+                  "properties": {"tags": {"landuse": "forest"}},
+                  "geometry": {"type": "Polygon", "coordinates": [[
+                    [-97.0,32.0],[-96.999,32.0],[-96.999,32.001],[-97.0,32.0]
+                  ]]}
+                },
+                {
+                  "type": "Feature", "id": "cart-path",
+                  "properties": {"tags": {"highway": "path", "golf": "cartpath"}},
+                  "geometry": {"type": "LineString", "coordinates": [
+                    [-97.0,32.0],[-96.999,32.001]
+                  ]}
+                },
+                {
+                  "type": "Feature", "id": "course-outline",
+                  "properties": {"tags": {"leisure": "golf_course"}},
+                  "geometry": {"type": "Polygon", "coordinates": [[
+                    [-97.0,32.0],[-96.999,32.0],[-96.999,32.001],[-97.0,32.0]
+                  ]]}
+                }
+              ]
+            }
+        """.trimIndent()
+
+        val parsed = ZommaGeoJsonParser.parse(json)
+        assertTrue(parsed.any { it.featureType == "water" && it.holeNumber == "4" })
+        assertTrue(parsed.any { it.featureType == "woodland" })
+        assertTrue(parsed.any { it.featureType == "path" })
+        assertTrue(parsed.any { it.featureType == "course_boundary" })
+    }
+
+    @Test
     fun directOsmGeometryWinsOverCoincidentZommaPrediction() {
         val point = listOf(GeoPoint(32.0, -97.0), GeoPoint(32.001, -97.0), GeoPoint(32.0, -96.999))
         val prediction = CourseFeature(
