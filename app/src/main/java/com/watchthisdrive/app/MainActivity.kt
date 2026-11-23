@@ -917,7 +917,7 @@ private fun NearbyCoursesScreen(
 
             courses.isNotEmpty() -> {
                 Text(
-                    "${courses.size} boundary candidate${if (courses.size == 1) "" else "s"} across ${groupedCourses.size} course listing${if (groupedCourses.size == 1) "" else "s"}",
+                    "${courses.size} course records across ${groupedCourses.size} course listing${if (groupedCourses.size == 1) "" else "s"}",
                     color = Color(0xFFB8F36B),
                     fontWeight = FontWeight.Bold
                 )
@@ -960,8 +960,15 @@ private fun NearbyCoursesScreen(
                                             fontWeight = FontWeight.SemiBold,
                                             style = MaterialTheme.typography.titleMedium
                                         )
+                                        val mappedCount = group.candidates.count {
+                                            !(it.elementType.equals("node", true) && it.id < 0)
+                                        }
                                         Text(
-                                            "${group.candidates.size} possible ${if (group.candidates.size == 1) "boundary" else "boundaries"}",
+                                            if (mappedCount > 0) {
+                                                "$mappedCount mapped OSM candidate${if (mappedCount == 1) "" else "s"}"
+                                            } else {
+                                                "Course directory location · map lookup on selection"
+                                            },
                                             color = Color(0xFFB8F36B),
                                             style = MaterialTheme.typography.bodySmall
                                         )
@@ -988,8 +995,10 @@ private fun NearbyCoursesScreen(
                                             Modifier.weight(1f),
                                             horizontalAlignment = Alignment.Start
                                         ) {
+                                            val directoryPoint = candidate.elementType.equals("node", true) && candidate.id < 0
                                             Text(
-                                                "${candidate.elementType.replaceFirstChar { it.uppercase() }} #${candidate.id}",
+                                                if (directoryPoint) "Course directory location"
+                                                else "${candidate.elementType.replaceFirstChar { it.uppercase() }} #${candidate.id}",
                                                 fontWeight = FontWeight.SemiBold
                                             )
                                             Text(
