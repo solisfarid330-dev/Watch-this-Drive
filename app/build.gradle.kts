@@ -1,7 +1,5 @@
 import java.io.File
 import java.io.InputStream
-import java.net.URL
-import java.net.URLConnection
 import java.security.MessageDigest
 import java.util.zip.GZIPInputStream
 
@@ -36,15 +34,18 @@ android {
     kotlinOptions { jvmTarget = "17" }
 }
 
-// The OpenGolfAPI snapshot is bundled so US course discovery works offline.
-val ensureOpenGolfOfflineCatalog = tasks.register("ensureOpenGolfOfflineCatalog") {
+// The release workflow downloads the catalog before Gradle configures Android assets.
+// Local builds can run scripts/download_opengolf_catalog.sh once before building.
+val verifyOpenGolfOfflineCatalog = tasks.register("verifyOpenGolfOfflineCatalog") {
     val catalogFile = project.file("src/main/assets/opengolfapi-us.geojson.gz")
-    outputs.file(catalogFile)
+    inputs.file(catalogFile)
     outputs.upToDateWhen { false }
     doLast {
-        val expectedCompressed = "c3b3bd4b1b3894fe5b9a6f0e84df43472f55aaad2602faeb58ef56a709db1a39"
-        val expectedGeoJson = "fb4aa24aa8bce2fe338812bc316a2067720c6ffb7874429f5c037b31578300db"
-
+        if (!catalogFile.exists()) {
+            throw GradleException(
+                "OpenGolfAPI catalog is missing. Run scripts/download_opengolf_catalog.sh before building."
+            )
+        }
         fun sha256(stream: InputStream): String {
             val digest = MessageDigest.getInstance("SHA-256")
             stream.use { input ->
@@ -57,46 +58,23 @@ val ensureOpenGolfOfflineCatalog = tasks.register("ensureOpenGolfOfflineCatalog"
             }
             return digest.digest().joinToString("") { "%02x".format(it.toInt() and 0xff) }
         }
-
-        catalogFile.parentFile.mkdirs()
-        if (!catalogFile.exists() || sha256(catalogFile.inputStream()) != expectedCompressed) {
-            val temporary = File(catalogFile.parentFile, catalogFile.name + ".download")
-            val connection: URLConnection = URL(
-                "https://github.com/opengolfapi/data/releases/download/v2.1.0/opengolfapi-us.geojson.gz"
-            ).openConnection().apply {
-                connectTimeout = 10_000
-                readTimeout = 30_000
-            }
-            connection.getInputStream().use { input ->
-                temporary.outputStream().use { output -> input.copyTo(output) }
-            }
-            val downloadedHash = sha256(temporary.inputStream())
-            if (downloadedHash != expectedCompressed) {
-                temporary.delete()
-                throw GradleException("OpenGolfAPI course catalog failed its compressed SHA-256 check")
-            }
-            if (!temporary.renameTo(catalogFile)) {
-                temporary.copyTo(catalogFile, overwrite = true)
-                temporary.delete()
-            }
-        }
-
-        if (sha256(catalogFile.inputStream()) != expectedCompressed) {
-            throw GradleException("OpenGolfAPI course catalog is corrupt")
+        val compressedHash = sha256(catalogFile.inputStream())
+        if (compressedHash != "c3b3bd4b1b3894fe5b9a6f0e84df43472f55aaad2602faeb58ef56a709db1a39") {
+            throw GradleException("OpenGolfAPI compressed catalog SHA-256 mismatch")
         }
         val contentHash = sha256(GZIPInputStream(catalogFile.inputStream()))
-        if (contentHash != expectedGeoJson) {
-            throw GradleException("OpenGolfAPI GeoJSON content failed its SHA-256 check")
+        if (contentHash != "fb4aa24aa8bce2fe338812bc316a2067720c6ffb7874429f5c037b31578300db") {
+            throw GradleException("OpenGolfAPI GeoJSON content SHA-256 mismatch")
         }
-        logger.lifecycle("Verified OpenGolfAPI catalog asset: ${catalogFile.absolutePath} (${catalogFile.length()} bytes)")
+        logger.lifecycle("Verified OpenGolfAPI catalog: ${catalogFile.absolutePath} (${catalogFile.length()} bytes)")
     }
 }
 
 tasks.named("preBuild").configure {
-    dependsOn(ensureOpenGolfOfflineCatalog)
+    dependsOn(verifyOpenGolfOfflineCatalog)
 }
 tasks.matching { it.name.startsWith("merge") && it.name.endsWith("Assets") }.configureEach {
-    dependsOn(ensureOpenGolfOfflineCatalog)
+    dependsOn(verifyOpenGolfOfflineCatalog)
 }
 
 dependencies {
