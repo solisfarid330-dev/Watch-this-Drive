@@ -134,20 +134,26 @@ object HoleReconstructor {
             val holePar = metadataSources.firstNotNullOfOrNull { it.par }
             val holeHandicap = metadataSources.firstNotNullOfOrNull { it.handicap }
 
-            fun routeDistance(feature: CourseFeature): Double {
-                val mappedDistance = mapped.minOfOrNull { fairway -> featureDistance(feature, fairway) }
-                return when {
-                    mappedDistance != null -> mappedDistance
-                    route.size >= 2 -> featureDistanceToPolyline(feature, route)
-                    else -> featureDistanceToSegment(feature, teePoint, greenPoint)
-                }
+            fun routeDistance(feature: CourseFeature): Double = when {
+                // A mapped hole centerline is the strongest spatial reference
+                // for hazards. Measuring against a neighboring fairway polygon
+                // can incorrectly pull hazards from an adjacent hole into this one.
+                route.size >= 2 -> featureDistanceToPolyline(feature, route)
+                mapped.isNotEmpty() -> mapped.minOf { fairway -> featureDistance(feature, fairway) }
+                else -> featureDistanceToSegment(feature, teePoint, greenPoint)
             }
-            val relevantHazards = hazards.filter { routeDistance(it) <= 95.0 }
-            // Preserve useful surrounding course context for the renderer:
-            // tree belts, rough polygons and cart/walking paths near this hole.
+            fun belongsToThisHole(feature: CourseFeature): Boolean {
+                val featureNumber = number(feature.holeNumber)
+                return featureNumber == null || featureNumber == holeNumber
+            }
+            val relevantHazards = hazards.filter {
+                belongsToThisHole(it) && routeDistance(it) <= 95.0
+            }
+            // Preserve useful surrounding context without importing mapped
+            // vegetation or paths explicitly assigned to neighboring holes.
             val nearbyLandscape = landscape.filter { feature ->
                 val threshold = if (feature.featureType.equals("path", true)) 65.0 else 115.0
-                routeDistance(feature) <= threshold
+                belongsToThisHole(feature) && routeDistance(feature) <= threshold
             }
 
             ReconstructedHole(
