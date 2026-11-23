@@ -247,7 +247,9 @@ object CourseGeometryLoader {
                 when {
                     segment.first() == ring.last() -> ring.addAll(segment.drop(1))
                     segment.last() == ring.last() -> ring.addAll(segment.asReversed().drop(1))
-                    segment.last() == ring.first() -> ring.addAll(segment.dropLast(1))
+                    segment.last() == ring.first() -> {
+                        ring.addAll(0, segment.dropLast(1))
+                    }
                     segment.first() == ring.first() -> {
                         val reversed = segment.asReversed()
                         ring.addAll(0, reversed.dropLast(1))
