@@ -82,7 +82,7 @@ private fun PlayingCaddyScreen(
     }
 
     val locationUsable = location != null && location.accuracy <= 50f && System.currentTimeMillis() - location.time <= 60_000L
-    val distanceYards = if (locationUsable && target != null) {
+    val distanceYards = if (location != null && locationUsable && target != null) {
         val meters = FloatArray(1)
         Location.distanceBetween(location.latitude, location.longitude, target.latitude, target.longitude, meters)
         (meters[0] * 1.0936133).toInt()
