@@ -885,7 +885,8 @@ internal object ZommaGeoJsonParser {
                 handicap = handicap,
                 source = firstValue(properties, "source", "geometry_source", "provenance", "origin")
                     ?: firstValue(tags, "source", "provenance"),
-                confidence = firstValue(properties, "confidence", "model_confidence", "prediction_confidence"),
+                confidence = firstValue(properties, "confidence", "model_confidence", "prediction_confidence")
+                    ?: firstValue(tags, "confidence", "model_confidence", "prediction_confidence"),
                 isPredicted = isPredicted(properties, tags)
             )
         }
