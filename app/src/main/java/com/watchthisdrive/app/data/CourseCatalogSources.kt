@@ -43,7 +43,7 @@ object CourseCatalogSources {
         val offline = runCatching {
             OfflineCourseCatalog.searchNearby(context.applicationContext, latitude, longitude)
         }.getOrDefault(emptyList())
-        val region = reverseRegion(latitude, longitude) ?: return offline
+        val region = reverseRegion(context.applicationContext, latitude, longitude) ?: return offline
         val cacheKey = listOf(region.countryCode, region.stateCode ?: region.admin1.orEmpty())
             .joinToString("_").lowercase(Locale.US).replace(Regex("[^a-z0-9_-]"), "_")
         val cacheFile = File(context.filesDir, "course_catalog_$cacheKey.json")
@@ -193,7 +193,22 @@ object CourseCatalogSources {
             course.copy(distanceMeters = distance[0])
         }.sortedBy { it.distanceMeters }
 
-    private fun reverseRegion(latitude: Double, longitude: Double): Region? {
+    private fun reverseRegion(context: Context, latitude: Double, longitude: Double): Region? {
+        val cacheKey = "course_region_${"%.3f".format(Locale.US, latitude)}_${"%.3f".format(Locale.US, longitude)}"
+        val cacheFile = File(context.filesDir, "$cacheKey.json")
+        if (cacheFile.exists() &&
+            System.currentTimeMillis() - cacheFile.lastModified() < CACHE_MAX_AGE_MS
+        ) {
+            runCatching {
+                val cached = JSONObject(cacheFile.readText())
+                return Region(
+                    cached.optString("country").takeIf { it.isNotBlank() } ?: return@runCatching null,
+                    cached.optString("admin1").takeIf { it.isNotBlank() },
+                    cached.optString("stateCode").takeIf { it.isNotBlank() },
+                    cached.optString("city").takeIf { it.isNotBlank() }
+                )
+            }.getOrNull()?.let { return it }
+        }
         val url = URL(
             "$NOMINATIM_REVERSE?format=jsonv2&addressdetails=1&zoom=10" +
                 "&lat=$latitude&lon=$longitude"
@@ -209,7 +224,18 @@ object CourseCatalogSources {
             ?: address.optString("region").takeIf { it.isNotBlank() }
         val city = sequenceOf("city", "town", "village", "municipality", "county")
             .map { address.optString(it) }.firstOrNull { it.isNotBlank() }
-        return Region(country, admin1, stateCode, city)
+        val region = Region(country, admin1, stateCode, city)
+        runCatching {
+            cacheFile.writeText(
+                JSONObject()
+                    .put("country", region.countryCode)
+                    .put("admin1", region.admin1)
+                    .put("stateCode", region.stateCode)
+                    .put("city", region.city)
+                    .toString()
+            )
+        }
+        return region
     }
 
     private fun fetchTeeTimeRegion(region: Region): List<GolfCourse> {
