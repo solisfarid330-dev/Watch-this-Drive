@@ -84,7 +84,7 @@ object NaipImageryRepository {
         scope: String
     ): File? {
         if (!isWithinConus(course.latitude, course.longitude)) return null
-        val key = listOf(course.elementType, course.id, scope,
+        val key = listOf("hd$MAX_EXPORT_DIMENSION", course.elementType, course.id, scope,
             "%.5f".format(Locale.US, bounds.west),
             "%.5f".format(Locale.US, bounds.south),
             "%.5f".format(Locale.US, bounds.east),
