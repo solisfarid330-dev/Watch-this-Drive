@@ -197,8 +197,13 @@ private fun WatchThisDriveApp() {
             }
             try {
                 fused.requestLocationUpdates(request, callback, Looper.getMainLooper())
+                    .addOnFailureListener { error ->
+                        locationMessage = "Live GPS tracking unavailable"
+                        locationError = error.localizedMessage ?: "Check Android location services and precise location permission."
+                    }
             } catch (_: SecurityException) {
                 locationMessage = "Location permission unavailable"
+                locationError = "Allow precise location in Android app settings."
             }
             onDispose { fused.removeLocationUpdates(callback) }
         } else {
