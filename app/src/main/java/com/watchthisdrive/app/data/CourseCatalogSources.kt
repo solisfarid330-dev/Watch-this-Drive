@@ -202,7 +202,7 @@ object CourseCatalogSources {
     private fun parseScorecard(array: JSONArray): List<CourseHoleInfo> =
         (0 until array.length()).mapNotNull { index ->
             val hole = array.optJSONObject(index) ?: return@mapNotNull null
-            val number = hole.firstInt("hole_number", "hole") ?: return@mapNotNull null
+            val number = hole.firstInt("hole_number", "hole", "number") ?: return@mapNotNull null
             CourseHoleInfo(
                 number = number,
                 par = hole.optIntOrNull("par"),
@@ -247,8 +247,9 @@ object CourseCatalogSources {
         }
     }
 
+    // Negative IDs reserve a separate namespace from positive OSM element IDs.
     private fun stableId(value: String): Long =
-        (value.hashCode().toLong() and 0x7fffffffL).coerceAtLeast(1L)
+        -((value.hashCode().toLong() and 0x7fffffffL) + 1L)
 
     private fun enc(value: String): String = URLEncoder.encode(value, "UTF-8")
 
