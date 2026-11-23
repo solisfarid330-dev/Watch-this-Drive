@@ -47,6 +47,14 @@ object HoleReconstructor {
         val score: Double
     )
 
+    private data class DerivedTeeCandidate(
+        val greenIndex: Int,
+        val line: CourseFeature,
+        val point: GeoPoint,
+        val holeNumber: Int?,
+        val greenEndDistance: Double
+    )
+
     /**
      * Associates tees and greens using explicit OSM hole numbers first, then
      * constrained spatial matching. It uses mapped fairways as the actual
@@ -442,56 +450,70 @@ object HoleReconstructor {
         holeLines: List<CourseFeature>,
         mappedTees: List<TeeCandidate>
     ): List<TeeCandidate> {
-        return greens.mapNotNull { green ->
+        // A single unnumbered playing line can sit close to two neighbouring
+        // greens. Build all plausible matches first, then assign each line and
+        // green at most once so one physical tee cannot create duplicate holes.
+        val candidates = mutableListOf<DerivedTeeCandidate>()
+        greens.forEachIndexed { greenIndex, green ->
             val greenNumber = number(green.holeNumber)
             if (greenNumber != null && mappedTees.any { it.holeNumber == greenNumber }) {
-                return@mapNotNull null
+                return@forEachIndexed
             }
             val greenPoint = center(green.points)
-            val best = holeLines.asSequence()
-                .filter { line ->
-                    val lineNumber = number(line.holeNumber)
-                    lineNumber == null || greenNumber == null || lineNumber == greenNumber
+            holeLines.forEach { line ->
+                val lineNumber = number(line.holeNumber)
+                if (lineNumber != null && greenNumber != null && lineNumber != greenNumber) {
+                    return@forEach
                 }
-                .mapNotNull { line ->
-                    val first = line.points.first()
-                    val last = line.points.last()
-                    val firstToGreen = meters(first, greenPoint)
-                    val lastToGreen = meters(last, greenPoint)
-                    val greenEndDistance = min(firstToGreen, lastToGreen)
-                    val teePoint = if (firstToGreen <= lastToGreen) last else first
-                    val routeLength = polylineLength(line.points)
-                    if (greenEndDistance > 110.0 ||
-                        routeLength !in MIN_HOLE_METERS..MAX_HOLE_METERS ||
-                        meters(teePoint, greenPoint) !in MIN_HOLE_METERS..MAX_HOLE_METERS
-                    ) null else Triple(line, teePoint, greenEndDistance)
-                }
-                .filter { (_, teePoint, _) ->
-                    mappedTees.none { tee ->
-                        (greenNumber == null || tee.holeNumber == null || tee.holeNumber == greenNumber) &&
-                            meters(tee.point, teePoint) <= 30.0
-                    }
-                }
-                .minByOrNull { (_, _, greenEndDistance) -> greenEndDistance }
-                ?: return@mapNotNull null
+                val first = line.points.first()
+                val last = line.points.last()
+                val firstToGreen = meters(first, greenPoint)
+                val lastToGreen = meters(last, greenPoint)
+                val greenEndDistance = min(firstToGreen, lastToGreen)
+                val teePoint = if (firstToGreen <= lastToGreen) last else first
+                val routeLength = polylineLength(line.points)
+                if (greenEndDistance > 110.0 ||
+                    routeLength !in MIN_HOLE_METERS..MAX_HOLE_METERS ||
+                    meters(teePoint, greenPoint) !in MIN_HOLE_METERS..MAX_HOLE_METERS
+                ) return@forEach
+                if (mappedTees.any { tee ->
+                    (greenNumber == null || tee.holeNumber == null || tee.holeNumber == greenNumber) &&
+                        meters(tee.point, teePoint) <= 30.0
+                }) return@forEach
+                candidates += DerivedTeeCandidate(
+                    greenIndex, line, teePoint, greenNumber ?: lineNumber, greenEndDistance
+                )
+            }
+        }
 
-            val line = best.first
+        val usedGreens = mutableSetOf<Int>()
+        val usedLines = mutableSetOf<String>()
+        val acceptedPoints = mutableListOf<GeoPoint>()
+        return candidates.sortedBy { it.greenEndDistance }.mapNotNull { candidate ->
+            val lineKey = candidate.line.elementType + ":" + candidate.line.id
+            if (candidate.greenIndex in usedGreens || lineKey in usedLines ||
+                acceptedPoints.any { meters(it, candidate.point) <= 30.0 }
+            ) return@mapNotNull null
+
+            usedGreens += candidate.greenIndex
+            usedLines += lineKey
+            acceptedPoints += candidate.point
             val inferredTee = CourseFeature(
-                id = line.id,
-                elementType = line.elementType,
+                id = candidate.line.id,
+                elementType = candidate.line.elementType,
                 featureType = "tee",
-                holeNumber = greenNumber?.toString() ?: line.holeNumber,
+                holeNumber = candidate.holeNumber?.toString() ?: candidate.line.holeNumber,
                 name = "Estimated tee from playing line",
-                points = listOf(best.second),
+                points = listOf(candidate.point),
                 source = "Derived from playing-line endpoint" +
-                    (line.source?.let { " ($it)" } ?: ""),
-                confidence = line.confidence ?: "inferred",
+                    (candidate.line.source?.let { " ($it)" } ?: ""),
+                confidence = candidate.line.confidence ?: "inferred",
                 isPredicted = true
             )
             TeeCandidate(
                 sources = listOf(inferredTee),
-                point = best.second,
-                holeNumber = greenNumber ?: number(line.holeNumber)
+                point = candidate.point,
+                holeNumber = candidate.holeNumber
             )
         }
     }
