@@ -41,6 +41,8 @@ private data class AerialReference(
     val cacheToken: String
 )
 
+private data class NdviReference(val bitmap: Bitmap, val cacheToken: String)
+
 private suspend fun loadAerialReference(
     context: android.content.Context,
     course: GolfCourse,
@@ -52,15 +54,24 @@ private suspend fun loadAerialReference(
         val bounds = NaipImageryRepository.boundsForHole(hole) ?: return@runCatching null
         val rgbOptions = BitmapFactory.Options().apply { inSampleSize = 2 }
         val bitmap = BitmapFactory.decodeFile(file.absolutePath, rgbOptions) ?: return@runCatching null
-        val ndviFile = NaipImageryRepository.loadOrFetchNdviForHole(context, course, hole)
-        val ndviBitmap = ndviFile?.let {
-            BitmapFactory.decodeFile(it.absolutePath, BitmapFactory.Options().apply { inSampleSize = 4 })
-        }
-        val token = buildString {
-            append(file.name).append(':').append(file.lastModified()).append(':').append(file.length())
-            ndviFile?.let { append("|ndvi:").append(it.lastModified()).append(':').append(it.length()) }
-        }
-        AerialReference(bitmap, ndviBitmap, bounds, token)
+        val token = file.name + ":" + file.lastModified() + ":" + file.length()
+        AerialReference(bitmap, null, bounds, token)
+    }.getOrNull()
+}
+
+/** NDVI is optional evidence: fetch it after the RGB illustration can already render. */
+private suspend fun loadNdviReference(
+    context: android.content.Context,
+    course: GolfCourse,
+    hole: ReconstructedHole
+): NdviReference? = withContext(Dispatchers.IO) {
+    runCatching {
+        val file = NaipImageryRepository.loadOrFetchNdviForHole(context, course, hole)
+            ?: return@runCatching null
+        val bitmap = BitmapFactory.decodeFile(
+            file.absolutePath, BitmapFactory.Options().apply { inSampleSize = 4 }
+        ) ?: return@runCatching null
+        NdviReference(bitmap, "|ndvi:" + file.lastModified() + ":" + file.length())
     }.getOrNull()
 }
 
@@ -111,6 +122,7 @@ fun CourseHoleArtworkPanel(
     var selected by remember(course.elementType, course.id) { mutableStateOf<Int?>(null) }
     var image by remember(course.elementType, course.id) { mutableStateOf<Bitmap?>(null) }
     var generatedImages by remember(course.elementType, course.id) { mutableStateOf<Map<Int, File>>(emptyMap()) }
+    var renderedTokens by remember(course.elementType, course.id) { mutableStateOf<Map<Int, String>>(emptyMap()) }
     var generating by remember(course.elementType, course.id) { mutableStateOf(false) }
     var renderError by remember(course.elementType, course.id) { mutableStateOf<String?>(null) }
     var aerialReference by remember(course.elementType, course.id) { mutableStateOf<AerialReference?>(null) }
@@ -122,11 +134,22 @@ fun CourseHoleArtworkPanel(
     }
     LaunchedEffect(course.elementType, course.id, geometry, selected, reconstructedHoles) {
         val hole = reconstructedHoles.firstOrNull { it.number == selected }
-        aerialReference = if (hole != null) loadAerialReference(context, course, hole) else null
+        val baseReference = if (hole != null) loadAerialReference(context, course, hole) else null
+        aerialReference = baseReference
+        if (baseReference != null && hole != null) {
+            val ndvi = loadNdviReference(context, course, hole)
+            if (ndvi != null && aerialReference?.cacheToken == baseReference.cacheToken) {
+                aerialReference = baseReference.copy(
+                    ndviBitmap = ndvi.bitmap,
+                    cacheToken = baseReference.cacheToken + ndvi.cacheToken
+                )
+            }
+        }
     }
     LaunchedEffect(geometry, course.scorecard) {
         reconstructedHoles = emptyList()
         generatedImages = emptyMap()
+        renderedTokens = emptyMap()
         renderError = null
         val geometrySnapshot = geometry ?: return@LaunchedEffect
         val baseHoles = withContext(Dispatchers.Default) {
@@ -168,17 +191,19 @@ fun CourseHoleArtworkPanel(
     // The renderer's disk cache keeps revisited holes inexpensive.
     LaunchedEffect(course.elementType, course.id, geometry, selected, reconstructedHoles, aerialReference) {
         val hole = reconstructedHoles.firstOrNull { it.number == selected }
-        if (hole != null && selected !in generatedImages) {
+        val imageryToken = aerialReference?.cacheToken.orEmpty()
+        if (hole != null && renderedTokens[hole.number] != imageryToken) {
             generating = true
             try {
                 val rendered = withContext(Dispatchers.Default) {
                     CourseHoleArtworkRenderer.render(
                         hole, context.cacheDir, course.elementType + "-" + course.id,
                         aerialReference?.bitmap, aerialReference?.ndviBitmap,
-                        aerialReference?.bounds, aerialReference?.cacheToken.orEmpty()
+                        aerialReference?.bounds, imageryToken
                     )
                 }
                 generatedImages = generatedImages + (hole.number to rendered)
+                renderedTokens = renderedTokens + (hole.number to imageryToken)
                 renderError = null
             } catch (cancelled: CancellationException) {
                 throw cancelled
