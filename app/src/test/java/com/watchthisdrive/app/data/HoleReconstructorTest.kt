@@ -408,4 +408,27 @@ class HoleReconstructorTest {
         assertTrue(hole.fairwayEstimate.isEmpty())
     }
 
+    @Test
+    fun explicitlyNumberedHazardsFromNeighboringHoleAreExcluded() {
+        val route = listOf(GeoPoint(0.0, 0.0), GeoPoint(0.002, 0.0), GeoPoint(0.004, 0.0))
+        val geometry = CourseGeometry(99, "Hazard scoping fixture", listOf(
+            feature(1, "tee", 0.0, 0.0, "1"),
+            feature(2, "green", 0.004, 0.0, "1"),
+            feature(3, "hole", 0.0, 0.0, "1", route),
+            feature(4, "bunker", 0.002, 0.0002, "2", listOf(
+                GeoPoint(0.0019, 0.0001), GeoPoint(0.0021, 0.0001),
+                GeoPoint(0.0021, 0.0003), GeoPoint(0.0019, 0.0003),
+                GeoPoint(0.0019, 0.0001)
+            )),
+            feature(5, "bunker", 0.003, -0.0002, null, listOf(
+                GeoPoint(0.0029, -0.0003), GeoPoint(0.0031, -0.0003),
+                GeoPoint(0.0031, -0.0001), GeoPoint(0.0029, -0.0001),
+                GeoPoint(0.0029, -0.0003)
+            ))
+        ))
+
+        val hole = HoleReconstructor.reconstruct(geometry).single()
+        assertEquals(listOf(5L), hole.bunkers.map { it.id })
+    }
+
 }
