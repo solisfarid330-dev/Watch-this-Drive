@@ -1,0 +1,76 @@
+{
+  "target_hole_ref": "2",
+  "target_hole_osm_id": 1383052942,
+  "training_source": "South Padre Island Golf Club Hole 1 OSM fairway and rough polygons",
+  "training_samples": {
+    "fairway": 40000,
+    "rough": 40000
+  },
+  "features": [
+    "NDVI",
+    "excess_green",
+    "local_RGB_texture_stddev_9x9"
+  ],
+  "linear_discriminant_weights": [
+    -1.3754725939965935,
+    2.1283386223967935,
+    0.03352130087946228
+  ],
+  "standardization_mean": [
+    0.15940164029598236,
+    0.18219108879566193,
+    0.012782195582985878
+  ],
+  "standardization_scale": [
+    0.07919156551361084,
+    0.05462845787405968,
+    0.013537443242967129
+  ],
+  "bias": -0.0787128119324456,
+  "south_padre_spatial_block_holdout": {
+    "method": "spatial block holdout; 64x64 export-pixel blocks (~21m square at the 0.33m exported pixel spacing used for South Padre; source GSD is 0.6m) assigned wholly to train or test",
+    "fairway_true_positive_rate": 0.8483,
+    "rough_false_positive_rate": 0.3005,
+    "fairway_holdout_pixels": 7526,
+    "rough_holdout_pixels": 5927,
+    "fairway_train_pixels": 32474,
+    "rough_train_pixels": 34073,
+    "warning": "Spatial blocks reduce neighboring-pixel leakage, but labels are still OSM-derived and the test covers only one hole and one acquisition."
+  },
+  "target_seed_positive_rates": {
+    "fairway": {
+      "pixels": 84997,
+      "positive_fraction": 0.5954
+    },
+    "rough": {
+      "pixels": 149079,
+      "positive_fraction": 0.1023
+    },
+    "green": {
+      "pixels": 10983,
+      "positive_fraction": 0.0
+    },
+    "bunker": {
+      "pixels": 4652,
+      "positive_fraction": 0.0
+    },
+    "water_hazard": {
+      "pixels": 3048,
+      "positive_fraction": 0.0
+    },
+    "tee": {
+      "pixels": 6577,
+      "positive_fraction": 0.0
+    }
+  },
+  "candidate_corridor_m": 55,
+  "candidate_pixels": 106073,
+  "corridor_pixels": 496250,
+  "candidate_fraction_of_corridor": 0.2137,
+  "interpretation": "Experimental fairway-like turf candidates only. Classifier was trained from one course's OSM labels and may not transfer to other grass, lighting, season, or imagery conditions. Do not treat output as accepted fairway geometry.",
+  "files": [
+    "fairway-candidate-overlay.png",
+    "fairway-score-preview.png",
+    "classifier-report.json"
+  ]
+}

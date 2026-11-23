@@ -1,4 +1,5 @@
 {
+  "target_hole_ref": "1",
   "target_hole_osm_id": 1383052934,
   "training_source": "South Padre Island Golf Club Hole 1 OSM fairway and rough polygons",
   "training_samples": {

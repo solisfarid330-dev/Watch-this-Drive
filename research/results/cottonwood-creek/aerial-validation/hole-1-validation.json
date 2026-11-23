@@ -1,0 +1,56 @@
+{
+  "hole_ref": "1",
+  "hole_osm_id": 1337838559,
+  "imagery_service": "https://imagery.geographic.texas.gov/server/rest/services/NAIP/NAIP22_NCCIR_60cm/ImageServer/exportImage",
+  "imagery_acquisition": "Texas NAIP 2022 growing season (May\u2013September 2022)",
+  "ground_sample_distance_m": 0.6,
+  "imagery_attribution": "Texas Geographic Information Office, USDA",
+  "osm_attribution": "\u00a9 OpenStreetMap contributors",
+  "osm_license": "ODbL-1.0",
+  "export_bbox_web_mercator_m": [
+    -10874489.317042204,
+    3017592.2002473087,
+    -10874349.520927014,
+    3017832.720999777
+  ],
+  "export_size_pixels": [
+    639,
+    1100
+  ],
+  "buffer_m": 65,
+  "feature_corridor_m": 45,
+  "visible_osm_feature_element_counts": {
+    "pin": 2,
+    "hole": 1
+  },
+  "candidate_feature_distances": [
+    {
+      "osm_type": "node",
+      "osm_id": 12374869535,
+      "golf": "pin",
+      "distance_to_hole_centerline_m": 0.0,
+      "assignment": "proximity candidate only"
+    },
+    {
+      "osm_type": "node",
+      "osm_id": 12374869548,
+      "golf": "pin",
+      "distance_to_hole_centerline_m": 37.3,
+      "assignment": "proximity candidate only"
+    }
+  ],
+  "files": [
+    "hole-1-naip-2022.png",
+    "hole-1-naip-2022-rgbir.tif",
+    "hole-1-osm-overlay.png"
+  ],
+  "source_band_order": "RGB + near infrared (band IDs 0,1,2,3; verify from image service metadata)",
+  "limitations": [
+    "Visual overlay only; not a ground-truth accuracy measurement.",
+    "Nearby features are candidates by distance, not confirmed hole assignments.",
+    "NAIP is aerial orthophotography, not satellite imagery.",
+    "2022 imagery may differ from current course conditions.",
+    "OSM features may be incomplete or misclassified.",
+    "No image segmentation or missing-feature inference is performed."
+  ]
+}

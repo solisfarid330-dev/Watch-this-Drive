@@ -1,4 +1,5 @@
 {
+  "hole_ref": "1",
   "hole_osm_id": 1383052934,
   "method": "Per-course k-means on NDVI, excess-green, and local RGB texture; known green/bunker/water/tee polygons excluded from cluster fitting.",
   "clusters": 6,
