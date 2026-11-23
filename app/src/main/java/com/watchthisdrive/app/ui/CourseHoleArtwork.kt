@@ -113,14 +113,14 @@ fun CourseHoleArtworkPanel(
     var renderError by remember(course.elementType, course.id) { mutableStateOf<String?>(null) }
     var aerialReference by remember(course.elementType, course.id) { mutableStateOf<AerialReference?>(null) }
 
-    LaunchedEffect(course.elementType, course.id, geometry, selected, reconstructedHoles) {
-        val hole = reconstructedHoles.firstOrNull { it.number == selected }
-        aerialReference = loadAerialReference(context, course, geometry, hole)
-    }
     // Hole reconstruction can be CPU-heavy on large OSM courses. Keep it
     // off the main thread and share the result with the panel's render effect.
     var reconstructedHoles by remember(course.elementType, course.id) {
         mutableStateOf<List<ReconstructedHole>>(emptyList())
+    }
+    LaunchedEffect(course.elementType, course.id, geometry, selected, reconstructedHoles) {
+        val hole = reconstructedHoles.firstOrNull { it.number == selected }
+        aerialReference = loadAerialReference(context, course, geometry, hole)
     }
     LaunchedEffect(geometry, course.scorecard) {
         reconstructedHoles = emptyList()
