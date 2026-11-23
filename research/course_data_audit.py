@@ -220,7 +220,7 @@ def inventory(payload: dict) -> dict:
         "features": features,
         "limitations": [
             "OSM feature counts are element counts, not guaranteed counts of physical objects.",
-            "A relation may represent a multipolygon or grouped feature; member rings must be reconstructed before measuring its footprint.",
+            "A relation may represent a multipolygon or grouped feature; assembled rings must be checked for completeness and topology before measurement.",
             "A feature without an explicit hole reference is not automatically assigned to a hole.",
             "Missing OSM features are unknown, not evidence that the real course lacks them.",
             "A successful HTTP response and valid JSON do not establish real-world geometric accuracy.",
