@@ -197,12 +197,20 @@ object HoleReconstructor {
         val routeScoped = if (centerline.size >= 2) {
             compatible.filter { featureDistanceToPolyline(it, centerline) <= 65.0 }
         } else emptyList()
-        // When a centerline exists, it is the authoritative corridor. Do not
-        // pull in fairways merely because they are close to a straight tee-green chord.
-        val pool = (if (centerline.size >= 2) {
-            if (numbered.isNotEmpty()) numbered.filter { it in routeScoped }
-            else routeScoped
-        } else if (numbered.isNotEmpty()) numbered else compatible).take(160)
+        // A mapped hole line can itself be displaced or incomplete. Explicit
+        // hole-numbered fairway polygons are stronger evidence than a route
+        // that fails to run through them, so retain those polygons rather than
+        // silently replacing the real fairway with an estimated corridor.
+        val pool = when {
+            centerline.size >= 2 && numbered.any { it in routeScoped } ->
+                (numbered.filter { it in routeScoped } + routeScoped.filter { it !in numbered })
+            centerline.size >= 2 && numbered.isNotEmpty() -> numbered
+            centerline.size >= 2 -> routeScoped
+            numbered.isNotEmpty() -> numbered
+            else -> compatible.filter {
+                featureDistanceToSegment(it, tee, green) <= 180.0
+            }
+        }.distinctBy { it.elementType + ":" + it.id }.take(160)
         val starts = pool.indices.filter { featureDistanceToPoint(tee, pool[it]) <= 115.0 }
         val ends = pool.indices.filter { featureDistanceToPoint(green, pool[it]) <= 115.0 }
         if (starts.isNotEmpty() && ends.isNotEmpty()) {
@@ -239,12 +247,15 @@ object HoleReconstructor {
                 return (connected + numberedFragments).distinctBy { it.elementType + ":" + it.id }
             }
         }
-        // Disconnected or incomplete mapping: keep only nearby fairways,
-        // never invent a connecting mapped segment.
+        // Disconnected or incomplete mapping: preserve explicitly numbered
+        // fragments for this hole. For unnumbered geometry, retain a broader
+        // corridor around the selected route/chord; the renderer can show gaps
+        // honestly instead of inventing polygons to connect them.
+        if (numbered.isNotEmpty()) return numbered.distinctBy { it.elementType + ":" + it.id }
         return pool.mapNotNull { feature ->
             val distance = if (centerline.size >= 2) featureDistanceToPolyline(feature, centerline)
                 else featureDistanceToSegment(feature, tee, green)
-            if (distance <= if (centerline.size >= 2) 65.0 else 90.0) feature to distance else null
+            if (distance <= if (centerline.size >= 2) 65.0 else 180.0) feature to distance else null
         }.sortedBy { it.second }.map { it.first }
     }
 
