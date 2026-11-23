@@ -13,7 +13,7 @@
       "alternatives": []
     },
     "nominatim_result": {
-      "place_id": 316533226,
+      "place_id": 315717846,
       "licence": "Data \u00a9 OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
       "osm_type": "way",
       "osm_id": 1337838568,
@@ -53,7 +53,7 @@
     },
     "overpass_endpoint": "https://ovp.dresel.systems/api-na/interpreter",
     "overpass_query": "[out:json][timeout:75];\nway(1337838568);\nmap_to_area -> .courseArea;\n(\n  nwr(area.courseArea)[\"golf\"];\n);\nout body geom;\n",
-    "retrieved_at_utc": "2026-11-23T19:48:08Z",
+    "retrieved_at_utc": "2026-11-23T19:49:52Z",
     "osm_copyright": "\u00a9 OpenStreetMap contributors; data available under ODbL"
   },
   "overpass": {

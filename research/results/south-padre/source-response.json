@@ -6,14 +6,14 @@
       "osm_type": "relation",
       "osm_id": 19071561,
       "name": "South Padre Island Golf Club",
-      "display_name": "South Padre Island Golf Club, Tangelo Court, Laguna Vista, Cameron County, Texas, 78578, United States",
+      "display_name": "South Padre Island Golf Club, Hacienda Drive, Laguna Vista, Cameron County, Texas, 78578, United States",
       "lat": 26.1140091,
       "lon": -97.3081677,
       "score": 2.15,
       "alternatives": []
     },
     "nominatim_result": {
-      "place_id": 314664175,
+      "place_id": 315750992,
       "licence": "Data \u00a9 OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
       "osm_type": "relation",
       "osm_id": 19071561,
@@ -25,10 +25,10 @@
       "importance": 3.786907759208083e-05,
       "addresstype": "leisure",
       "name": "South Padre Island Golf Club",
-      "display_name": "South Padre Island Golf Club, Tangelo Court, Laguna Vista, Cameron County, Texas, 78578, United States",
+      "display_name": "South Padre Island Golf Club, Hacienda Drive, Laguna Vista, Cameron County, Texas, 78578, United States",
       "address": {
         "leisure": "South Padre Island Golf Club",
-        "road": "Tangelo Court",
+        "road": "Hacienda Drive",
         "village": "Laguna Vista",
         "county": "Cameron County",
         "state": "Texas",
@@ -48,17 +48,17 @@
         "-97.2957895"
       ]
     },
-    "overpass_endpoint": "https://ovp.dresel.systems/api-na/interpreter",
+    "overpass_endpoint": "https://overpass-api.de/api/interpreter",
     "overpass_query": "[out:json][timeout:75];\nrelation(19071561);\nmap_to_area -> .courseArea;\n(\n  nwr(area.courseArea)[\"golf\"];\n);\nout body geom;\n",
-    "retrieved_at_utc": "2026-11-23T19:48:07Z",
+    "retrieved_at_utc": "2026-11-23T19:49:51Z",
     "osm_copyright": "\u00a9 OpenStreetMap contributors; data available under ODbL"
   },
   "overpass": {
     "version": 0.6,
     "generator": "Overpass API 0.7.62.11 87bfad18",
     "osm3s": {
-      "timestamp_osm_base": "2026-11-22T21:20:48Z",
-      "timestamp_areas_base": "2026-11-22T21:20:48Z",
+      "timestamp_osm_base": "2026-11-23T19:48:01Z",
+      "timestamp_areas_base": "2026-11-23T14:59:06Z",
       "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL."
     },
     "elements": [

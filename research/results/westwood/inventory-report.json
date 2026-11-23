@@ -1,0 +1,2798 @@
+{
+  "metadata": {
+    "requested_course": "Westwood Country Club",
+    "requested_location": "Houston, Texas, USA",
+    "discovered_course": {
+      "osm_type": "way",
+      "osm_id": 125353929,
+      "name": "Westwood Country Club",
+      "display_name": "Westwood Country Club, 8888, Country Creek Drive, Westwood, Houston, Harris County, Texas, 77036, United States",
+      "lat": 29.6843794,
+      "lon": -95.5431139,
+      "score": 2.15,
+      "alternatives": []
+    },
+    "nominatim_result": {
+      "place_id": 301890823,
+      "licence": "Data \u00a9 OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+      "osm_type": "way",
+      "osm_id": 125353929,
+      "lat": "29.6843794",
+      "lon": "-95.5431139",
+      "category": "leisure",
+      "type": "golf_course",
+      "place_rank": 30,
+      "importance": 7.782024872201141e-05,
+      "addresstype": "leisure",
+      "name": "Westwood Country Club",
+      "display_name": "Westwood Country Club, 8888, Country Creek Drive, Westwood, Houston, Harris County, Texas, 77036, United States",
+      "address": {
+        "leisure": "Westwood Country Club",
+        "house_number": "8888",
+        "road": "Country Creek Drive",
+        "suburb": "Westwood",
+        "city": "Houston",
+        "county": "Harris County",
+        "state": "Texas",
+        "ISO3166-2-lvl4": "US-TX",
+        "postcode": "77036",
+        "country": "United States",
+        "country_code": "us"
+      },
+      "extratags": {
+        "phone": "+1-713-774-3011",
+        "website": "https://www.wwgolfclub.com/Home.aspx"
+      },
+      "namedetails": {
+        "name": "Westwood Country Club"
+      },
+      "boundingbox": [
+        "29.6806241",
+        "29.6880368",
+        "-95.5490938",
+        "-95.5367905"
+      ]
+    },
+    "overpass_endpoint": "https://ovp.dresel.systems/api-na/interpreter",
+    "overpass_query": "[out:json][timeout:75];\nway(125353929);\nmap_to_area -> .courseArea;\n(\n  nwr(area.courseArea)[\"golf\"];\n);\nout body geom;\n",
+    "retrieved_at_utc": "2026-11-23T19:49:54Z",
+    "osm_copyright": "\u00a9 OpenStreetMap contributors; data available under ODbL"
+  },
+  "inventory": {
+    "element_count": 201,
+    "golf_feature_count": 201,
+    "counts_by_golf_tag": {
+      "bunker": 62,
+      "clubhouse": 1,
+      "fairway": 19,
+      "green": 18,
+      "hole": 18,
+      "pin": 18,
+      "tee": 56,
+      "water_hazard": 9
+    },
+    "counts_by_element_and_tag": {
+      "bunker:way": 62,
+      "clubhouse:way": 1,
+      "fairway:relation": 15,
+      "fairway:way": 4,
+      "green:way": 18,
+      "hole:way": 18,
+      "pin:node": 18,
+      "tee:way": 56,
+      "water_hazard:way": 9
+    },
+    "features_missing_direct_geometry": {},
+    "hole_reference_counts": {
+      "hole:1": 1,
+      "hole:10": 1,
+      "hole:11": 1,
+      "hole:12": 1,
+      "hole:13": 1,
+      "hole:14": 1,
+      "hole:15": 1,
+      "hole:16": 1,
+      "hole:17": 1,
+      "hole:18": 1,
+      "hole:2": 1,
+      "hole:3": 1,
+      "hole:4": 1,
+      "hole:5": 1,
+      "hole:6": 1,
+      "hole:7": 1,
+      "hole:8": 1,
+      "hole:9": 1
+    },
+    "features": [
+      {
+        "osm_type": "node",
+        "osm_id": 11205737432,
+        "golf": "pin",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 0,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "pin"
+        }
+      },
+      {
+        "osm_type": "node",
+        "osm_id": 11205737435,
+        "golf": "pin",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 0,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "pin"
+        }
+      },
+      {
+        "osm_type": "node",
+        "osm_id": 11205757637,
+        "golf": "pin",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 0,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "pin"
+        }
+      },
+      {
+        "osm_type": "node",
+        "osm_id": 11205757640,
+        "golf": "pin",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 0,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "pin"
+        }
+      },
+      {
+        "osm_type": "node",
+        "osm_id": 11205757643,
+        "golf": "pin",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 0,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "pin"
+        }
+      },
+      {
+        "osm_type": "node",
+        "osm_id": 11205757647,
+        "golf": "pin",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 0,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "pin"
+        }
+      },
+      {
+        "osm_type": "node",
+        "osm_id": 11205757650,
+        "golf": "pin",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 0,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "pin"
+        }
+      },
+      {
+        "osm_type": "node",
+        "osm_id": 11205757652,
+        "golf": "pin",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 0,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "pin"
+        }
+      },
+      {
+        "osm_type": "node",
+        "osm_id": 11205757655,
+        "golf": "pin",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 0,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "pin"
+        }
+      },
+      {
+        "osm_type": "node",
+        "osm_id": 11205757658,
+        "golf": "pin",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 0,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "pin"
+        }
+      },
+      {
+        "osm_type": "node",
+        "osm_id": 11205757661,
+        "golf": "pin",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 0,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "pin"
+        }
+      },
+      {
+        "osm_type": "node",
+        "osm_id": 11205757665,
+        "golf": "pin",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 0,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "pin"
+        }
+      },
+      {
+        "osm_type": "node",
+        "osm_id": 11205757668,
+        "golf": "pin",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 0,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "pin"
+        }
+      },
+      {
+        "osm_type": "node",
+        "osm_id": 11205757672,
+        "golf": "pin",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 0,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "pin"
+        }
+      },
+      {
+        "osm_type": "node",
+        "osm_id": 11205757674,
+        "golf": "pin",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 0,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "pin"
+        }
+      },
+      {
+        "osm_type": "node",
+        "osm_id": 11205757677,
+        "golf": "pin",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 0,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "pin"
+        }
+      },
+      {
+        "osm_type": "node",
+        "osm_id": 11205757679,
+        "golf": "pin",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 0,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "pin"
+        }
+      },
+      {
+        "osm_type": "node",
+        "osm_id": 11205757683,
+        "golf": "pin",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 0,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "pin"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 297592172,
+        "golf": "water_hazard",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 53,
+        "relation_member_count": 0,
+        "tags": {
+          "basin": "retention",
+          "golf": "water_hazard",
+          "natural": "water",
+          "water": "basin"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 297592173,
+        "golf": "water_hazard",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 44,
+        "relation_member_count": 0,
+        "tags": {
+          "basin": "retention",
+          "golf": "water_hazard",
+          "natural": "water",
+          "water": "basin"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 297592174,
+        "golf": "water_hazard",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 28,
+        "relation_member_count": 0,
+        "tags": {
+          "basin": "retention",
+          "golf": "water_hazard",
+          "natural": "water",
+          "water": "basin"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 297592175,
+        "golf": "water_hazard",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 36,
+        "relation_member_count": 0,
+        "tags": {
+          "basin": "retention",
+          "golf": "water_hazard",
+          "natural": "water",
+          "water": "basin"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 455172646,
+        "golf": "clubhouse",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 29,
+        "relation_member_count": 0,
+        "tags": {
+          "building": "yes",
+          "golf": "clubhouse"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209483110,
+        "golf": "hole",
+        "name": null,
+        "ref": "1",
+        "golf:hole": null,
+        "geometry_vertex_count": 4,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "hole",
+          "par": "5",
+          "ref": "1"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209483111,
+        "golf": "hole",
+        "name": null,
+        "ref": "2",
+        "golf:hole": null,
+        "geometry_vertex_count": 3,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "hole",
+          "par": "4",
+          "ref": "2"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209483112,
+        "golf": "hole",
+        "name": null,
+        "ref": "3",
+        "golf:hole": null,
+        "geometry_vertex_count": 2,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "hole",
+          "par": "3",
+          "ref": "3"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209483113,
+        "golf": "hole",
+        "name": null,
+        "ref": "4",
+        "golf:hole": null,
+        "geometry_vertex_count": 3,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "hole",
+          "par": "4",
+          "ref": "4"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209483114,
+        "golf": "hole",
+        "name": null,
+        "ref": "5",
+        "golf:hole": null,
+        "geometry_vertex_count": 3,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "hole",
+          "par": "4",
+          "ref": "5"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209483115,
+        "golf": "hole",
+        "name": null,
+        "ref": "6",
+        "golf:hole": null,
+        "geometry_vertex_count": 4,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "hole",
+          "par": "5",
+          "ref": "6"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209483116,
+        "golf": "hole",
+        "name": null,
+        "ref": "7",
+        "golf:hole": null,
+        "geometry_vertex_count": 3,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "hole",
+          "par": "4",
+          "ref": "7"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209483117,
+        "golf": "hole",
+        "name": null,
+        "ref": "8",
+        "golf:hole": null,
+        "geometry_vertex_count": 2,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "hole",
+          "par": "3",
+          "ref": "8"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209483118,
+        "golf": "hole",
+        "name": null,
+        "ref": "9",
+        "golf:hole": null,
+        "geometry_vertex_count": 3,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "hole",
+          "par": "4",
+          "ref": "9"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209483119,
+        "golf": "hole",
+        "name": null,
+        "ref": "10",
+        "golf:hole": null,
+        "geometry_vertex_count": 3,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "hole",
+          "par": "4",
+          "ref": "10"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209483120,
+        "golf": "hole",
+        "name": null,
+        "ref": "11",
+        "golf:hole": null,
+        "geometry_vertex_count": 4,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "hole",
+          "par": "4",
+          "ref": "11"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209483121,
+        "golf": "hole",
+        "name": null,
+        "ref": "12",
+        "golf:hole": null,
+        "geometry_vertex_count": 4,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "hole",
+          "par": "5",
+          "ref": "12"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209483122,
+        "golf": "hole",
+        "name": null,
+        "ref": "13",
+        "golf:hole": null,
+        "geometry_vertex_count": 3,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "hole",
+          "par": "4",
+          "ref": "13"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209483123,
+        "golf": "hole",
+        "name": null,
+        "ref": "14",
+        "golf:hole": null,
+        "geometry_vertex_count": 4,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "hole",
+          "par": "5",
+          "ref": "14"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209483124,
+        "golf": "hole",
+        "name": null,
+        "ref": "15",
+        "golf:hole": null,
+        "geometry_vertex_count": 2,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "hole",
+          "par": "3",
+          "ref": "15"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209483125,
+        "golf": "hole",
+        "name": null,
+        "ref": "16",
+        "golf:hole": null,
+        "geometry_vertex_count": 3,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "hole",
+          "par": "4",
+          "ref": "16"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209483126,
+        "golf": "hole",
+        "name": null,
+        "ref": "17",
+        "golf:hole": null,
+        "geometry_vertex_count": 2,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "hole",
+          "par": "3",
+          "ref": "17"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209483127,
+        "golf": "hole",
+        "name": null,
+        "ref": "18",
+        "golf:hole": null,
+        "geometry_vertex_count": 4,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "hole",
+          "par": "5",
+          "ref": "18"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209759227,
+        "golf": "green",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 15,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "green"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209759228,
+        "golf": "bunker",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 17,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "bunker"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209759229,
+        "golf": "bunker",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 24,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "bunker"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209759230,
+        "golf": "bunker",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 21,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "bunker"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209759231,
+        "golf": "bunker",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 21,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "bunker"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209759232,
+        "golf": "bunker",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 23,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "bunker"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209759233,
+        "golf": "bunker",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 21,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "bunker"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209759234,
+        "golf": "bunker",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 21,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "bunker"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209759235,
+        "golf": "bunker",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 22,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "bunker"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209759236,
+        "golf": "green",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 20,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "green"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209759237,
+        "golf": "fairway",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 82,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "fairway"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209759238,
+        "golf": "bunker",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 16,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "bunker"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209759239,
+        "golf": "bunker",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 23,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "bunker"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209759240,
+        "golf": "bunker",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 43,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "bunker"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209759241,
+        "golf": "bunker",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 23,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "bunker"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209759243,
+        "golf": "tee",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 8,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "tee"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209759244,
+        "golf": "tee",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 7,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "tee"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209759245,
+        "golf": "green",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 14,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "green"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209759246,
+        "golf": "bunker",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 30,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "bunker"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209759247,
+        "golf": "bunker",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 32,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "bunker"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209759248,
+        "golf": "bunker",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 23,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "bunker"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209759249,
+        "golf": "tee",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 14,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "tee"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209759251,
+        "golf": "bunker",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 26,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "bunker"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209759252,
+        "golf": "green",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 20,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "green"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209759253,
+        "golf": "bunker",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 34,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "bunker"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209759255,
+        "golf": "bunker",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 37,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "bunker"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209759256,
+        "golf": "bunker",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 35,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "bunker"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209759257,
+        "golf": "green",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 12,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "green"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209759258,
+        "golf": "bunker",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 16,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "bunker"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209759259,
+        "golf": "bunker",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 16,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "bunker"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209759261,
+        "golf": "tee",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 10,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "tee"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209759262,
+        "golf": "green",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 14,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "green"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209759263,
+        "golf": "bunker",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 27,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "bunker"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209759265,
+        "golf": "bunker",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 20,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "bunker"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209759266,
+        "golf": "tee",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 5,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "tee"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209759268,
+        "golf": "bunker",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 23,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "bunker"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209759270,
+        "golf": "bunker",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 20,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "bunker"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209759271,
+        "golf": "bunker",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 18,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "bunker"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209759272,
+        "golf": "bunker",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 24,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "bunker"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209759273,
+        "golf": "bunker",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 38,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "bunker"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209759274,
+        "golf": "green",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 17,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "green"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209759275,
+        "golf": "bunker",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 25,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "bunker"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209759276,
+        "golf": "bunker",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 28,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "bunker"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209759278,
+        "golf": "bunker",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 20,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "bunker"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209759279,
+        "golf": "green",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 17,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "green"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209759280,
+        "golf": "tee",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 6,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "tee"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209759281,
+        "golf": "tee",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 5,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "tee"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209759282,
+        "golf": "green",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 20,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "green"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209759284,
+        "golf": "bunker",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 48,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "bunker"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209759285,
+        "golf": "bunker",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 31,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "bunker"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209759287,
+        "golf": "tee",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 15,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "tee"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209759288,
+        "golf": "tee",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 12,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "tee"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209759289,
+        "golf": "fairway",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 42,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "fairway"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209759290,
+        "golf": "green",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 9,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "green"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209759291,
+        "golf": "bunker",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 17,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "bunker"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209759292,
+        "golf": "bunker",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 22,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "bunker"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209759293,
+        "golf": "bunker",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 24,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "bunker"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209759294,
+        "golf": "bunker",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 18,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "bunker"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209759295,
+        "golf": "green",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 16,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "green"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209759296,
+        "golf": "bunker",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 22,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "bunker"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209759297,
+        "golf": "bunker",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 24,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "bunker"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209759298,
+        "golf": "bunker",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 21,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "bunker"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209759299,
+        "golf": "bunker",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 11,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "bunker"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209769468,
+        "golf": "fairway",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 27,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "fairway"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209769469,
+        "golf": "tee",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 7,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "tee"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209769470,
+        "golf": "green",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 18,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "green"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209769471,
+        "golf": "green",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 16,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "green"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209769473,
+        "golf": "bunker",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 33,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "bunker"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209769474,
+        "golf": "bunker",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 26,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "bunker"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209769475,
+        "golf": "tee",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 10,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "tee"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209769477,
+        "golf": "green",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 14,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "green"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209769478,
+        "golf": "bunker",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 26,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "bunker"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209769479,
+        "golf": "bunker",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 40,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "bunker"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209769480,
+        "golf": "bunker",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 11,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "bunker"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209769481,
+        "golf": "bunker",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 18,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "bunker"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209769482,
+        "golf": "green",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 15,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "green"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209769483,
+        "golf": "bunker",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 23,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "bunker"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209769485,
+        "golf": "bunker",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 41,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "bunker"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209769486,
+        "golf": "bunker",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 43,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "bunker"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209769487,
+        "golf": "water_hazard",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 38,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "water_hazard",
+          "natural": "water"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209769488,
+        "golf": "tee",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 5,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "tee"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209769489,
+        "golf": "tee",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 5,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "tee"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209769490,
+        "golf": "tee",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 5,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "tee"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209769491,
+        "golf": "water_hazard",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 18,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "water_hazard",
+          "natural": "water"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209769492,
+        "golf": "bunker",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 26,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "bunker"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209769493,
+        "golf": "fairway",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 42,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "fairway"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209769494,
+        "golf": "bunker",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 25,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "bunker"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1209769495,
+        "golf": "bunker",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 15,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "bunker"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1232441169,
+        "golf": "tee",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 5,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "tee"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1232441170,
+        "golf": "tee",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 5,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "tee"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1232441171,
+        "golf": "tee",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 5,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "tee"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1232441172,
+        "golf": "tee",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 5,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "tee"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1232441173,
+        "golf": "tee",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 5,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "tee"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1232441174,
+        "golf": "tee",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 5,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "tee"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1232441175,
+        "golf": "tee",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 5,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "tee"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1232441176,
+        "golf": "tee",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 5,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "tee"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1232441177,
+        "golf": "tee",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 5,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "tee"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1232441178,
+        "golf": "water_hazard",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 15,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "water_hazard",
+          "natural": "water"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1232441179,
+        "golf": "tee",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 5,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "tee"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1232441180,
+        "golf": "tee",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 5,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "tee"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1232441182,
+        "golf": "green",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 23,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "green"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1232441183,
+        "golf": "bunker",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 26,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "bunker"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1232441184,
+        "golf": "bunker",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 12,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "bunker"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1232441185,
+        "golf": "bunker",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 23,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "bunker"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1232441186,
+        "golf": "bunker",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 26,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "bunker"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1232441187,
+        "golf": "bunker",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 24,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "bunker"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1232441188,
+        "golf": "bunker",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 38,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "bunker"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1232441189,
+        "golf": "tee",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 5,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "tee"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1232441190,
+        "golf": "tee",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 5,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "tee"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1232441192,
+        "golf": "tee",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 5,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "tee"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1232441193,
+        "golf": "tee",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 5,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "tee"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1232441194,
+        "golf": "tee",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 5,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "tee"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1232441195,
+        "golf": "tee",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 5,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "tee"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1232441196,
+        "golf": "tee",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 5,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "tee"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1232441197,
+        "golf": "tee",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 5,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "tee"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1232441198,
+        "golf": "tee",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 5,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "tee"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1232441199,
+        "golf": "tee",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 5,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "tee"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1232441200,
+        "golf": "tee",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 5,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "tee"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1232441201,
+        "golf": "tee",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 5,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "tee"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1232441202,
+        "golf": "tee",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 5,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "tee"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1232441203,
+        "golf": "green",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 18,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "green"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1232441204,
+        "golf": "bunker",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 18,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "bunker"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1232441205,
+        "golf": "bunker",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 20,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "bunker"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1232441206,
+        "golf": "tee",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 5,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "tee"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1232441207,
+        "golf": "bunker",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 20,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "bunker"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1232441208,
+        "golf": "water_hazard",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 13,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "water_hazard",
+          "natural": "water"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1232441209,
+        "golf": "tee",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 5,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "tee"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1232441210,
+        "golf": "tee",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 5,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "tee"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1232441211,
+        "golf": "tee",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 5,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "tee"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1232441212,
+        "golf": "tee",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 5,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "tee"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1232441213,
+        "golf": "tee",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 5,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "tee"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1232443765,
+        "golf": "tee",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 5,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "tee"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1232443766,
+        "golf": "tee",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 5,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "tee"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1232443767,
+        "golf": "tee",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 5,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "tee"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1232443768,
+        "golf": "green",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 19,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "green"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1232443769,
+        "golf": "tee",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 5,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "tee"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1232443770,
+        "golf": "tee",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 5,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "tee"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1232443771,
+        "golf": "tee",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 5,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "tee"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1232443772,
+        "golf": "tee",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 5,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "tee"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1232443773,
+        "golf": "tee",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 5,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "tee"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1232443774,
+        "golf": "tee",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 5,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "tee"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1232443775,
+        "golf": "tee",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 5,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "tee"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1232443776,
+        "golf": "tee",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 5,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "tee"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1232443777,
+        "golf": "tee",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 5,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "tee"
+        }
+      },
+      {
+        "osm_type": "way",
+        "osm_id": 1232443778,
+        "golf": "water_hazard",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 32,
+        "relation_member_count": 0,
+        "tags": {
+          "golf": "water_hazard",
+          "natural": "water"
+        }
+      },
+      {
+        "osm_type": "relation",
+        "osm_id": 16842502,
+        "golf": "fairway",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 0,
+        "relation_member_count": 2,
+        "tags": {
+          "golf": "fairway",
+          "type": "multipolygon"
+        }
+      },
+      {
+        "osm_type": "relation",
+        "osm_id": 16842503,
+        "golf": "fairway",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 0,
+        "relation_member_count": 2,
+        "tags": {
+          "golf": "fairway",
+          "type": "multipolygon"
+        }
+      },
+      {
+        "osm_type": "relation",
+        "osm_id": 16842504,
+        "golf": "fairway",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 0,
+        "relation_member_count": 2,
+        "tags": {
+          "golf": "fairway",
+          "type": "multipolygon"
+        }
+      },
+      {
+        "osm_type": "relation",
+        "osm_id": 16842505,
+        "golf": "fairway",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 0,
+        "relation_member_count": 2,
+        "tags": {
+          "golf": "fairway",
+          "type": "multipolygon"
+        }
+      },
+      {
+        "osm_type": "relation",
+        "osm_id": 16842506,
+        "golf": "fairway",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 0,
+        "relation_member_count": 2,
+        "tags": {
+          "golf": "fairway",
+          "type": "multipolygon"
+        }
+      },
+      {
+        "osm_type": "relation",
+        "osm_id": 16842507,
+        "golf": "fairway",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 0,
+        "relation_member_count": 2,
+        "tags": {
+          "golf": "fairway",
+          "type": "multipolygon"
+        }
+      },
+      {
+        "osm_type": "relation",
+        "osm_id": 16842508,
+        "golf": "fairway",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 0,
+        "relation_member_count": 2,
+        "tags": {
+          "golf": "fairway",
+          "type": "multipolygon"
+        }
+      },
+      {
+        "osm_type": "relation",
+        "osm_id": 16842509,
+        "golf": "fairway",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 0,
+        "relation_member_count": 2,
+        "tags": {
+          "golf": "fairway",
+          "type": "multipolygon"
+        }
+      },
+      {
+        "osm_type": "relation",
+        "osm_id": 16842510,
+        "golf": "fairway",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 0,
+        "relation_member_count": 2,
+        "tags": {
+          "golf": "fairway",
+          "type": "multipolygon"
+        }
+      },
+      {
+        "osm_type": "relation",
+        "osm_id": 16842511,
+        "golf": "fairway",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 0,
+        "relation_member_count": 2,
+        "tags": {
+          "golf": "fairway",
+          "type": "multipolygon"
+        }
+      },
+      {
+        "osm_type": "relation",
+        "osm_id": 16842512,
+        "golf": "fairway",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 0,
+        "relation_member_count": 2,
+        "tags": {
+          "golf": "fairway",
+          "type": "multipolygon"
+        }
+      },
+      {
+        "osm_type": "relation",
+        "osm_id": 16842533,
+        "golf": "fairway",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 0,
+        "relation_member_count": 2,
+        "tags": {
+          "golf": "fairway",
+          "type": "multipolygon"
+        }
+      },
+      {
+        "osm_type": "relation",
+        "osm_id": 16842534,
+        "golf": "fairway",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 0,
+        "relation_member_count": 2,
+        "tags": {
+          "golf": "fairway",
+          "type": "multipolygon"
+        }
+      },
+      {
+        "osm_type": "relation",
+        "osm_id": 16842535,
+        "golf": "fairway",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 0,
+        "relation_member_count": 2,
+        "tags": {
+          "golf": "fairway",
+          "type": "multipolygon"
+        }
+      },
+      {
+        "osm_type": "relation",
+        "osm_id": 19778477,
+        "golf": "fairway",
+        "name": null,
+        "ref": null,
+        "golf:hole": null,
+        "geometry_vertex_count": 0,
+        "relation_member_count": 2,
+        "tags": {
+          "golf": "fairway",
+          "type": "multipolygon"
+        }
+      }
+    ],
+    "limitations": [
+      "OSM feature counts are element counts, not guaranteed counts of physical objects.",
+      "A relation may represent a multipolygon or grouped feature; member rings must be reconstructed before measuring its footprint.",
+      "A feature without an explicit hole reference is not automatically assigned to a hole.",
+      "Missing OSM features are unknown, not evidence that the real course lacks them.",
+      "A successful HTTP response and valid JSON do not establish real-world geometric accuracy."
+    ]
+  }
+}
