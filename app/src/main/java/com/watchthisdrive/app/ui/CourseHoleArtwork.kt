@@ -203,7 +203,7 @@ fun CourseHoleArtworkPanel(
     LaunchedEffect(course.elementType, course.id, geometry, selected, reconstructedHoles, aerialReference, aerialLoading) {
         val hole = reconstructedHoles.firstOrNull { it.number == selected }
         val imageryToken = aerialReference?.cacheToken.orEmpty()
-        if (hole != null && !aerialLoading && renderedTokens[hole.number] != imageryToken)
+        if (hole != null && !aerialLoading && renderedTokens[hole.number] != imageryToken) {
             generating = true
             try {
                 val rendered = withContext(Dispatchers.Default) {
