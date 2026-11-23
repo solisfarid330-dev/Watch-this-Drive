@@ -44,6 +44,7 @@ import com.watchthisdrive.app.ui.ClubDistancesSettings
 import com.watchthisdrive.app.ui.CourseHoleArtworkPanel
 import com.watchthisdrive.app.ui.CourseHoleArtworkForHole
 import com.watchthisdrive.app.data.HoleReconstructor
+import com.watchthisdrive.app.data.ReconstructedHole
 import com.watchthisdrive.app.ui.GolfTheme
 import java.util.Locale
 import kotlinx.coroutines.Dispatchers
@@ -73,6 +74,9 @@ private fun WatchThisDriveApp() {
     var pars by remember(activeCourse?.id) { mutableStateOf((1..18).map { scorePrefs.getInt("par_$it", 4) }) }
     var courseGeometry by remember(activeCourse?.id) { mutableStateOf<CourseGeometry?>(null) }
     var geometryError by remember(activeCourse?.id) { mutableStateOf<String?>(null) }
+    val reconstructedHoles = remember(courseGeometry) {
+        courseGeometry?.let { HoleReconstructor.reconstruct(it) }.orEmpty()
+    }
     LaunchedEffect(activeCourse?.id) {
         courseGeometry = null
         geometryError = null
@@ -91,23 +95,6 @@ private fun WatchThisDriveApp() {
                 }
             }
         }
-    }
-    LaunchedEffect(courseGeometry, activeCourse?.id) {
-        val geometry = courseGeometry ?: return@LaunchedEffect
-        val courseId = activeCourse?.id ?: return@LaunchedEffect
-        val preferences = context.getSharedPreferences("watch_this_drive_scorecard_$courseId", android.content.Context.MODE_PRIVATE)
-        val mappedPars = HoleReconstructor.reconstruct(geometry).associate { it.number to it.par }
-        val updated = pars.toMutableList()
-        var changed = false
-        for (hole in 1..18) {
-            val mappedPar = mappedPars[hole] ?: continue
-            if (mappedPar in 3..6 && !preferences.contains("par_$hole")) {
-                updated[hole - 1] = mappedPar
-                preferences.edit().putInt("par_$hole", mappedPar).apply()
-                changed = true
-            }
-        }
-        if (changed) pars = updated
     }
     var location by remember { mutableStateOf<Location?>(null) }
     var hasLocationPermission by remember {
@@ -211,13 +198,11 @@ private fun WatchThisDriveApp() {
         }
     }
 
-    LaunchedEffect(courseGeometry, activeCourse?.id) {
-        val geometry = courseGeometry ?: return@LaunchedEffect
-        val reconstructed = HoleReconstructor.reconstruct(geometry)
+    LaunchedEffect(reconstructedHoles, activeCourse?.id) {
         val updated = pars.toMutableList()
         var changed = false
         val editor = scorePrefs.edit()
-        reconstructed.forEach { hole ->
+        reconstructedHoles.forEach { hole ->
             val index = hole.number - 1
             if (index in 0..17 && hole.par != null && !scorePrefs.contains("par_${hole.number}")) {
                 updated[index] = hole.par
@@ -330,6 +315,7 @@ private fun WatchThisDriveApp() {
                                 activeHole = activeHole,
                                 onHoleSelected = { activeHole = it },
                                 courseGeometry = courseGeometry,
+                                reconstructedHoles = reconstructedHoles,
                                 geometryError = geometryError,
                                 scores = scores,
                                 pars = pars,
@@ -394,6 +380,7 @@ private fun RoundHubScreen(
     activeHole: Int,
     onHoleSelected: (Int) -> Unit,
     courseGeometry: CourseGeometry?,
+    reconstructedHoles: List<ReconstructedHole>,
     geometryError: String?,
     scores: List<Int>,
     pars: List<Int>,
@@ -414,8 +401,7 @@ private fun RoundHubScreen(
                 TextButton(onClick = { onHoleSelected((activeHole + 1).coerceAtMost(18)) }, enabled = activeHole < 18) { Text("NEXT") }
             }
         }
-        val reconstructed = remember(courseGeometry) { courseGeometry?.let { HoleReconstructor.reconstruct(it) }.orEmpty() }
-        val holeData = reconstructed.firstOrNull { it.number == activeHole }
+        val holeData = reconstructedHoles.firstOrNull { it.number == activeHole }
         Card(
             Modifier.fillMaxWidth().padding(horizontal = 14.dp),
             colors = CardDefaults.cardColors(containerColor = Color(0xFF1D2A22)),
