@@ -325,6 +325,7 @@ private fun WatchThisDriveApp() {
                             RoundHubScreen(
                                 course = activeCourse!!,
                                 location = location,
+                                locationError = locationError,
                                 mapTarget = mapTarget,
                                 activeHole = activeHole,
                                 onHoleSelected = { activeHole = it },
@@ -388,6 +389,7 @@ private fun EmptyRoundScreen(onFindCourse: () -> Unit) {
 private fun RoundHubScreen(
     course: GolfCourse,
     location: Location?,
+    locationError: String?,
     mapTarget: Location?,
     activeHole: Int,
     onHoleSelected: (Int) -> Unit,
@@ -453,6 +455,7 @@ private fun RoundHubScreen(
         CaddyScreen(
             course = course,
             location = location,
+            locationError = locationError,
             onLocate = onLocate,
             onFindCourse = onFindCourse,
             activeHole = activeHole,
