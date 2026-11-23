@@ -18,7 +18,7 @@ import kotlin.math.*
 
 /** Rich tee-bottom/green-top artwork, fitted to the complete reconstructed hole. */
 internal object CourseHoleArtworkRenderer {
-    private const val VERSION = 13
+    private const val VERSION = 14
     private const val WIDTH = 1200
     private const val HEIGHT = 1800
     private const val LEFT = 48.0
@@ -74,16 +74,19 @@ internal object CourseHoleArtworkRenderer {
             return XY(e * vx + n * vy, e * ux + n * uy)
         }
         val projected = geographic.map(::local)
-        // Nearby water and landscape features belong in the viewport, but a long
-        // river or woodland boundary must not zoom the playable hole into a sliver.
-        // Keep framing focused around the tee-green axis; full feature paths are
-        // still drawn at their real coordinates and naturally clipped by canvas.
-        // Use a deliberately tight tee-to-green corridor for the camera frame.
-        // Outlying mapped woodland, water and adjacent-hole features are clipped
-        // rather than shrinking the playable hole to fit unrelated geometry.
+        // Fit the actual playable footprint, including the full lateral extent
+        // of mapped doglegs and fairway bends. Do not let distant landscape
+        // polygons or long water features determine the zoom level.
+        val coreGeographic = buildList {
+            add(hole.tee); add(hole.green); addAll(hole.greenBoundary)
+            addAll(hole.fairwayEstimate)
+            hole.mappedFairways.forEach { addAll(it.points) }
+            hole.bunkers.forEach { addAll(it.points) }
+        }.distinct()
+        val coreProjected = coreGeographic.map(::local)
         val longitudinalPadding = (length * 0.12).coerceIn(25.0, 55.0)
-        val framing = projected.filter {
-            it.x in -45.0..45.0 && it.y in -longitudinalPadding..(length + longitudinalPadding)
+        val framing = coreProjected.filter {
+            it.y in -longitudinalPadding..(length + longitudinalPadding)
         }
         val minX = min(-32.0, framing.minOfOrNull { it.x } ?: -32.0)
         val maxX = max(32.0, framing.maxOfOrNull { it.x } ?: 32.0)
@@ -404,15 +407,19 @@ internal object CourseHoleArtworkRenderer {
             return XY(e * vx + n * vy, e * ux + n * uy)
         }
         val projected = geographic.map(::local)
-        // Use a deliberately tight tee-to-green corridor for the camera frame.
-        // Outlying mapped woodland, water and adjacent-hole features are clipped
-        // rather than shrinking the playable hole to fit unrelated geometry.
+        val coreGeographic = buildList {
+            add(hole.tee); add(hole.green); addAll(hole.greenBoundary)
+            addAll(hole.fairwayEstimate)
+            hole.mappedFairways.forEach { addAll(it.points) }
+            hole.bunkers.forEach { addAll(it.points) }
+        }.distinct()
+        val coreProjected = coreGeographic.map(::local)
         val longitudinalPadding = (length * 0.12).coerceIn(25.0, 55.0)
-        val framing = projected.filter {
-            it.x in -85.0..85.0 && it.y in -longitudinalPadding..(length + longitudinalPadding)
+        val framing = coreProjected.filter {
+            it.y in -longitudinalPadding..(length + longitudinalPadding)
         }
-        val minX = min(-40.0, framing.minOfOrNull { it.x } ?: -40.0)
-        val maxX = max(40.0, framing.maxOfOrNull { it.x } ?: 40.0)
+        val minX = min(-32.0, framing.minOfOrNull { it.x } ?: -32.0)
+        val maxX = max(32.0, framing.maxOfOrNull { it.x } ?: 32.0)
         val minY = min(-longitudinalPadding, framing.minOfOrNull { it.y } ?: -longitudinalPadding)
         val maxY = max(length + longitudinalPadding, framing.maxOfOrNull { it.y } ?: (length + longitudinalPadding))
         val rangeX = (maxX - minX).coerceAtLeast(80.0)
