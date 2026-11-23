@@ -254,19 +254,28 @@ object CourseGeometryLoader {
         return states[value]
     }
 
-    private fun mergeProviderFeatures(
+    internal fun mergeProviderFeatures(
         preferred: List<CourseFeature>,
         fallback: List<CourseFeature>
     ): List<CourseFeature> {
         val result = preferred.toMutableList()
         fallback.forEach { candidate ->
-            val duplicate = result.any { existing ->
+            val duplicateIndex = result.indexOfFirst { existing ->
                 existing.featureType == candidate.featureType &&
                     (existing.holeNumber == null || candidate.holeNumber == null ||
                         existing.holeNumber == candidate.holeNumber) &&
                     featureCentersWithin(existing, candidate, 14.0)
             }
-            if (!duplicate) result += candidate
+            if (duplicateIndex < 0) {
+                result += candidate
+            } else {
+                // Direct OSM geometry must replace a coincident model prediction.
+                // Zomma remains valuable for features OSM does not contain.
+                val existing = result[duplicateIndex]
+                if (existing.isPredicted && !candidate.isPredicted) {
+                    result[duplicateIndex] = candidate
+                }
+            }
         }
         return result.distinctBy { Triple(it.elementType, it.id, it.featureType) }
     }
