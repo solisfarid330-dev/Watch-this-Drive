@@ -151,7 +151,8 @@ def spatial_train_test_masks(y, x, block_px=64, buffer_blocks=1):
     gy, gx = np.mgrid[0:height, 0:width]
     heldout_grid = spatial_holdout_mask(gy, gx, block_px=1)
     buffered_grid = ndimage.binary_dilation(
-        heldout_grid, iterations=buffer_blocks, border_value=0
+        heldout_grid, structure=np.ones((3, 3), dtype=bool),
+        iterations=buffer_blocks, border_value=0
     )
     is_test = heldout_grid[by, bx]
     is_train = ~buffered_grid[by, bx]
