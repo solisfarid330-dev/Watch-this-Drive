@@ -49,10 +49,3 @@ jobs:
                   summary[marker] = {"unique_candidates": unique, "ambiguous_shared": ambiguous, "closer_to_other_hole": excluded}
               print(json.dumps({"course": path.stem, "holes": report["hole_count"], "markers": summary}, sort_keys=True))
           PY
-
-      - name: Upload association audit reports
-        uses: actions/upload-artifact@v4
-        with:
-          name: course-hole-association-audits
-          path: association-audits/*.json
-          if-no-files-found: error
