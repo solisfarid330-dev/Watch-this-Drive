@@ -40,18 +40,11 @@ jobs:
           MAPTILER_API_KEY: ${{ secrets.MAPTILER_API_KEY }}
         run: gradle --no-daemon clean assembleDebug
 
-      - name: Upload research debug APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: watch-this-drive-research-debug-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: error
-          retention-days: 14
 
-  parser-instrumentation-tests:
-    name: Parser tests on Android emulator
+  parser-unit-tests:
+    name: Parser tests (no emulator required)
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 20
     steps:
       - name: Check out research branch
         uses: actions/checkout@v4
@@ -67,13 +60,5 @@ jobs:
         with:
           gradle-version: "8.9"
 
-      - name: Run parser instrumentation tests
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 35
-          target: google_apis
-          arch: x86_64
-          profile: pixel_2
-          disable-animations: true
-          emulator-options: -no-window -no-audio -no-boot-anim
-          script: gradle --no-daemon connectedDebugAndroidTest
+      - name: Run parser unit tests
+        run: gradle --no-daemon testDebugUnitTest
