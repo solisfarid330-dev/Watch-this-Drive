@@ -30,7 +30,7 @@ data class CourseFeature(
     val geometryStatus: String = "unverified"
 ) {
     val hasUsableGeometry: Boolean
-        get() = when (geometryType) {
+        get() = !geometryStatus.startsWith("invalid_or_incomplete") && when (geometryType) {
             CourseGeometryType.POINT -> points.size == 1
             CourseGeometryType.LINE -> points.size >= 2
             CourseGeometryType.POLYGON -> rings.isNotEmpty() && rings.first().size >= 4
@@ -154,8 +154,13 @@ object CourseGeometryLoader {
                 geometryType = parsed.geometryType,
                 rings = parsed.rings,
                 polygons = parsed.polygons,
-                geometryStatus = if (parsed.geometryType == CourseGeometryType.POLYGON ||
-                    parsed.geometryType == CourseGeometryType.MULTI_POLYGON) "ring_closure_area_self_intersection_and_inner_containment_checked" else "source_geometry"
+                geometryStatus = when {
+                    parsed.error != null -> "invalid_or_incomplete: ${parsed.error}"
+                    parsed.geometryType == CourseGeometryType.POLYGON ||
+                        parsed.geometryType == CourseGeometryType.MULTI_POLYGON ->
+                        "ring_closure_area_self_intersection_and_inner_containment_checked"
+                    else -> "source_geometry"
+                }
             ))
             if (parsed.error != null) relationErrors.add("$elementType/$id: ${parsed.error}")
         }
@@ -178,7 +183,10 @@ object CourseGeometryLoader {
             val coords = readCoordinates(geometry)
             // A closed OSM way is not automatically an area. In particular, golf=hole
             // is a centerline and must remain a line even if the source way is closed.
-            if (golfType != "hole" && coords.size >= 4 && coords.first() == coords.last()) {
+            val explicitlyNotArea = tags?.optString("area") == "no"
+            val linearGolfFeature = golfType in setOf("hole", "cartpath")
+            if (!explicitlyNotArea && !linearGolfFeature &&
+                coords.size >= 4 && coords.first() == coords.last()) {
                 val problem = ringProblem(coords)
                 if (problem != null) return Parsed(error = "invalid polygon ring: $problem")
                 return Parsed(CourseGeometryType.POLYGON, coords, listOf(coords))
@@ -231,8 +239,19 @@ object CourseGeometryLoader {
                     inner.dropLast(1).none { pointOnRingBoundary(it, polygon.first()) } &&
                     !ringsIntersect(inner, polygon.first())
             }
-            if (container == null) errors.add("inner ring is not fully contained by any outer ring")
-            else container.add(inner)
+            if (container == null) {
+                errors.add("inner ring is not fully contained by any outer ring")
+            } else if (container.drop(1).any { existing -> ringsOverlap(existing, inner) }) {
+                errors.add("inner rings overlap, touch, or are nested")
+            } else {
+                container.add(inner)
+            }
+        }
+        // OSM multipolygon outer components must not overlap or contain one another.
+        for (i in polygons.indices) for (j in i + 1 until polygons.size) {
+            if (ringsOverlap(polygons[i].first(), polygons[j].first())) {
+                errors.add("outer rings overlap or touch")
+            }
         }
         val immutable = polygons.map { it.toList() }
         val firstOuter = immutable.firstOrNull()?.firstOrNull().orEmpty()
@@ -261,11 +280,19 @@ object CourseGeometryLoader {
             val ring = remaining.removeAt(0).toMutableList()
             var guard = 0
             while (ring.first() != ring.last() && guard++ <= segments.size) {
-                val index = remaining.indexOfFirst { segment ->
-                    segment.first() == ring.last() || segment.last() == ring.last() ||
-                        segment.last() == ring.first() || segment.first() == ring.first()
+                val appendMatches = remaining.indices.filter { index ->
+                    remaining[index].first() == ring.last() || remaining[index].last() == ring.last()
                 }
-                if (index < 0) break
+                val prependMatches = remaining.indices.filter { index ->
+                    remaining[index].first() == ring.first() || remaining[index].last() == ring.first()
+                }
+                val candidates = (appendMatches + prependMatches).distinct()
+                if (candidates.isEmpty()) break
+                if (candidates.size > 1) {
+                    errors.add("ambiguous ring junction: multiple member ways share an endpoint")
+                    break
+                }
+                val index = candidates.single()
                 val segment = remaining.removeAt(index)
                 when {
                     segment.first() == ring.last() -> ring.addAll(segment.drop(1))
@@ -313,16 +340,27 @@ object CourseGeometryLoader {
         return false
     }
 
+    private fun ringsOverlap(a: List<GeoPoint>, b: List<GeoPoint>): Boolean =
+        ringsIntersect(a, b) || pointInRing(a.first(), b) || pointInRing(b.first(), a)
+
     private fun segmentsIntersect(a: GeoPoint, b: GeoPoint, c: GeoPoint, d: GeoPoint): Boolean {
         fun orient(p: GeoPoint, q: GeoPoint, r: GeoPoint): Double =
             (q.longitude - p.longitude) * (r.latitude - p.latitude) -
                 (q.latitude - p.latitude) * (r.longitude - p.longitude)
+        fun onSegment(p: GeoPoint, q: GeoPoint, r: GeoPoint): Boolean =
+            kotlin.math.abs(orient(p, q, r)) <= 1e-12 &&
+                r.longitude >= minOf(p.longitude, q.longitude) - 1e-12 &&
+                r.longitude <= maxOf(p.longitude, q.longitude) + 1e-12 &&
+                r.latitude >= minOf(p.latitude, q.latitude) - 1e-12 &&
+                r.latitude <= maxOf(p.latitude, q.latitude) + 1e-12
         val o1 = orient(a, b, c)
         val o2 = orient(a, b, d)
         val o3 = orient(c, d, a)
         val o4 = orient(c, d, b)
-        return ((o1 > 1e-12 && o2 < -1e-12) || (o1 < -1e-12 && o2 > 1e-12)) &&
-            ((o3 > 1e-12 && o4 < -1e-12) || (o3 < -1e-12 && o4 > 1e-12))
+        if (((o1 > 1e-12 && o2 < -1e-12) || (o1 < -1e-12 && o2 > 1e-12)) &&
+            ((o3 > 1e-12 && o4 < -1e-12) || (o3 < -1e-12 && o4 > 1e-12))) return true
+        return onSegment(a, b, c) || onSegment(a, b, d) ||
+            onSegment(c, d, a) || onSegment(c, d, b)
     }
 
     private fun pointOnRingBoundary(point: GeoPoint, ring: List<GeoPoint>): Boolean {
