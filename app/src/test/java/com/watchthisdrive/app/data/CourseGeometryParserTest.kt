@@ -69,6 +69,19 @@ class CourseGeometryParserTest {
     }
 
     @Test
+    fun rejectsSelfIntersectingAreaAndReportsIt() {
+        val json = """
+            {"elements":[{"type":"way","id":50,"tags":{"golf":"green"},
+            "geometry":[{"lat":0.0,"lon":0.0},{"lat":1.0,"lon":1.0},
+            {"lat":0.0,"lon":1.0},{"lat":1.0,"lon":0.0},
+            {"lat":0.0,"lon":0.0}]}]}
+        """.trimIndent()
+        val result = CourseGeometryLoader.parseGeometry(json, course)
+        assertTrue(result.features.isEmpty())
+        assertTrue(result.incompleteRelations.single().contains("self-intersects"))
+    }
+
+    @Test
     fun closedHoleCenterlineRemainsALine() {
         val json = """
             {"elements":[{"type":"way","id":41,"tags":{"golf":"hole","ref":"2"},
