@@ -119,6 +119,12 @@ fairway or hazard polygons. See
 Key findings:
 - South Padre Hole 1 OSM length is 389.9 yd versus the club's published 396 yd
   (1.54% difference, inside the project's 5% yardage tolerance).
+- A full-course yardage audit now compares all 18 South Padre OSM hole
+  centerlines with the back-tee scorecard: 18/18 are within 5%, with the
+  largest difference 4.30% (Hole 5). The report records the online Hole 18
+  scorecard discrepancy instead of silently treating the club page's
+  inconsistent 541-yard entry as correct; the 410-yard value matches the
+  6,931-yard total and two independent scorecard sources.
 - OSM fairway polygons cover only 55.3% of the South Padre Hole 1 centerline
   and 53.0% at Westwood. The aerials show that OSM alone is incomplete.
 - Four nearby South Padre bunker polygons and the green appear visually
