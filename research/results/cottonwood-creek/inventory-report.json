@@ -51,9 +51,9 @@
         "-97.6856747"
       ]
     },
-    "overpass_endpoint": "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
+    "overpass_endpoint": "https://ovp.dresel.systems/api-na/interpreter",
     "overpass_query": "[out:json][timeout:75];\nway(1337838568);\nmap_to_area -> .courseArea;\n(\n  nwr(area.courseArea)[\"golf\"];\n);\nout body geom;\n",
-    "retrieved_at_utc": "2026-11-24T01:07:19Z",
+    "retrieved_at_utc": "2026-11-24T01:08:26Z",
     "osm_copyright": "\u00a9 OpenStreetMap contributors; data available under ODbL"
   },
   "inventory": {
