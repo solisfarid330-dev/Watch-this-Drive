@@ -133,6 +133,7 @@ def load_scene(geojson_path, metadata_path, tiff_path, hole_ref):
         "features": stack, "analysis": analysis, "fairway": fairway,
         "rough": rough, "rgb": np.stack([red, green, blue], axis=-1).clip(0,255).astype(np.uint8),
         "metadata": meta, "metres_per_pixel": metres_per_pixel,
+        "centerline_distance_m": centerline_distance_m,
     }
 
 
