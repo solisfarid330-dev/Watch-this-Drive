@@ -89,6 +89,24 @@ class CourseDataAuditTests(unittest.TestCase):
         self.assertEqual(result["features"][0]["geometry"]["type"], "LineString")
 
 
+    def test_route_style_hole_relation_exports_linestring(self):
+        payload = {"elements": [{
+            "type": "relation", "id": 76,
+            "tags": {"golf": "hole", "ref": "3", "type": "route"},
+            "members": [
+                {"type": "way", "ref": 1, "role": "", "geometry": [
+                    {"lat": 0, "lon": 0}, {"lat": 0, "lon": 1}]},
+                {"type": "way", "ref": 2, "role": "", "geometry": [
+                    {"lat": 1, "lon": 0}, {"lat": 0, "lon": 0}]},
+                {"type": "way", "ref": 3, "role": "", "geometry": [
+                    {"lat": 0, "lon": 1}, {"lat": 1, "lon": 1}]},
+            ],
+        }]}
+        result = audit.to_geojson(payload)
+        self.assertEqual(result["features"][0]["geometry"]["type"], "LineString")
+        self.assertEqual(len(result["features"][0]["geometry"]["coordinates"]), 4)
+        self.assertEqual(result["metadata"]["relations_or_features_omitted"], [])
+
     def test_closed_hole_way_remains_linestring(self):
         payload = {"elements": [{
             "type": "way", "id": 78, "tags": {"golf": "hole", "ref": "2"},
