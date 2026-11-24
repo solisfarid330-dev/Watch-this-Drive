@@ -170,11 +170,15 @@ object CourseGeometryLoader {
     )
 
     private fun parseDirectGeometry(element: JSONObject): Parsed {
+        val tags = element.optJSONObject("tags")
+        val golfType = tags?.optString("golf").orEmpty()
         val geometry = element.optJSONArray("geometry")
         if (geometry != null) {
             val coords = readCoordinates(geometry)
-            if (coords.size >= 4 && coords.first() == coords.last()) {
-                return Parsed(CourseGeometryType.POLYGON, coords.firstRing(), listOf(coords))
+            // A closed OSM way is not automatically an area. In particular, golf=hole
+            // is a centerline and must remain a line even if the source way is closed.
+            if (golfType != "hole" && coords.size >= 4 && coords.first() == coords.last()) {
+                return Parsed(CourseGeometryType.POLYGON, coords, listOf(coords))
             }
             if (coords.size >= 2) return Parsed(CourseGeometryType.LINE, coords)
         }
@@ -207,8 +211,13 @@ object CourseGeometryLoader {
         if (outers.isEmpty()) return Parsed(error = errors.joinToString("; ").ifBlank { "missing outer ring" })
         val polygons = outers.map { outer -> mutableListOf(outer) }
         for (inner in inners) {
-            val container = polygons.firstOrNull { polygon -> pointInRing(inner.first(), polygon.first()) }
-            if (container == null) errors.add("inner ring is not contained by any outer ring")
+            // Checking every inner vertex prevents a ring whose first point happens
+            // to lie inside an outer from being accepted when the rest lies outside.
+            val container = polygons.firstOrNull { polygon ->
+                inner.dropLast(1).all { pointInRing(it, polygon.first()) } &&
+                    inner.dropLast(1).none { pointOnRingBoundary(it, polygon.first()) }
+            }
+            if (container == null) errors.add("inner ring is not fully contained by any outer ring")
             else container.add(inner)
         }
         val immutable = polygons.map { it.toList() }
@@ -260,6 +269,21 @@ object CourseGeometryLoader {
             else errors.add("could not close a polygon ring")
         }
         return rings
+    }
+
+    private fun pointOnRingBoundary(point: GeoPoint, ring: List<GeoPoint>): Boolean {
+        for (i in 0 until ring.lastIndex) {
+            val a = ring[i]
+            val b = ring[i + 1]
+            val cross = (point.longitude - a.longitude) * (b.latitude - a.latitude) -
+                (point.latitude - a.latitude) * (b.longitude - a.longitude)
+            if (kotlin.math.abs(cross) < 1e-10 &&
+                point.longitude >= minOf(a.longitude, b.longitude) - 1e-10 &&
+                point.longitude <= maxOf(a.longitude, b.longitude) + 1e-10 &&
+                point.latitude >= minOf(a.latitude, b.latitude) - 1e-10 &&
+                point.latitude <= maxOf(a.latitude, b.latitude) + 1e-10) return true
+        }
+        return false
     }
 
     private fun pointInRing(point: GeoPoint, ring: List<GeoPoint>): Boolean {
