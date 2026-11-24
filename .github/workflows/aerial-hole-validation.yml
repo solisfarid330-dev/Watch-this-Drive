@@ -12,6 +12,7 @@ on:
       - "research/naip_seedless_fairway.py"
       - "research/naip_seedless_fairway_checks.py"
       - "research/naip_texture_classifier.py"
+      - "research/test_naip_texture_classifier.py"
       - ".github/workflows/aerial-hole-validation.yml"
   workflow_dispatch:
 permissions:
@@ -232,6 +233,8 @@ jobs:
       - name: Test seed-independent fairway ranking
         run: |
           python research/naip_seedless_fairway_checks.py
+      - name: Test multi-scale texture classifier and spatial split helpers
+        run: python -m unittest research/test_naip_texture_classifier.py -v
       - name: Train multi-scale texture classifier and test South Padre Hole 1 holdout
         run: |
           python research/naip_texture_classifier.py \
