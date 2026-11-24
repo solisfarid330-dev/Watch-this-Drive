@@ -178,3 +178,31 @@ fairway reconstruction, reliable hole-feature assignment, accuracy across
 many holes, or on-device performance. The next research stage is to validate these candidate polygons against
 independently traced reference boundaries and test a seedless fallback for
 courses with no mapped fairway polygons before making a go/no-go decision.
+
+
+## Seed-independent fairway experiment (in progress)
+
+A new candidate generator has been added in `naip_seedless_fairway.py`.
+Unlike the earlier SLIC experiment, it does not use mapped fairway or rough
+polygons to choose image regions. It ranks RGBIR superpixels from NDVI,
+excess-green, multi-scale texture, and distance to the selected hole line,
+then retains coherent components linked to that line. Mapped green, bunker,
+water, and tee areas are used as exclusion masks where available.
+
+The existing fairway and rough polygons are consulted only after selection
+to calculate weak-label overlap diagnostics. They do not affect the selected
+cluster. The experiment is being run on South Padre Holes 1 and 2, Westwood
+Hole 1, and sparse Cottonwood Hole 1. Cottonwood is the critical test because
+it has no mapped fairway polygon to seed the reconstruction.
+
+This is still an experimental heuristic, not a solved segmentation problem.
+A cluster with greener vegetation and lower texture is not automatically a
+fairway; trees, rough, lawns, and other turf can share those properties. The
+result must be judged visually and against independently traced reference
+boundaries before any accuracy claim or Android port. A no-candidate or
+ambiguous result is preferable to silently inventing a boundary.
+
+The image-dependent unit checks are kept separate from the standard-library-
+only offline research test suite. The aerial GitHub Actions workflow installs
+the image-processing dependencies, tests the ranking function, and runs all
+four course/hole examples.
