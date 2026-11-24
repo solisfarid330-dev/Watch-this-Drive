@@ -924,7 +924,7 @@ private fun CourseDetailScreen(
                         )
                         geometry?.incompleteRelations?.takeIf { it.isNotEmpty() }?.let { issues ->
                             Text(
-                                "${issues.size} relation geometries need review; incomplete rings were not silently filled.",
+                                "${issues.size} course geometries need review; incomplete or invalid areas were not silently filled.",
                                 color = Color(0xFFFFCC80),
                                 style = MaterialTheme.typography.bodySmall
                             )
