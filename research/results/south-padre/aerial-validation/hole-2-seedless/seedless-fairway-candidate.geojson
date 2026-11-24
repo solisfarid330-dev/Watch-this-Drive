@@ -1,0 +1,68 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "golf": "fairway_candidate",
+        "hole_ref": "2",
+        "source_osm_hole_id": 1383052942,
+        "method": "Seed-independent RGBIR SLIC ranking + centerline-linked components",
+        "status": "unverified_candidate",
+        "fairway_polygons_used_for_selection": false,
+        "rough_polygons_used_for_selection": false,
+        "imagery": "Texas NAIP 2022"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -97.30302030070816,
+              26.11240162114109
+            ],
+            [
+              -97.30301608381335,
+              26.11240541001642
+            ],
+            [
+              -97.30301608381335,
+              26.112455928342456
+            ],
+            [
+              -97.30302030070816,
+              26.11245971721603
+            ],
+            [
+              -97.30307652597232,
+              26.11245971721603
+            ],
+            [
+              -97.30308074286712,
+              26.112455928342456
+            ],
+            [
+              -97.30308074286712,
+              26.11240541001642
+            ],
+            [
+              -97.30307652597232,
+              26.11240162114109
+            ],
+            [
+              -97.30302030070816,
+              26.11240162114109
+            ]
+          ]
+        ]
+      }
+    }
+  ],
+  "metadata": {
+    "coordinate_reference_system": "EPSG:4326",
+    "status": "candidate_only_not_ground_truth",
+    "warning": "Seed-independent candidate; requires independent reference-boundary validation.",
+    "osm_attribution": "\u00a9 OpenStreetMap contributors",
+    "imagery_attribution": "Texas Geographic Information Office, USDA"
+  }
+}

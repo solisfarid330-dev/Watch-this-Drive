@@ -1,0 +1,50 @@
+{
+  "course_hole": "1",
+  "hole_osm_id": 1337838559,
+  "method": "SLIC superpixels over RGBIR; cluster rank uses NDVI, excess green, multi-scale texture and centerline distance only; retain coherent components near the hole line.",
+  "selection_independence": {
+    "fairway_polygons_used_for_selection": false,
+    "rough_polygons_used_for_selection": false,
+    "mapped_green_bunker_water_tee_used_only_as_exclusions": true,
+    "selection_features": [
+      "NDVI",
+      "excess_green",
+      "multi_scale_texture",
+      "centerline_distance"
+    ]
+  },
+  "image": {
+    "width": 639,
+    "height": 1100,
+    "metres_per_pixel": 0.196
+  },
+  "analysis_pixels": 201026,
+  "superpixel_count": 2760,
+  "selected_cluster": 901,
+  "selected_cluster_score": 8.1018,
+  "cluster_feature_means": {
+    "ndvi": 0.39816,
+    "excess_green": 0.08755,
+    "texture": 0.0106,
+    "centerline_distance_m": 5.18415
+  },
+  "candidate_pixels": 0,
+  "candidate_area_m2": 0.0,
+  "candidate_fraction_of_corridor": 0.0,
+  "centerline_sample_coverage_within_link_distance": 0.0,
+  "retained_components": [],
+  "weak_label_evaluation_only": {
+    "mapped_fairway_seed_pixels": 0,
+    "candidate_overlap_with_mapped_fairway_seed": null,
+    "mapped_rough_seed_pixels": 0,
+    "candidate_overlap_with_mapped_rough_seed": null,
+    "warning": "These are incomplete OSM agreement diagnostics, not independent accuracy estimates. They did not influence candidate selection."
+  },
+  "status": "no_candidate_found",
+  "files": [
+    "seedless-fairway-candidate.jpg",
+    "seedless-clusters.jpg",
+    "seedless-fairway-candidate.geojson",
+    "seedless-report.json"
+  ]
+}
