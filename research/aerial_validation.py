@@ -50,9 +50,9 @@ def main():
     if len(hs)!=1: raise SystemExit(f"Expected one explicitly numbered hole {a.hole_ref}; found {len(hs)}")
     hole=hs[0]; hole_lines=list(lines(hole["geometry"]))
     hole_coords=[point for line in hole_lines for point in line]
+    if len(hole_coords)<2: raise SystemExit("Selected hole has insufficient geometry")
     hp=[mercator(*p) for p in hole_coords]
     lat0=sum(p[1] for p in hole_coords)/len(hole_coords)*math.pi/180
-    if len(hp)<2: raise SystemExit("Selected hole has insufficient geometry")
     minx=min(p[0] for p in hp)-a.buffer_m; maxx=max(p[0] for p in hp)+a.buffer_m
     miny=min(p[1] for p in hp)-a.buffer_m; maxy=max(p[1] for p in hp)+a.buffer_m
     aspect=(maxx-minx)/(maxy-miny); w,h=a.width,a.height
