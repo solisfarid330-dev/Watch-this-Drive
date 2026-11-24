@@ -103,6 +103,24 @@ class CourseGeometryParserTest {
     }
 
     @Test
+    fun assemblesRouteStyleHoleRelationAsLine() {
+        val json = """
+            {"elements":[{"type":"relation","id":70,"tags":{"golf":"hole","ref":"3","type":"route"},
+            "members":[
+              {"type":"way","ref":1,"role":"","geometry":[
+                {"lat":0.0,"lon":0.0},{"lat":0.0,"lon":1.0}]},
+              {"type":"way","ref":2,"role":"","geometry":[
+                {"lat":0.0,"lon":1.0},{"lat":1.0,"lon":1.0}]}
+            ]}]}
+        """.trimIndent()
+        val result = CourseGeometryLoader.parseGeometry(json, course)
+        val hole = result.features.single()
+        assertEquals(CourseGeometryType.LINE, hole.geometryType)
+        assertEquals(3, hole.points.size)
+        assertTrue(hole.hasUsableGeometry)
+    }
+
+    @Test
     fun closedCartPathRemainsALine() {
         val json = """
             {"elements":[{"type":"way","id":42,"tags":{"golf":"cartpath"},
