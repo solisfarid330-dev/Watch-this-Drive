@@ -238,6 +238,10 @@ class CourseGeometryParserTest {
         assertEquals(142, result.features.count { it.geometryType == CourseGeometryType.POLYGON && it.hasUsableGeometry })
         assertEquals(41, result.features.count { it.geometryType == CourseGeometryType.LINE && it.hasUsableGeometry })
         assertEquals(18, result.features.filter { it.featureType == "hole" }.map { it.holeNumber }.toSet().size)
+        val fairwayRelations = result.features.filter { it.elementType == "relation" && it.featureType == "fairway" }
+        assertEquals(16, fairwayRelations.size)
+        assertTrue(fairwayRelations.all { it.geometryType == CourseGeometryType.POLYGON && it.rings.size >= 2 })
+        assertTrue(fairwayRelations.any { it.rings.size == 4 })
         assertTrue(result.features.all { it.hasUsableGeometry })
         assertTrue("Unexpected relation errors: ${result.incompleteRelations}", result.incompleteRelations.isEmpty())
     }
@@ -258,6 +262,9 @@ class CourseGeometryParserTest {
         assertEquals(18, result.features.count { it.geometryType == CourseGeometryType.LINE && it.hasUsableGeometry })
         assertEquals(18, result.features.count { it.geometryType == CourseGeometryType.POINT && it.hasUsableGeometry })
         assertEquals(18, result.features.filter { it.featureType == "hole" }.map { it.holeNumber }.toSet().size)
+        val fairwayRelations = result.features.filter { it.elementType == "relation" && it.featureType == "fairway" }
+        assertEquals(15, fairwayRelations.size)
+        assertTrue(fairwayRelations.all { it.geometryType == CourseGeometryType.POLYGON && it.rings.size == 2 })
         assertTrue(result.features.all { it.hasUsableGeometry })
         assertTrue("Unexpected relation errors: ${result.incompleteRelations}", result.incompleteRelations.isEmpty())
     }
