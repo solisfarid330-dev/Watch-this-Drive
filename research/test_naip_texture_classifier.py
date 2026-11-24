@@ -1,7 +1,7 @@
 import unittest
 import numpy as np
 
-from research.naip_texture_classifier import local_std, metrics, sample_scene, spatial_holdout_mask, spatial_train_test_masks
+from research.naip_texture_classifier import local_std, metrics, sample_scene, spatial_holdout_mask, spatial_train_test_masks, feature_bounds, feature_outside_bounds
 
 
 class TextureClassifierResearchTests(unittest.TestCase):
@@ -16,6 +16,19 @@ class TextureClassifierResearchTests(unittest.TestCase):
         image = np.full((32, 32), 0.42, dtype=np.float32)
         result = local_std(image, 5)
         self.assertTrue(np.allclose(result, 0.0, atol=1e-6))
+
+    def test_feature_bounds_accept_training_distribution(self):
+        training = np.array([[0, 10], [1, 11], [2, 12], [3, 13]], dtype=np.float32)
+        low, high = feature_bounds(training)
+        inside = feature_outside_bounds(np.array([[1.5, 11.5]], dtype=np.float32), low, high)
+        self.assertFalse(np.any(inside))
+
+    def test_feature_bounds_flag_distribution_shift(self):
+        training = np.array([[0, 10], [1, 11], [2, 12], [3, 13]], dtype=np.float32)
+        low, high = feature_bounds(training)
+        shifted = feature_outside_bounds(np.array([[100, 11.5]], dtype=np.float32), low, high)
+        self.assertTrue(shifted[0, 0])
+        self.assertFalse(shifted[0, 1])
 
     def test_metrics_reports_perfect_separation(self):
         y = np.array([0, 0, 1, 1], dtype=np.uint8)
