@@ -186,6 +186,16 @@ def sample_scene(scene, rng, max_per_class=50000, block_px=64):
             scene["features"][test_y, test_x], test_labels)
 
 
+def feature_bounds(training_features):
+    values = np.asarray(training_features, dtype=np.float32)
+    return np.quantile(values, [0.01, 0.99], axis=0)
+
+
+def feature_outside_bounds(sample_features, lower, upper):
+    values = np.asarray(sample_features, dtype=np.float32)
+    return (values < lower) | (values > upper)
+
+
 def metrics(y_true, probability):
     prediction = probability >= 0.5
     tn, fp, fn, tp = confusion_matrix(y_true, prediction, labels=[0,1]).ravel()
@@ -267,12 +277,12 @@ def main():
         "nir_std_3px","nir_std_8px","ndvi_std_5px","centerline_distance_m",
         "texture_coherence","edge_magnitude",
     ]
-    train_low, train_high = np.quantile(x_train, [0.01, 0.99], axis=0)
+    train_low, train_high = feature_bounds(x_train)
     target_flat = target_features.reshape(-1, target_features.shape[-1])
     target_stride = max(1, len(flat_ids) // 50000)
     target_sample_ids = flat_ids[::target_stride]
     target_sample = target_flat[target_sample_ids]
-    outside_bounds = (target_sample < train_low) | (target_sample > train_high)
+    outside_bounds = feature_outside_bounds(target_sample, train_low, train_high)
     target_shift = {
         "sample_pixels": int(len(target_sample)),
         "feature_outside_training_p01_p99_fraction": {
@@ -292,7 +302,7 @@ def main():
     candidate_ids = np.flatnonzero(candidate)
     candidate_sample_ids = candidate_ids[::max(1, len(candidate_ids) // 50000)] if len(candidate_ids) else candidate_ids
     if len(candidate_sample_ids):
-        candidate_outside = (target_flat[candidate_sample_ids] < train_low) | (target_flat[candidate_sample_ids] > train_high)
+        candidate_outside = feature_outside_bounds(target_flat[candidate_sample_ids], train_low, train_high)
         target_shift["candidate_pixels_outside_bounds_on_3_or_more_features_fraction"] = round(
             float((candidate_outside.sum(axis=1) >= 3).mean()), 4
         )
