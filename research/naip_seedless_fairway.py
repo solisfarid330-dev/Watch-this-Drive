@@ -75,6 +75,32 @@ def rank_clusters(ndvi, excess_green, texture, centerline_distance_m):
     return score
 
 
+def score_corridor_pixels(ndvi, excess_green, texture, centerline_distance_m, analysis, percentile=58.0, sigma=2.0):
+    """Return a smoothed, corridor-local candidate mask without fairway labels."""
+    analysis = np.asarray(analysis, dtype=bool)
+    if not analysis.any():
+        raise ValueError("analysis mask is empty")
+
+    def corridor_z(values):
+        values = np.asarray(values, dtype=np.float64)
+        sample = values[analysis]
+        median = float(np.median(sample))
+        mad = float(np.median(np.abs(sample - median)))
+        scale = max(1.4826 * mad, float(np.std(sample)) * 0.25, 1e-6)
+        return (values - median) / scale
+
+    score = (
+        0.32 * corridor_z(ndvi)
+        + 0.28 * corridor_z(excess_green)
+        - 0.20 * corridor_z(texture)
+        - 0.20 * corridor_z(centerline_distance_m)
+    )
+    score[~analysis] = -10.0
+    smoothed = ndimage.gaussian_filter(score, sigma=sigma)
+    threshold = float(np.percentile(smoothed[analysis], percentile))
+    return (smoothed >= threshold) & analysis, smoothed, threshold
+
+
 def rasterize_feature_masks(collection, pixel, width, height):
     masks = {}
     for tag in FEATURE_TAGS:
@@ -249,24 +275,10 @@ def main():
         "centerline_distance_m": average_by_segment(centerline_distance),
     }
     # Score every valid corridor pixel rather than selecting one SLIC label.
-    # A fairway can span many superpixels; single-cluster selection was too brittle.
-    def corridor_robust_z(values):
-        sample = values[analysis]
-        median = float(np.median(sample))
-        mad = float(np.median(np.abs(sample - median)))
-        scale = max(1.4826 * mad, float(np.std(sample)) * 0.25, 1e-6)
-        return (values - median) / scale
-
-    pixel_score = (
-        0.32 * corridor_robust_z(ndvi)
-        + 0.28 * corridor_robust_z(excess_green)
-        - 0.20 * corridor_robust_z(texture)
-        - 0.20 * corridor_robust_z(centerline_distance)
+    raw_candidate, smoothed_score, threshold = score_corridor_pixels(
+        ndvi, excess_green, texture, centerline_distance, analysis,
+        percentile=58.0, sigma=2.0,
     )
-    pixel_score[~analysis] = -10.0
-    smoothed_score = ndimage.gaussian_filter(pixel_score, sigma=2.0)
-    threshold = float(np.percentile(smoothed_score[analysis], 58.0))
-    raw_candidate = (smoothed_score >= threshold) & analysis
 
     # Join mowing/lighting fragments, then keep only substantial components
     # that approach the centreline. Never expand outside valid corridor pixels.
