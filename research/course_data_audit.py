@@ -407,6 +407,43 @@ def _relation_multipolygon_geometry(element: dict) -> tuple[dict | None, list[st
     return {"type": "MultiPolygon", "coordinates": polygons}, errors
 
 
+def _relation_line_geometry(element: dict) -> tuple[dict | None, list[str]]:
+    segments = []
+    errors = []
+    for member in element.get("members") or []:
+        if member.get("type") != "way":
+            continue
+        coords = [
+            [float(point["lon"]), float(point["lat"])]
+            for point in (member.get("geometry") or [])
+            if "lon" in point and "lat" in point
+        ]
+        if len(coords) >= 2:
+            segments.append(coords)
+    if not segments:
+        return None, ["Linear relation has no usable way members"]
+    line = segments.pop(0)
+    while segments:
+        append_matches = [i for i, seg in enumerate(segments)
+                          if seg[0] == line[-1] or seg[-1] == line[-1]]
+        prepend_matches = [i for i, seg in enumerate(segments)
+                           if seg[0] == line[0] or seg[-1] == line[0]]
+        if len(append_matches) > 1 or len(prepend_matches) > 1:
+            return None, ["Linear relation has ambiguous member-way junctions"]
+        if append_matches:
+            index = append_matches[0]
+            segment = segments.pop(index)
+            line.extend(segment[1:] if segment[0] == line[-1] else list(reversed(segment))[1:])
+        elif prepend_matches:
+            index = prepend_matches[0]
+            segment = segments.pop(index)
+            oriented = segment if segment[-1] == line[0] else list(reversed(segment))
+            line = oriented[:-1] + line
+        else:
+            return None, ["Linear relation contains disconnected member ways"]
+    return {"type": "LineString", "coordinates": line}, errors
+
+
 def to_geojson(payload: dict) -> dict:
     """Export nodes, ways, and assembled multipolygon relations.
 
@@ -456,11 +493,19 @@ def to_geojson(payload: dict) -> dict:
                         "osm_id": element.get("id"),
                         "reason": "; ".join(errors) or "Multipolygon geometry could not be assembled",
                     })
+            elif tags.get("type") == "route" and tags.get("golf") in {"hole", "cartpath"}:
+                geometry, errors = _relation_line_geometry(element)
+                if geometry is None:
+                    skipped.append({
+                        "osm_type": "relation",
+                        "osm_id": element.get("id"),
+                        "reason": "; ".join(errors) or "Linear relation could not be assembled",
+                    })
             else:
                 skipped.append({
                     "osm_type": "relation",
                     "osm_id": element.get("id"),
-                    "reason": "Relation is not tagged as a supported multipolygon",
+                    "reason": "Relation is not tagged as a supported multipolygon or golf route",
                 })
 
         if geometry is None:
