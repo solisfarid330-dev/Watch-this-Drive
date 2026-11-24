@@ -248,20 +248,33 @@ def main():
         "texture": average_by_segment(texture),
         "centerline_distance_m": average_by_segment(centerline_distance),
     }
-    scores = rank_clusters(
-        feature_matrix["ndvi"],
-        feature_matrix["excess_green"],
-        feature_matrix["texture"],
-        feature_matrix["centerline_distance_m"],
-    )
-    analysis_fraction = analysis_pixel_count / np.maximum(pixel_count, 1.0)
-    candidate_segment_scores = np.where(analysis_fraction >= 0.35, scores, -np.inf)
-    selected_cluster = int(np.argmax(candidate_segment_scores))
-    raw_candidate = (segments == selected_cluster) & analysis
+    # Score every valid corridor pixel rather than selecting one SLIC label.
+    # A fairway can span many superpixels; single-cluster selection was too brittle.
+    def corridor_robust_z(values):
+        sample = values[analysis]
+        median = float(np.median(sample))
+        mad = float(np.median(np.abs(sample - median)))
+        scale = max(1.4826 * mad, float(np.std(sample)) * 0.25, 1e-6)
+        return (values - median) / scale
 
-    # Retain only coherent components that approach the actual hole line.
-    component_labels, component_count = ndimage.label(raw_candidate)
-    retained = np.zeros_like(raw_candidate)
+    pixel_score = (
+        0.32 * corridor_robust_z(ndvi)
+        + 0.28 * corridor_robust_z(excess_green)
+        - 0.20 * corridor_robust_z(texture)
+        - 0.20 * corridor_robust_z(centerline_distance)
+    )
+    pixel_score[~analysis] = -10.0
+    smoothed_score = ndimage.gaussian_filter(pixel_score, sigma=2.0)
+    threshold = float(np.percentile(smoothed_score[analysis], 58.0))
+    raw_candidate = (smoothed_score >= threshold) & analysis
+
+    # Join mowing/lighting fragments, then keep only substantial components
+    # that approach the centreline. Never expand outside valid corridor pixels.
+    structure = np.ones((5, 5), dtype=bool)
+    closed = ndimage.binary_closing(raw_candidate, structure=structure)
+    closed &= analysis
+    component_labels, component_count = ndimage.label(closed)
+    retained = np.zeros_like(closed)
     component_reports = []
     link_distance = ndimage.distance_transform_edt(~spine) * metres_per_pixel
     for component_id in range(1, component_count + 1):
@@ -271,12 +284,19 @@ def main():
         if area_m2 >= 35.0 and near_line:
             retained |= component
             component_reports.append({"component": component_id, "area_m2": round(area_m2, 1)})
-    candidate = retained
+    candidate = ndimage.binary_opening(retained, structure=np.ones((3, 3)))
+    candidate &= analysis
 
-    # Gentle morphological cleanup; never expand outside the corridor or into mapped hazards.
-    candidate_image = Image.fromarray((candidate.astype(np.uint8) * 255), "L")
-    cleaned = candidate_image.filter(ImageFilter.MedianFilter(3))
-    candidate = (np.asarray(cleaned) > 127) & analysis
+    # SLIC cluster ranking is retained as a diagnostic, not a selection rule.
+    scores = rank_clusters(
+        feature_matrix["ndvi"],
+        feature_matrix["excess_green"],
+        feature_matrix["texture"],
+        feature_matrix["centerline_distance_m"],
+    )
+    analysis_fraction = analysis_pixel_count / np.maximum(pixel_count, 1.0)
+    candidate_segment_scores = np.where(analysis_fraction >= 0.35, scores, -np.inf)
+    selected_cluster = int(np.argmax(candidate_segment_scores))
 
     # Weak-label metrics are computed only after selection. They do not affect the chosen cluster.
     fairway_seed = masks["fairway"] & analysis
@@ -344,18 +364,21 @@ def main():
             "fairway_polygons_used_for_selection": False,
             "rough_polygons_used_for_selection": False,
             "mapped_green_bunker_water_tee_used_only_as_exclusions": True,
-            "selection_features": ["NDVI", "excess_green", "multi_scale_texture", "centerline_distance"],
+            "selection_features": ["NDVI", "excess_green", "multi_scale_texture", "centerline_distance", "per_pixel_corridor_score"],
         },
         "image": {"width": width, "height": height, "metres_per_pixel": round(metres_per_pixel, 3)},
         "analysis_pixels": int(analysis.sum()),
         "superpixel_count": count,
         "selected_cluster": selected_cluster,
-        "selected_cluster_score": round(float(scores[selected_cluster]), 4),
+        "selected_cluster_score_diagnostic_only": round(float(scores[selected_cluster]), 4),
+        "pixel_score_threshold_percentile": 58.0,
+        "pixel_score_threshold": round(threshold, 5),
         "cluster_feature_means": {
             key: round(float(values[selected_cluster]), 5)
             for key, values in feature_matrix.items()
         },
         "candidate_pixels": int(candidate.sum()),
+        "candidate_selection": "per-pixel score threshold; not a single superpixel",
         "candidate_area_m2": round(float(candidate.sum()) * metres_per_pixel ** 2, 1),
         "candidate_fraction_of_corridor": round(float(candidate.sum() / max(int(corridor.sum()), 1)), 4),
         "centerline_sample_coverage_within_link_distance": round(float(np.mean(line_coverage)), 4),
