@@ -10,7 +10,8 @@
       "NDVI",
       "excess_green",
       "multi_scale_texture",
-      "centerline_distance"
+      "centerline_distance",
+      "per_pixel_corridor_score"
     ]
   },
   "image": {
@@ -21,28 +22,55 @@
   "analysis_pixels": 353455,
   "superpixel_count": 2660,
   "selected_cluster": 853,
-  "selected_cluster_score": 7.7672,
+  "selected_cluster_score_diagnostic_only": 7.7672,
+  "pixel_score_threshold_percentile": 58.0,
+  "pixel_score_threshold": 0.15992,
   "cluster_feature_means": {
     "ndvi": 0.39112,
     "excess_green": 0.26911,
     "texture": 0.01707,
     "centerline_distance_m": 12.20414
   },
-  "candidate_pixels": 525,
-  "candidate_area_m2": 41.4,
-  "candidate_fraction_of_corridor": 0.0014,
-  "centerline_sample_coverage_within_link_distance": 0.0,
+  "candidate_pixels": 141286,
+  "candidate_selection": "per-pixel score threshold; not a single superpixel",
+  "candidate_area_m2": 11142.7,
+  "candidate_fraction_of_corridor": 0.3878,
+  "centerline_sample_coverage_within_link_distance": 1.0,
   "retained_components": [
     {
       "component": 1,
-      "area_m2": 41.7
+      "area_m2": 574.3
+    },
+    {
+      "component": 7,
+      "area_m2": 3626.0
+    },
+    {
+      "component": 9,
+      "area_m2": 45.3
+    },
+    {
+      "component": 12,
+      "area_m2": 6684.8
+    },
+    {
+      "component": 18,
+      "area_m2": 36.5
+    },
+    {
+      "component": 27,
+      "area_m2": 98.2
+    },
+    {
+      "component": 34,
+      "area_m2": 87.9
     }
   ],
   "weak_label_evaluation_only": {
     "mapped_fairway_seed_pixels": 62420,
-    "candidate_overlap_with_mapped_fairway_seed": 0.0,
+    "candidate_overlap_with_mapped_fairway_seed": 0.8459,
     "mapped_rough_seed_pixels": 100103,
-    "candidate_overlap_with_mapped_rough_seed": 0.0052,
+    "candidate_overlap_with_mapped_rough_seed": 0.4523,
     "warning": "These are incomplete OSM agreement diagnostics, not independent accuracy estimates. They did not influence candidate selection."
   },
   "status": "unverified_candidate",

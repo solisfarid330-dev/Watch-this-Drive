@@ -10,7 +10,8 @@
       "NDVI",
       "excess_green",
       "multi_scale_texture",
-      "centerline_distance"
+      "centerline_distance",
+      "per_pixel_corridor_score"
     ]
   },
   "image": {
@@ -21,26 +22,62 @@
   "analysis_pixels": 275897,
   "superpixel_count": 2759,
   "selected_cluster": 811,
-  "selected_cluster_score": 6.3425,
+  "selected_cluster_score_diagnostic_only": 6.3425,
+  "pixel_score_threshold_percentile": 58.0,
+  "pixel_score_threshold": 0.1096,
   "cluster_feature_means": {
     "ndvi": 0.24347,
     "excess_green": 0.238,
     "texture": 0.01042,
     "centerline_distance_m": 5.62732
   },
-  "candidate_pixels": 0,
-  "candidate_area_m2": 0.0,
-  "candidate_fraction_of_corridor": 0.0,
-  "centerline_sample_coverage_within_link_distance": 0.0,
-  "retained_components": [],
+  "candidate_pixels": 109033,
+  "candidate_selection": "per-pixel score threshold; not a single superpixel",
+  "candidate_area_m2": 14449.9,
+  "candidate_fraction_of_corridor": 0.3764,
+  "centerline_sample_coverage_within_link_distance": 1.0,
+  "retained_components": [
+    {
+      "component": 1,
+      "area_m2": 7802.4
+    },
+    {
+      "component": 10,
+      "area_m2": 270.2
+    },
+    {
+      "component": 18,
+      "area_m2": 5839.6
+    },
+    {
+      "component": 38,
+      "area_m2": 114.9
+    },
+    {
+      "component": 73,
+      "area_m2": 76.5
+    },
+    {
+      "component": 74,
+      "area_m2": 253.4
+    },
+    {
+      "component": 80,
+      "area_m2": 67.9
+    },
+    {
+      "component": 83,
+      "area_m2": 52.0
+    }
+  ],
   "weak_label_evaluation_only": {
     "mapped_fairway_seed_pixels": 63331,
-    "candidate_overlap_with_mapped_fairway_seed": 0.0,
+    "candidate_overlap_with_mapped_fairway_seed": 0.6389,
     "mapped_rough_seed_pixels": 0,
     "candidate_overlap_with_mapped_rough_seed": null,
     "warning": "These are incomplete OSM agreement diagnostics, not independent accuracy estimates. They did not influence candidate selection."
   },
-  "status": "no_candidate_found",
+  "status": "unverified_candidate",
   "files": [
     "seedless-fairway-candidate.jpg",
     "seedless-clusters.jpg",

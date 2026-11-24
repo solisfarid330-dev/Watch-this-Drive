@@ -10,7 +10,8 @@
       "NDVI",
       "excess_green",
       "multi_scale_texture",
-      "centerline_distance"
+      "centerline_distance",
+      "per_pixel_corridor_score"
     ]
   },
   "image": {
@@ -21,26 +22,46 @@
   "analysis_pixels": 316741,
   "superpixel_count": 2492,
   "selected_cluster": 1092,
-  "selected_cluster_score": 6.3883,
+  "selected_cluster_score_diagnostic_only": 6.3883,
+  "pixel_score_threshold_percentile": 58.0,
+  "pixel_score_threshold": 0.12556,
   "cluster_feature_means": {
     "ndvi": 0.34228,
     "excess_green": 0.26439,
     "texture": 0.0215,
     "centerline_distance_m": 14.1699
   },
-  "candidate_pixels": 0,
-  "candidate_area_m2": 0.0,
-  "candidate_fraction_of_corridor": 0.0,
-  "centerline_sample_coverage_within_link_distance": 0.0,
-  "retained_components": [],
+  "candidate_pixels": 126030,
+  "candidate_selection": "per-pixel score threshold; not a single superpixel",
+  "candidate_area_m2": 10946.3,
+  "candidate_fraction_of_corridor": 0.3857,
+  "centerline_sample_coverage_within_link_distance": 1.0,
+  "retained_components": [
+    {
+      "component": 3,
+      "area_m2": 7267.8
+    },
+    {
+      "component": 25,
+      "area_m2": 2363.9
+    },
+    {
+      "component": 29,
+      "area_m2": 44.8
+    },
+    {
+      "component": 43,
+      "area_m2": 1285.7
+    }
+  ],
   "weak_label_evaluation_only": {
     "mapped_fairway_seed_pixels": 58992,
-    "candidate_overlap_with_mapped_fairway_seed": 0.0,
+    "candidate_overlap_with_mapped_fairway_seed": 0.8629,
     "mapped_rough_seed_pixels": 67514,
-    "candidate_overlap_with_mapped_rough_seed": 0.0,
+    "candidate_overlap_with_mapped_rough_seed": 0.4907,
     "warning": "These are incomplete OSM agreement diagnostics, not independent accuracy estimates. They did not influence candidate selection."
   },
-  "status": "no_candidate_found",
+  "status": "unverified_candidate",
   "files": [
     "seedless-fairway-candidate.jpg",
     "seedless-clusters.jpg",
