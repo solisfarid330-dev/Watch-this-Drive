@@ -272,19 +272,24 @@ def _assemble_member_rings(members: list[dict], role: str) -> tuple[list[list[li
     while segments:
         ring = segments.pop(0)
         while ring[-1] != ring[0]:
-            matches = []
-            for index, segment in enumerate(segments):
-                if segment[0] == ring[-1] or segment[-1] == ring[-1]:
-                    matches.append((index, "append"))
-                elif segment[-1] == ring[0] or segment[0] == ring[0]:
-                    matches.append((index, "prepend"))
-            if not matches:
-                errors.append(f"Could not close a {role} ring from relation members")
-                break
-            if len(matches) > 1:
+            append_matches = [
+                index for index, segment in enumerate(segments)
+                if segment[0] == ring[-1] or segment[-1] == ring[-1]
+            ]
+            prepend_matches = [
+                index for index, segment in enumerate(segments)
+                if segment[-1] == ring[0] or segment[0] == ring[0]
+            ]
+            if len(append_matches) > 1 or len(prepend_matches) > 1:
                 errors.append(f"Ambiguous {role} ring junction: multiple member ways share an endpoint")
                 break
-            match_index, operation = matches[0]
+            if append_matches:
+                match_index, operation = append_matches[0], "append"
+            elif prepend_matches:
+                match_index, operation = prepend_matches[0], "prepend"
+            else:
+                errors.append(f"Could not close a {role} ring from relation members")
+                break
             segment = segments[match_index]
             if operation == "append":
                 match_segment = segment if segment[0] == ring[-1] else list(reversed(segment))
