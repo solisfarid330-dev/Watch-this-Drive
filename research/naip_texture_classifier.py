@@ -129,6 +129,11 @@ def load_scene(geojson_path, metadata_path, tiff_path, hole_ref):
     }
 
 
+def spatial_holdout_mask(y, x, block_px=64):
+    """Assign whole spatial blocks to the holdout partition deterministically."""
+    return ((y // block_px) * 73856093 ^ (x // block_px) * 19349663) % 5 == 0
+
+
 def sample_scene(scene, rng, max_per_class=50000, block_px=64):
     y_pos, x_pos = np.where(scene["fairway"])
     y_neg, x_neg = np.where(scene["rough"])
@@ -144,11 +149,8 @@ def sample_scene(scene, rng, max_per_class=50000, block_px=64):
     y_pos, x_pos = pick(y_pos, x_pos)
     y_neg, x_neg = pick(y_neg, x_neg)
 
-    def block_hash(y, x):
-        return ((y // block_px) * 73856093 ^ (x // block_px) * 19349663) % 5
-
-    p_test = block_hash(y_pos, x_pos) == 0
-    n_test = block_hash(y_neg, x_neg) == 0
+    p_test = spatial_holdout_mask(y_pos, x_pos, block_px)
+    n_test = spatial_holdout_mask(y_neg, x_neg, block_px)
     train_y = np.concatenate([y_pos[~p_test], y_neg[~n_test]])
     train_x = np.concatenate([x_pos[~p_test], x_neg[~n_test]])
     test_y = np.concatenate([y_pos[p_test], y_neg[n_test]])
