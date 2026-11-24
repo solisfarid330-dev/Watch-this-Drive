@@ -80,6 +80,7 @@ class CourseYardageValidationTests(unittest.TestCase):
         }
         self.assertEqual(report["summary"]["holes"], 18)
         self.assertEqual(report["summary"]["within_tolerance"], 18)
+        self.assertEqual(report["summary"]["scorecard_total_yards"], 6931)
         self.assertEqual(len(report["holes"]), 18)
         for row in report["holes"]:
             measured = line_length_yards(holes[row["hole"]]["geometry"]["coordinates"])
