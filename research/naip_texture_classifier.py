@@ -261,12 +261,43 @@ def main():
     analysis = target_scene["analysis"] & (target_scene["centerline_distance_m"] <= learned_half_width_m)
     target_features = target_scene["features"]
     flat_ids = np.flatnonzero(analysis)
+    feature_names = [
+        "red","green","blue","nir","ndvi","excess_green","vari","nir_green_ratio",
+        "red_green_ratio","gray_std_3px","gray_std_6px","gray_std_13px",
+        "nir_std_3px","nir_std_8px","ndvi_std_5px","centerline_distance_m",
+        "texture_coherence","edge_magnitude",
+    ]
+    train_low, train_high = np.quantile(x_train, [0.01, 0.99], axis=0)
+    target_flat = target_features.reshape(-1, target_features.shape[-1])
+    target_stride = max(1, len(flat_ids) // 50000)
+    target_sample_ids = flat_ids[::target_stride]
+    target_sample = target_flat[target_sample_ids]
+    outside_bounds = (target_sample < train_low) | (target_sample > train_high)
+    target_shift = {
+        "sample_pixels": int(len(target_sample)),
+        "feature_outside_training_p01_p99_fraction": {
+            name: round(float(outside_bounds[:, i].mean()), 4)
+            for i, name in enumerate(feature_names)
+        },
+        "pixels_outside_bounds_on_3_or_more_features_fraction": round(
+            float((outside_bounds.sum(axis=1) >= 3).mean()), 4
+        ),
+    }
     probabilities = np.zeros(analysis.shape, dtype=np.float32)
     batch = 50000
     for start in range(0, len(flat_ids), batch):
         ids = flat_ids[start:start+batch]
         probabilities.ravel()[ids] = model.predict_proba(target_features.reshape(-1, target_features.shape[-1])[ids])[:, 1]
     candidate = (probabilities >= 0.5) & analysis
+    candidate_ids = np.flatnonzero(candidate)
+    candidate_sample_ids = candidate_ids[::max(1, len(candidate_ids) // 50000)] if len(candidate_ids) else candidate_ids
+    if len(candidate_sample_ids):
+        candidate_outside = (target_flat[candidate_sample_ids] < train_low) | (target_flat[candidate_sample_ids] > train_high)
+        target_shift["candidate_pixels_outside_bounds_on_3_or_more_features_fraction"] = round(
+            float((candidate_outside.sum(axis=1) >= 3).mean()), 4
+        )
+    else:
+        target_shift["candidate_pixels_outside_bounds_on_3_or_more_features_fraction"] = None
 
     # Evaluate only after prediction; these target OSM polygons never train the model.
     target_fairway = target_scene["fairway"]
@@ -309,6 +340,7 @@ def main():
         "training_samples": {"fairway": int((y_train==1).sum()), "rough": int((y_train==0).sum())},
         "spatial_block_holdout": holdout_metrics,
         "training_scene_reports": training_scene_reports,
+        "target_distribution_shift_diagnostic": target_shift,
         "target_weak_label_evaluation_only": target_eval,
         "candidate_area_m2": round(float(candidate.sum()) * target_scene["metres_per_pixel"]**2, 1),
         "candidate_fraction_of_corridor": round(float(candidate.sum()/max(int(analysis.sum()),1)), 4),
