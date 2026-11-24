@@ -154,7 +154,7 @@ object CourseGeometryLoader {
                 rings = parsed.rings,
                 polygons = parsed.polygons,
                 geometryStatus = if (parsed.geometryType == CourseGeometryType.POLYGON ||
-                    parsed.geometryType == CourseGeometryType.MULTI_POLYGON) "ring_closure_and_inner_containment_checked" else "source_geometry"
+                    parsed.geometryType == CourseGeometryType.MULTI_POLYGON) "ring_closure_area_self_intersection_and_inner_containment_checked" else "source_geometry"
             ))
             if (parsed.error != null) relationErrors.add("$elementType/$id: ${parsed.error}")
         }
@@ -178,6 +178,8 @@ object CourseGeometryLoader {
             // A closed OSM way is not automatically an area. In particular, golf=hole
             // is a centerline and must remain a line even if the source way is closed.
             if (golfType != "hole" && coords.size >= 4 && coords.first() == coords.last()) {
+                val problem = ringProblem(coords)
+                if (problem != null) return Parsed(error = "invalid polygon ring: $problem")
                 return Parsed(CourseGeometryType.POLYGON, coords, listOf(coords))
             }
             if (coords.size >= 2) return Parsed(CourseGeometryType.LINE, coords)
@@ -206,16 +208,27 @@ object CourseGeometryLoader {
             }
         }
         val errors = mutableListOf<String>()
-        val outers = stitchRings(outerSegments, errors)
-        val inners = stitchRings(innerSegments, errors)
-        if (outers.isEmpty()) return Parsed(error = errors.joinToString("; ").ifBlank { "missing outer ring" })
+        val stitchedOuters = stitchRings(outerSegments, errors)
+        val stitchedInners = stitchRings(innerSegments, errors)
+        val outers = stitchedOuters.filter { ring ->
+            val problem = ringProblem(ring)
+            if (problem != null) errors.add("invalid outer ring: $problem")
+            problem == null
+        }
+        val inners = stitchedInners.filter { ring ->
+            val problem = ringProblem(ring)
+            if (problem != null) errors.add("invalid inner ring: $problem")
+            problem == null
+        }
+        if (outers.isEmpty()) return Parsed(error = errors.joinToString("; ").ifBlank { "missing valid outer ring" })
         val polygons = outers.map { outer -> mutableListOf(outer) }
         for (inner in inners) {
             // Checking every inner vertex prevents a ring whose first point happens
             // to lie inside an outer from being accepted when the rest lies outside.
             val container = polygons.firstOrNull { polygon ->
                 inner.dropLast(1).all { pointInRing(it, polygon.first()) } &&
-                    inner.dropLast(1).none { pointOnRingBoundary(it, polygon.first()) }
+                    inner.dropLast(1).none { pointOnRingBoundary(it, polygon.first()) } &&
+                    !ringsIntersect(inner, polygon.first())
             }
             if (container == null) errors.add("inner ring is not fully contained by any outer ring")
             else container.add(inner)
@@ -269,6 +282,46 @@ object CourseGeometryLoader {
             else errors.add("could not close a polygon ring")
         }
         return rings
+    }
+
+    // Reject zero-area and self-intersecting rings before exposing them as usable areas.
+    private fun ringProblem(ring: List<GeoPoint>): String? {
+        if (ring.size < 4 || ring.first() != ring.last()) return "ring is not closed"
+        var twiceArea = 0.0
+        for (i in 0 until ring.lastIndex) {
+            twiceArea += ring[i].longitude * ring[i + 1].latitude -
+                ring[i + 1].longitude * ring[i].latitude
+        }
+        if (kotlin.math.abs(twiceArea) < 1e-14) return "ring has zero area"
+        val edgeCount = ring.size - 1
+        for (i in 0 until edgeCount) {
+            for (j in i + 1 until edgeCount) {
+                if (j == i + 1 || (i == 0 && j == edgeCount - 1)) continue
+                if (segmentsIntersect(ring[i], ring[i + 1], ring[j], ring[j + 1])) {
+                    return "ring self-intersects"
+                }
+            }
+        }
+        return null
+    }
+
+    private fun ringsIntersect(a: List<GeoPoint>, b: List<GeoPoint>): Boolean {
+        for (i in 0 until a.lastIndex) for (j in 0 until b.lastIndex) {
+            if (segmentsIntersect(a[i], a[i + 1], b[j], b[j + 1])) return true
+        }
+        return false
+    }
+
+    private fun segmentsIntersect(a: GeoPoint, b: GeoPoint, c: GeoPoint, d: GeoPoint): Boolean {
+        fun orient(p: GeoPoint, q: GeoPoint, r: GeoPoint): Double =
+            (q.longitude - p.longitude) * (r.latitude - p.latitude) -
+                (q.latitude - p.latitude) * (r.longitude - p.longitude)
+        val o1 = orient(a, b, c)
+        val o2 = orient(a, b, d)
+        val o3 = orient(c, d, a)
+        val o4 = orient(c, d, b)
+        return ((o1 > 1e-12 && o2 < -1e-12) || (o1 < -1e-12 && o2 > 1e-12)) &&
+            ((o3 > 1e-12 && o4 < -1e-12) || (o3 < -1e-12 && o4 > 1e-12))
     }
 
     private fun pointOnRingBoundary(point: GeoPoint, ring: List<GeoPoint>): Boolean {
