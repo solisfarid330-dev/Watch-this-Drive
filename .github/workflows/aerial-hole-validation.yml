@@ -230,7 +230,7 @@ jobs:
             --out research/results/south-padre/aerial-validation/hole-2-superpixel-6000
       - name: Test seed-independent fairway ranking
         run: |
-          python -m unittest research/test_naip_seedless_fairway.py -v
+          python -m unittest discover -s research -p 'test_naip_seedless_fairway.py' -v
       - name: Run seed-independent fairway candidates across three courses
         run: |
           python research/naip_seedless_fairway.py \
