@@ -93,7 +93,7 @@ relations with zero omissions. A structural validation pass found no open
 polygon rings, no uncontained inner rings, and no incorrect ring winding in
 those two outputs.
 
-Eighteen offline unit tests cover boundary query construction, node rejection,
+Nineteen offline unit tests cover boundary query construction, node rejection,
 inventory counting, multipolygon outer/inner rings, segmented-ring stitching,
 open hole lines, GeoJSON polygon winding, and conservative endpoint association.
 The GitHub Actions research pipeline checks have passed.
