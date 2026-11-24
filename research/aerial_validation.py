@@ -32,26 +32,6 @@ def lines(g):
     if g["type"]=="LineString": yield g["coordinates"]
     elif g["type"]=="MultiLineString": yield from g["coordinates"]
 
-def point_in_ring(point, ring):
-    x,y=point; inside=False
-    for i in range(len(ring)):
-        x1,y1=ring[i]; x2,y2=ring[i-1]
-        if (y1>y)!=(y2>y) and x < (x2-x1)*(y-y1)/(y2-y1)+x1:
-            inside=not inside
-    return inside
-
-def distance_to_hole_m(point, hole_points, lat0):
-    # Local equirectangular coordinates are sufficient for this small course-scale QA window.
-    def xy(p):
-        return (R*math.radians(p[0])*math.cos(lat0), R*math.radians(p[1]))
-    P=xy(point); best=float("inf")
-    for a,b in zip(hole_points,hole_points[1:]):
-        A=xy(a); B=xy(b); dx=B[0]-A[0]; dy=B[1]-A[1]
-        t=0 if dx*dx+dy*dy==0 else ((P[0]-A[0])*dx+(P[1]-A[1])*dy)/(dx*dx+dy*dy)
-        t=max(0,min(1,t))
-        best=min(best,math.hypot(P[0]-A[0]-t*dx,P[1]-A[1]-t*dy))
-    return best
-
 def feature_distance_m(geometry, hole_points, lat0):
     # Use full line segments, not only sparse centerline vertices. This catches
     # polygons crossed between OSM vertices and shares the association audit's
