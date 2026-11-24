@@ -69,6 +69,30 @@ class CourseGeometryParserTest {
     }
 
     @Test
+    fun stitchesSegmentsAttachingAtOppositeRingEnds() {
+        val json = """
+            {"elements":[{"type":"relation","id":25,
+            "tags":{"golf":"fairway","type":"multipolygon"},
+            "members":[
+              {"type":"way","ref":1,"role":"outer","geometry":[
+                {"lat":0.0,"lon":0.0},{"lat":0.0,"lon":1.0}]},
+              {"type":"way","ref":2,"role":"outer","geometry":[
+                {"lat":1.0,"lon":0.0},{"lat":0.0,"lon":0.0}]},
+              {"type":"way","ref":3,"role":"outer","geometry":[
+                {"lat":0.0,"lon":1.0},{"lat":1.0,"lon":1.0}]},
+              {"type":"way","ref":4,"role":"outer","geometry":[
+                {"lat":1.0,"lon":1.0},{"lat":1.0,"lon":0.0}]}
+            ]}]}
+        """.trimIndent()
+        val result = CourseGeometryLoader.parseGeometry(json, course)
+        val fairway = result.features.single()
+        assertEquals(CourseGeometryType.POLYGON, fairway.geometryType)
+        assertEquals(5, fairway.rings.single().size)
+        assertTrue(fairway.hasUsableGeometry)
+        assertTrue(result.incompleteRelations.isEmpty())
+    }
+
+    @Test
     fun preservesMultipleOuterRingsAsMultiPolygon() {
         val json = """
             {"elements":[{"type":"relation","id":30,
