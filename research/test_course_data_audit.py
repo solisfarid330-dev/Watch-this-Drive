@@ -89,6 +89,41 @@ class CourseDataAuditTests(unittest.TestCase):
         self.assertEqual(result["features"][0]["geometry"]["type"], "LineString")
 
 
+    def test_closed_hole_way_remains_linestring(self):
+        payload = {"elements": [{
+            "type": "way", "id": 78, "tags": {"golf": "hole", "ref": "2"},
+            "geometry": [
+                {"lat": 0, "lon": 0}, {"lat": 0, "lon": 1},
+                {"lat": 1, "lon": 1}, {"lat": 0, "lon": 0},
+            ],
+        }]}
+        result = audit.to_geojson(payload)
+        self.assertEqual(result["features"][0]["geometry"]["type"], "LineString")
+
+    def test_closed_cartpath_remains_linestring(self):
+        payload = {"elements": [{
+            "type": "way", "id": 79, "tags": {"golf": "cartpath"},
+            "geometry": [
+                {"lat": 0, "lon": 0}, {"lat": 0, "lon": 1},
+                {"lat": 1, "lon": 1}, {"lat": 0, "lon": 0},
+            ],
+        }]}
+        result = audit.to_geojson(payload)
+        self.assertEqual(result["features"][0]["geometry"]["type"], "LineString")
+
+    def test_ambiguous_member_way_junction_is_reported(self):
+        relation = {"members": [
+            {"type": "way", "ref": 1, "role": "outer", "geometry": [
+                {"lat": 0, "lon": 0}, {"lat": 0, "lon": 1}]},
+            {"type": "way", "ref": 2, "role": "outer", "geometry": [
+                {"lat": 0, "lon": 1}, {"lat": 1, "lon": 1}]},
+            {"type": "way", "ref": 3, "role": "outer", "geometry": [
+                {"lat": 0, "lon": 1}, {"lat": -1, "lon": 1}]},
+        ]}
+        rings, errors = audit._assemble_member_rings(relation["members"], "outer")
+        self.assertEqual(rings, [])
+        self.assertTrue(any("Ambiguous" in error for error in errors))
+
     def test_direct_polygon_is_oriented_counterclockwise(self):
         payload = {"elements": [{
             "type": "way", "id": 88, "tags": {"golf": "green"},
