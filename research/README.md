@@ -103,7 +103,7 @@ suite (no emulator required). It includes a captured South Padre Island Overpass
 fixture covering a real green polygon, Hole 1 centerline, and a fairway
 multipolygon with an inner ring, plus synthetic regression cases for closed
 cart paths, route-style hole relations, disconnected/incomplete rings,
-multipolygon components, and invalid self-intersecting areas. The Android
+multipolygon components, and invalid self-intersecting areas, crossing inner rings, overlapping outer components, and nested inner rings. The Android
 parser deliberately rejects ambiguous line/ring assembly and marks partially
 invalid relations as unusable rather than presenting them as trusted geometry.
 
