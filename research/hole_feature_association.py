@@ -212,7 +212,54 @@ def apply_course_wide_uniqueness(results, margin_m=5.0):
                     })
 
 
-def analyze(collection, endpoint_limit_m=30.0, pin_limit_m=20.0, corridor_limit_m=45.0, uniqueness_margin_m=5.0):
+def apply_course_wide_corridor_uniqueness(results, margin_m=8.0):
+    """Reduce duplicate corridor-feature claims without asserting true membership."""
+    for hole in results:
+        hole["course_wide_unique_corridor_candidates"] = []
+        hole["ambiguous_shared_corridor_candidates"] = []
+        hole["corridor_features_closer_to_another_hole"] = []
+
+    grouped = {}
+    for hole_index, hole in enumerate(results):
+        for candidate in hole["corridor_feature_candidates"]:
+            feature_id = (candidate.get("golf"), candidate.get("osm_type"), candidate.get("osm_id"))
+            grouped.setdefault(feature_id, []).append(
+                (candidate["distance_to_centerline_m"], hole_index, candidate)
+            )
+
+    for owners in grouped.values():
+        owners.sort(key=lambda item: item[0])
+        best_distance, best_hole_index, best_candidate = owners[0]
+        if len(owners) == 1:
+            results[best_hole_index]["course_wide_unique_corridor_candidates"].append({
+                **best_candidate, "course_wide_status": "single_hole_corridor_candidate"
+            })
+            continue
+
+        second_distance = owners[1][0]
+        if second_distance - best_distance >= margin_m:
+            results[best_hole_index]["course_wide_unique_corridor_candidates"].append({
+                **best_candidate,
+                "course_wide_status": "unique_nearest_hole_corridor_candidate",
+                "distance_margin_to_next_hole_m": round(second_distance - best_distance, 1),
+            })
+            for _, other_hole_index, other_candidate in owners[1:]:
+                results[other_hole_index]["corridor_features_closer_to_another_hole"].append({
+                    **other_candidate,
+                    "closest_hole_ref": results[best_hole_index]["hole_ref"],
+                    "course_wide_status": "candidate_closer_to_another_hole",
+                })
+        else:
+            for distance, hole_index, candidate in owners:
+                results[hole_index]["ambiguous_shared_corridor_candidates"].append({
+                    **candidate,
+                    "course_wide_status": "ambiguous_between_holes",
+                    "distance_to_nearest_hole_m": round(best_distance, 1),
+                    "distance_margin_to_next_hole_m": round(second_distance - best_distance, 1),
+                })
+
+
+def analyze(collection, endpoint_limit_m=30.0, pin_limit_m=20.0, corridor_limit_m=45.0, uniqueness_margin_m=5.0, corridor_uniqueness_margin_m=8.0):
     features=collection.get("features",[])
     holes=[f for f in features if f.get("properties",{}).get("golf")=="hole" and f.get("geometry",{}).get("type") in ("LineString","MultiLineString")]
     results=[]
@@ -270,10 +317,11 @@ def analyze(collection, endpoint_limit_m=30.0, pin_limit_m=20.0, corridor_limit_
             "interpretation":"Endpoint proximity is stronger evidence for tee/green/pin association than distance to any part of the hole line, but every result remains a candidate until checked against imagery or trusted course references."
         })
     apply_course_wide_uniqueness(results, margin_m=uniqueness_margin_m)
+    apply_course_wide_corridor_uniqueness(results, margin_m=corridor_uniqueness_margin_m)
     return {
         "type":"WatchThisDriveHoleAssociationAudit",
         "method":"Infer hole-line direction from endpoint markers, then compare each marker candidate across all hole endpoints; retain only clearly nearest-hole candidates and flag near-ties. This remains diagnostic, not definitive membership.",
-        "thresholds_m":{"tee_green_endpoint":endpoint_limit_m,"pin_green_endpoint":pin_limit_m,"corridor":corridor_limit_m,"course_wide_uniqueness_margin":uniqueness_margin_m},
+        "thresholds_m":{"tee_green_endpoint":endpoint_limit_m,"pin_green_endpoint":pin_limit_m,"corridor":corridor_limit_m,"course_wide_uniqueness_margin":uniqueness_margin_m,"corridor_uniqueness_margin":corridor_uniqueness_margin_m},
         "hole_count":len(results),
         "holes":results,
         "limitations":[
