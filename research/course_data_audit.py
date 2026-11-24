@@ -272,25 +272,24 @@ def _assemble_member_rings(members: list[dict], role: str) -> tuple[list[list[li
     while segments:
         ring = segments.pop(0)
         while ring[-1] != ring[0]:
-            match_index = None
-            operation = None
-            match_segment = None
+            matches = []
             for index, segment in enumerate(segments):
-                if segment[0] == ring[-1]:
-                    match_index, operation, match_segment = index, "append", segment
-                    break
-                if segment[-1] == ring[-1]:
-                    match_index, operation, match_segment = index, "append", list(reversed(segment))
-                    break
-                if segment[-1] == ring[0]:
-                    match_index, operation, match_segment = index, "prepend", segment
-                    break
-                if segment[0] == ring[0]:
-                    match_index, operation, match_segment = index, "prepend", list(reversed(segment))
-                    break
-            if match_index is None:
+                if segment[0] == ring[-1] or segment[-1] == ring[-1]:
+                    matches.append((index, "append"))
+                elif segment[-1] == ring[0] or segment[0] == ring[0]:
+                    matches.append((index, "prepend"))
+            if not matches:
                 errors.append(f"Could not close a {role} ring from relation members")
                 break
+            if len(matches) > 1:
+                errors.append(f"Ambiguous {role} ring junction: multiple member ways share an endpoint")
+                break
+            match_index, operation = matches[0]
+            segment = segments[match_index]
+            if operation == "append":
+                match_segment = segment if segment[0] == ring[-1] else list(reversed(segment))
+            else:
+                match_segment = segment if segment[-1] == ring[0] else list(reversed(segment))
             segments.pop(match_index)
             if operation == "append":
                 ring.extend(match_segment[1:])
@@ -367,7 +366,9 @@ def to_geojson(payload: dict) -> dict:
                 if "lon" in point and "lat" in point
             ]
             if len(coords) >= 2:
-                closed = len(coords) >= 4 and coords[0] == coords[-1]
+                golf_type = tags.get("golf")
+                linear_feature = golf_type in {"hole", "cartpath"} or tags.get("area") == "no"
+                closed = (not linear_feature) and len(coords) >= 4 and coords[0] == coords[-1]
                 if closed:
                     if _ring_area(coords) < 0:
                         coords.reverse()
