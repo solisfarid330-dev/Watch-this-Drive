@@ -47,5 +47,46 @@ class EndpointAssociationTests(unittest.TestCase):
         self.assertEqual(markers["tee"]["strong_endpoint_candidates"][0]["osm_id"],2)
         self.assertEqual(markers["green"]["strong_endpoint_candidates"][0]["osm_id"],3)
 
+    def test_course_wide_uniqueness_keeps_marker_with_clearly_nearest_hole(self):
+        results = [
+            {"hole_ref": "1", "endpoint_marker_candidates": {
+                "tee": {"strong_endpoint_candidates": [{"osm_type": "way", "osm_id": 10, "distance_to_start_m": 4.0}]},
+                "green": {"strong_endpoint_candidates": []},
+                "pin": {"strong_endpoint_candidates": []},
+            }},
+            {"hole_ref": "2", "endpoint_marker_candidates": {
+                "tee": {"strong_endpoint_candidates": [{"osm_type": "way", "osm_id": 10, "distance_to_start_m": 18.0}]},
+                "green": {"strong_endpoint_candidates": []},
+                "pin": {"strong_endpoint_candidates": []},
+            }},
+        ]
+        audit.apply_course_wide_uniqueness(results, margin_m=5.0)
+        first = results[0]["endpoint_marker_candidates"]["tee"]
+        second = results[1]["endpoint_marker_candidates"]["tee"]
+        self.assertEqual(len(first["course_wide_unique_candidates"]), 1)
+        self.assertEqual(first["course_wide_unique_candidates"][0]["osm_id"], 10)
+        self.assertEqual(len(second["course_wide_unique_candidates"]), 0)
+        self.assertEqual(second["closer_to_another_hole"][0]["closest_hole_ref"], "1")
+
+    def test_course_wide_near_tie_is_left_ambiguous(self):
+        results = [
+            {"hole_ref": "1", "endpoint_marker_candidates": {
+                "pin": {"strong_endpoint_candidates": [{"osm_type": "node", "osm_id": 20, "distance_to_end_m": 7.0}]},
+                "tee": {"strong_endpoint_candidates": []},
+                "green": {"strong_endpoint_candidates": []},
+            }},
+            {"hole_ref": "2", "endpoint_marker_candidates": {
+                "pin": {"strong_endpoint_candidates": [{"osm_type": "node", "osm_id": 20, "distance_to_end_m": 10.0}]},
+                "tee": {"strong_endpoint_candidates": []},
+                "green": {"strong_endpoint_candidates": []},
+            }},
+        ]
+        audit.apply_course_wide_uniqueness(results, margin_m=5.0)
+        for result in results:
+            pins = result["endpoint_marker_candidates"]["pin"]
+            self.assertEqual(pins["course_wide_unique_candidates"], [])
+            self.assertEqual(len(pins["ambiguous_shared_candidates"]), 1)
+            self.assertEqual(pins["ambiguous_shared_candidates"][0]["course_wide_status"], "ambiguous_between_holes")
+
 
 if __name__=="__main__":unittest.main()
