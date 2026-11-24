@@ -1,27 +1,27 @@
 {
   "method": "ExtraTrees research diagnostic trained on spatially blocked and buffered OSM fairway/rough seed pixels from one or more holes, using RGBIR, multi-scale local texture, spectral ratios, centreline distance, structure-tensor coherence, and edge magnitude.",
   "training_course": "south-padre",
+  "radiometry_mode": "raw",
   "training_holes": [
-    "1",
-    "2"
+    "1"
   ],
-  "training_scene_count": 2,
-  "learned_corridor_half_width_m": 20.0,
+  "training_scene_count": 1,
+  "learned_corridor_half_width_m": 20.62,
   "target_hole_ref": "2",
   "weak_label_boundary_erosion_m": 2.0,
   "training_samples": {
-    "fairway": 6425,
-    "rough": 37560
+    "fairway": 3072,
+    "rough": 20056
   },
   "spatial_block_holdout": {
     "threshold": 0.5,
-    "fairway_recall": 0.9369,
+    "fairway_recall": 0.9315,
     "rough_false_positive_rate": 0.0,
     "fairway_precision": 1.0,
-    "f1": 0.9674,
-    "roc_auc": 0.9923,
-    "average_precision": 0.9954,
-    "test_pixels": 33119
+    "f1": 0.9645,
+    "roc_auc": 0.9903,
+    "average_precision": 0.9921,
+    "test_pixels": 13486
   },
   "training_scene_reports": [
     {
@@ -32,112 +32,120 @@
       },
       "spatial_block_holdout": {
         "threshold": 0.5,
-        "fairway_recall": 0.9448,
+        "fairway_recall": 0.9315,
         "rough_false_positive_rate": 0.0,
         "fairway_precision": 1.0,
-        "f1": 0.9716,
-        "roc_auc": 0.9907,
-        "average_precision": 0.9925,
+        "f1": 0.9645,
+        "roc_auc": 0.9903,
+        "average_precision": 0.9921,
         "test_pixels": 13486
-      }
-    },
-    {
-      "hole_ref": "2",
-      "training_samples": {
-        "fairway": 3353,
-        "rough": 17504
-      },
-      "spatial_block_holdout": {
-        "threshold": 0.5,
-        "fairway_recall": 0.9325,
-        "rough_false_positive_rate": 0.0,
-        "fairway_precision": 1.0,
-        "f1": 0.9651,
-        "roc_auc": 0.9931,
-        "average_precision": 0.9968,
-        "test_pixels": 19633
       }
     }
   ],
+  "target_distribution_shift_diagnostic": {
+    "sample_pixels": 65055,
+    "feature_outside_training_p01_p99_fraction": {
+      "red": 0.1139,
+      "green": 0.1007,
+      "blue": 0.1392,
+      "nir": 0.0414,
+      "ndvi": 0.1321,
+      "excess_green": 0.0986,
+      "vari": 0.0837,
+      "nir_green_ratio": 0.1206,
+      "red_green_ratio": 0.0845,
+      "gray_std_3px": 0.0432,
+      "gray_std_6px": 0.0384,
+      "gray_std_13px": 0.0423,
+      "nir_std_3px": 0.0464,
+      "nir_std_8px": 0.0596,
+      "ndvi_std_5px": 0.054,
+      "centerline_distance_m": 0.0,
+      "texture_coherence": 0.0459,
+      "edge_magnitude": 0.0466
+    },
+    "pixels_outside_bounds_on_3_or_more_features_fraction": 0.2055,
+    "candidate_pixels_outside_bounds_on_3_or_more_features_fraction": 0.1735
+  },
   "target_weak_label_evaluation_only": {
-    "mapped_fairway_recall": 0.9687,
-    "mapped_rough_false_positive_rate": 0.0,
+    "mapped_fairway_recall": 0.956,
+    "mapped_rough_false_positive_rate": 0.0878,
     "mapped_fairway_pixels": 50572,
     "mapped_rough_pixels": 87240
   },
-  "candidate_area_m2": 7086.3,
-  "candidate_fraction_of_corridor": 0.4737,
+  "candidate_area_m2": 7875.8,
+  "candidate_fraction_of_corridor": 0.5117,
   "feature_importance": [
     {
       "feature": "green",
-      "importance": 0.30352
+      "importance": 0.31192
     },
     {
       "feature": "blue",
-      "importance": 0.24839
+      "importance": 0.24947
     },
     {
       "feature": "nir",
-      "importance": 0.21349
+      "importance": 0.23481
     },
     {
       "feature": "red",
-      "importance": 0.16168
-    },
-    {
-      "feature": "nir_std_8px",
-      "importance": 0.02731
-    },
-    {
-      "feature": "ndvi",
-      "importance": 0.01013
-    },
-    {
-      "feature": "red_green_ratio",
-      "importance": 0.00786
-    },
-    {
-      "feature": "nir_std_3px",
-      "importance": 0.00663
-    },
-    {
-      "feature": "excess_green",
-      "importance": 0.0058
-    },
-    {
-      "feature": "nir_green_ratio",
-      "importance": 0.00569
-    },
-    {
-      "feature": "vari",
-      "importance": 0.00504
+      "importance": 0.14117
     },
     {
       "feature": "centerline_distance_m",
-      "importance": 0.00208
+      "importance": 0.01858
+    },
+    {
+      "feature": "nir_std_8px",
+      "importance": 0.01771
+    },
+    {
+      "feature": "excess_green",
+      "importance": 0.00819
+    },
+    {
+      "feature": "nir_std_3px",
+      "importance": 0.00478
+    },
+    {
+      "feature": "nir_green_ratio",
+      "importance": 0.00344
+    },
+    {
+      "feature": "vari",
+      "importance": 0.00329
+    },
+    {
+      "feature": "red_green_ratio",
+      "importance": 0.00293
+    },
+    {
+      "feature": "ndvi",
+      "importance": 0.00205
     },
     {
       "feature": "gray_std_13px",
-      "importance": 0.00128
+      "importance": 0.00079
     },
     {
       "feature": "ndvi_std_5px",
-      "importance": 0.00059
-    },
-    {
-      "feature": "gray_std_6px",
-      "importance": 0.00019
-    },
-    {
-      "feature": "gray_std_3px",
-      "importance": 0.00017
-    },
-    {
-      "feature": "edge_magnitude",
-      "importance": 0.00014
+      "importance": 0.00071
     },
     {
       "feature": "texture_coherence",
+      "importance": 7e-05
+    },
+    {
+      "feature": "gray_std_3px",
+      "importance": 3e-05
+    },
+    {
+      "feature": "gray_std_6px",
+      "importance": 3e-05
+    },
+    {
+      "feature": "edge_magnitude",
       "importance": 3e-05
     }
   ],
