@@ -84,6 +84,12 @@ def load_scene(geojson_path, metadata_path, tiff_path, hole_ref):
         [pixel(p) for p in line], fill=1,
         width=max(1, round(2 * 55.0 / metres_per_pixel)))
     corridor = np.asarray(corridor_image, dtype=bool)
+    spine_image = Image.new("1", (w, h), 0)
+    ImageDraw.Draw(spine_image).line(
+        [pixel(p) for p in line], fill=1,
+        width=max(1, round(3.0 / metres_per_pixel)))
+    spine = np.asarray(spine_image, dtype=bool)
+    centerline_distance_m = ndimage.distance_transform_edt(~spine) * metres_per_pixel
     excluded = masks["green"] | masks["bunker"] | masks["water_hazard"] | masks["tee"]
     red, green, blue, nir = [raw[:, :, i] for i in range(4)]
     valid = (red + green + nir) > 0
@@ -102,6 +108,7 @@ def load_scene(geojson_path, metadata_path, tiff_path, hole_ref):
         r / np.maximum(g, 1e-3),
         local_std(gray, 3), local_std(gray, 6), local_std(gray, 13),
         local_std(n, 3), local_std(n, 8), local_std(ndvi, 5),
+        centerline_distance_m,
     ]
     # Mowing/landscape texture anisotropy from a local structure tensor.
     gx = ndimage.sobel(gray, axis=1, mode="reflect") / 8.0
@@ -237,7 +244,8 @@ def main():
          for name, value in zip(
              ["red","green","blue","nir","ndvi","excess_green","vari","nir_green_ratio",
               "red_green_ratio","gray_std_3px","gray_std_6px","gray_std_13px",
-              "nir_std_3px","nir_std_8px","ndvi_std_5px","texture_coherence","edge_magnitude"],
+              "nir_std_3px","nir_std_8px","ndvi_std_5px","centerline_distance_m",
+              "texture_coherence","edge_magnitude"],
              model.feature_importances_)],
         key=lambda item: item["importance"], reverse=True,
     )
