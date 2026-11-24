@@ -189,6 +189,7 @@ def main():
     ap.add_argument("--train-metadata", required=True)
     ap.add_argument("--train-tiff", required=True)
     ap.add_argument("--train-hole-ref", default="1")
+    ap.add_argument("--additional-train", nargs=3, action="append", default=[], metavar=("METADATA", "TIFF", "HOLE_REF"), help="Additional training hole from the same course GeoJSON; repeatable.")
     ap.add_argument("--target-geojson", required=True)
     ap.add_argument("--target-metadata", required=True)
     ap.add_argument("--target-tiff", required=True)
@@ -196,10 +197,26 @@ def main():
     ap.add_argument("--out", required=True)
     args = ap.parse_args()
 
-    train_scene = load_scene(args.train_geojson, args.train_metadata, args.train_tiff, args.train_hole_ref)
-    target_scene = load_scene(args.target_geojson, args.target_metadata, args.target_tiff, args.target_hole_ref)
+    train_sources = [(args.train_metadata, args.train_tiff, args.train_hole_ref)]
+    train_sources.extend(args.additional_train)
     rng = np.random.default_rng(20261124)
-    x_train, y_train, x_test, y_test = sample_scene(train_scene, rng)
+    sampled = []
+    training_scene_reports = []
+    for metadata_path, tiff_path, hole_ref in train_sources:
+        scene = load_scene(args.train_geojson, metadata_path, tiff_path, hole_ref)
+        xtr, ytr, xte, yte = sample_scene(scene, rng)
+        sampled.append((xtr, ytr, xte, yte))
+        training_scene_reports.append({
+            "hole_ref": str(hole_ref),
+            "training_samples": {"fairway": int((ytr == 1).sum()), "rough": int((ytr == 0).sum())},
+            "spatial_block_holdout": metrics(yte, np.zeros(len(yte), dtype=np.float32) + 0.5)
+                if False else None,
+        })
+    x_train = np.concatenate([item[0] for item in sampled])
+    y_train = np.concatenate([item[1] for item in sampled])
+    x_test = np.concatenate([item[2] for item in sampled])
+    y_test = np.concatenate([item[3] for item in sampled])
+    holdout_probabilities = []
     model = ExtraTreesClassifier(
         n_estimators=180, max_depth=18, min_samples_leaf=20,
         max_features=0.8, class_weight="balanced", n_jobs=-1,
@@ -250,12 +267,14 @@ def main():
         key=lambda item: item["importance"], reverse=True,
     )
     report = {
-        "method": "ExtraTrees diagnostic trained on spatially held-out OSM fairway/rough seeds with RGBIR, multi-scale local texture, spectral ratios, structure-tensor coherence, and edge magnitude.",
-        "training_course_hole": f"{Path(args.train_geojson).parent.name} Hole {args.train_hole_ref}",
+        "method": "ExtraTrees research diagnostic trained on spatially blocked OSM fairway/rough seed pixels from one or more holes, using RGBIR, multi-scale local texture, spectral ratios, centreline distance, structure-tensor coherence, and edge magnitude.",
+        "training_course": Path(args.train_geojson).parent.name,
+        "training_holes": [str(source[2]) for source in train_sources],
+        "training_scene_count": len(train_sources),
         "target_hole_ref": args.target_hole_ref,
         "weak_label_boundary_erosion_m": 2.0,
         "training_samples": {"fairway": int((y_train==1).sum()), "rough": int((y_train==0).sum())},
-        "spatial_block_holdout": holdout_metrics,
+        "spatial_block_holdout": holdout_metrics,\n        "training_scene_reports": training_scene_reports,
         "target_weak_label_evaluation_only": target_eval,
         "candidate_area_m2": round(float(candidate.sum()) * target_scene["metres_per_pixel"]**2, 1),
         "candidate_fraction_of_corridor": round(float(candidate.sum()/max(int(analysis.sum()),1)), 4),
