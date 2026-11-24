@@ -70,11 +70,60 @@ jobs:
             --target-metadata research/results/cottonwood-creek/aerial-validation/hole-1-validation.json \
             --target-tiff research/results/cottonwood-creek/aerial-validation/hole-1-naip-2022-rgbir.tif \
             --out research/results/cottonwood-creek/aerial-validation/hole-1-texture-classifier
+      - name: Normalized-radiometry test on South Padre Hole 1
+        run: |
+          python research/naip_texture_classifier.py \
+            --train-geojson research/results/south-padre/features.geojson \
+            --train-metadata research/results/south-padre/aerial-validation/hole-1-validation.json \
+            --train-tiff research/results/south-padre/aerial-validation/hole-1-naip-2022-rgbir.tif \
+            --additional-train research/results/south-padre/aerial-validation/hole-2-validation.json research/results/south-padre/aerial-validation/hole-2-naip-2022-rgbir.tif 2 \
+            --target-geojson research/results/south-padre/features.geojson \
+            --target-metadata research/results/south-padre/aerial-validation/hole-1-validation.json \
+            --target-tiff research/results/south-padre/aerial-validation/hole-1-naip-2022-rgbir.tif \
+            --radiometry-mode scene_normalized \
+            --out research/results/south-padre/aerial-validation/hole-1-texture-classifier-normalized
+      - name: Normalized-radiometry test on South Padre Hole 2
+        run: |
+          python research/naip_texture_classifier.py \
+            --train-geojson research/results/south-padre/features.geojson \
+            --train-metadata research/results/south-padre/aerial-validation/hole-1-validation.json \
+            --train-tiff research/results/south-padre/aerial-validation/hole-1-naip-2022-rgbir.tif \
+            --additional-train research/results/south-padre/aerial-validation/hole-2-validation.json research/results/south-padre/aerial-validation/hole-2-naip-2022-rgbir.tif 2 \
+            --target-geojson research/results/south-padre/features.geojson \
+            --target-metadata research/results/south-padre/aerial-validation/hole-2-validation.json \
+            --target-tiff research/results/south-padre/aerial-validation/hole-2-naip-2022-rgbir.tif \
+            --target-hole-ref 2 \
+            --radiometry-mode scene_normalized \
+            --out research/results/south-padre/aerial-validation/hole-2-texture-classifier-normalized
+      - name: Normalized-radiometry transfer to Westwood
+        run: |
+          python research/naip_texture_classifier.py \
+            --train-geojson research/results/south-padre/features.geojson \
+            --train-metadata research/results/south-padre/aerial-validation/hole-1-validation.json \
+            --train-tiff research/results/south-padre/aerial-validation/hole-1-naip-2022-rgbir.tif \
+            --additional-train research/results/south-padre/aerial-validation/hole-2-validation.json research/results/south-padre/aerial-validation/hole-2-naip-2022-rgbir.tif 2 \
+            --target-geojson research/results/westwood/features.geojson \
+            --target-metadata research/results/westwood/aerial-validation/hole-1-validation.json \
+            --target-tiff research/results/westwood/aerial-validation/hole-1-naip-2022-rgbir.tif \
+            --radiometry-mode scene_normalized \
+            --out research/results/westwood/aerial-validation/hole-1-texture-classifier-normalized
+      - name: Normalized-radiometry transfer to Cottonwood
+        run: |
+          python research/naip_texture_classifier.py \
+            --train-geojson research/results/south-padre/features.geojson \
+            --train-metadata research/results/south-padre/aerial-validation/hole-1-validation.json \
+            --train-tiff research/results/south-padre/aerial-validation/hole-1-naip-2022-rgbir.tif \
+            --additional-train research/results/south-padre/aerial-validation/hole-2-validation.json research/results/south-padre/aerial-validation/hole-2-naip-2022-rgbir.tif 2 \
+            --target-geojson research/results/cottonwood-creek/features.geojson \
+            --target-metadata research/results/cottonwood-creek/aerial-validation/hole-1-validation.json \
+            --target-tiff research/results/cottonwood-creek/aerial-validation/hole-1-naip-2022-rgbir.tif \
+            --radiometry-mode scene_normalized \
+            --out research/results/cottonwood-creek/aerial-validation/hole-1-texture-classifier-normalized
       - name: Commit experiment outputs
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add research/results/*/aerial-validation/*-texture-classifier
+          git add research/results/*/aerial-validation/*-texture-classifier*
           if git diff --cached --quiet; then
             echo "No classifier outputs changed."
           else
