@@ -211,4 +211,61 @@ class CourseGeometryParserTest {
         assertEquals(CourseGeometryType.LINE, hole.geometryType)
         assertEquals(2, hole.points.size)
     }
+
+
+    private fun parseCourseFixture(fileName: String, id: Long, name: String): CourseGeometry {
+        val stream = javaClass.classLoader!!.getResourceAsStream("fixtures/$fileName")
+        val json = stream!!.bufferedReader().use { it.readText() }
+        return CourseGeometryLoader.parseGeometry(
+            json,
+            GolfCourse(id, "relation", name, 0.0, 0.0, 0f)
+        )
+    }
+
+    @Test
+    fun parsesCompleteSouthPadreCourseSnapshot() {
+        val result = parseCourseFixture(
+            "south-padre-course-overpass.json", 19071561L, "South Padre Island Golf Club"
+        )
+        assertEquals(18, result.count("hole"))
+        assertEquals(18, result.count("green"))
+        assertEquals(17, result.count("fairway"))
+        assertEquals(42, result.count("bunker"))
+        assertEquals(49, result.count("tee"))
+        assertEquals(2, result.count("water_hazard"))
+        assertEquals(23, result.count("cartpath"))
+        assertEquals(14, result.count("rough"))
+        assertTrue(result.features.all { it.hasUsableGeometry })
+        assertTrue("Unexpected relation errors: ${result.incompleteRelations}", result.incompleteRelations.isEmpty())
+    }
+
+    @Test
+    fun parsesCompleteWestwoodCourseSnapshot() {
+        val result = parseCourseFixture(
+            "westwood-course-overpass.json", 125353929L, "Westwood Country Club"
+        )
+        assertEquals(18, result.count("hole"))
+        assertEquals(18, result.count("green"))
+        assertEquals(19, result.count("fairway"))
+        assertEquals(62, result.count("bunker"))
+        assertEquals(56, result.count("tee"))
+        assertEquals(9, result.count("water_hazard"))
+        assertEquals(18, result.count("pin"))
+        assertTrue(result.features.all { it.hasUsableGeometry })
+        assertTrue("Unexpected relation errors: ${result.incompleteRelations}", result.incompleteRelations.isEmpty())
+    }
+
+    @Test
+    fun parsesCottonwoodSnapshotWithoutInventingMissingAreas() {
+        val result = parseCourseFixture(
+            "cottonwood-creek-course-overpass.json", 1337838568L, "Cottonwood Creek Country Club"
+        )
+        assertEquals(9, result.count("hole"))
+        assertEquals(9, result.count("pin"))
+        assertEquals(0, result.count("green"))
+        assertEquals(0, result.count("fairway"))
+        assertEquals(0, result.count("bunker"))
+        assertTrue(result.features.all { it.hasUsableGeometry })
+        assertTrue(result.incompleteRelations.isEmpty())
+    }
 }
