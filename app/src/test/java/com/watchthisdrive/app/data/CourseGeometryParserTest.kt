@@ -8,6 +8,26 @@ class CourseGeometryParserTest {
     private val course = GolfCourse(123L, "relation", "Test Golf Course", 0.0, 0.0, 0f)
 
     @Test
+    fun parsesRealSouthPadreOverpassFixture() {
+        val stream = javaClass.classLoader!!.getResourceAsStream("fixtures/south-padre-hole1-overpass.json")
+        val json = stream!!.bufferedReader().use { it.readText() }
+        val result = CourseGeometryLoader.parseGeometry(json, course)
+
+        val green = result.features.single { it.featureType == "green" }
+        val hole = result.features.single { it.featureType == "hole" }
+        val fairway = result.features.single { it.featureType == "fairway" }
+
+        assertEquals(CourseGeometryType.POLYGON, green.geometryType)
+        assertTrue(green.hasUsableGeometry)
+        assertEquals(CourseGeometryType.LINE, hole.geometryType)
+        assertEquals(3, hole.points.size)
+        assertEquals(CourseGeometryType.POLYGON, fairway.geometryType)
+        assertEquals(2, fairway.rings.size)
+        assertTrue(fairway.hasUsableGeometry)
+        assertTrue(result.incompleteRelations.isEmpty())
+    }
+
+    @Test
     fun parsesClosedWayAsPolygon() {
         val json = """
             {"elements":[{"type":"way","id":10,"tags":{"golf":"green","ref":"1"},
