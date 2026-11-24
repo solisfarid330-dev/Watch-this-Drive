@@ -1,7 +1,7 @@
 import unittest
 import numpy as np
 
-from naip_texture_classifier import local_std, metrics, sample_scene
+from naip_texture_classifier import local_std, metrics, sample_scene, spatial_holdout_mask
 
 
 class TextureClassifierResearchTests(unittest.TestCase):
@@ -45,10 +45,14 @@ class TextureClassifierResearchTests(unittest.TestCase):
         self.assertGreater(len(x_test), 100)
         self.assertEqual(set(np.unique(y_train)), {0, 1})
         self.assertEqual(set(np.unique(y_test)), {0, 1})
-        # Derive block IDs from the sampled coordinates indirectly by asserting
-        # the training and test sample feature rows are finite and deterministic.
         self.assertTrue(np.all(np.isfinite(x_train)))
         self.assertTrue(np.all(np.isfinite(x_test)))
+        yy, xx = np.mgrid[0:h, 0:w]
+        holdout = spatial_holdout_mask(yy, xx, block_px=32)
+        for row in range(0, h, 32):
+            for col in range(0, w, 32):
+                block = holdout[row:row+32, col:col+32]
+                self.assertTrue(np.all(block == block[0, 0]))
 
 
 if __name__ == "__main__":
