@@ -1,100 +1,142 @@
 {
-  "method": "ExtraTrees diagnostic trained on spatially held-out OSM fairway/rough seeds with RGBIR, multi-scale local texture, spectral ratios, structure-tensor coherence, and edge magnitude.",
-  "training_course_hole": "south-padre Hole 1",
+  "method": "ExtraTrees research diagnostic trained on spatially blocked and buffered OSM fairway/rough seed pixels from one or more holes, using RGBIR, multi-scale local texture, spectral ratios, centreline distance, structure-tensor coherence, and edge magnitude.",
+  "training_course": "south-padre",
+  "training_holes": [
+    "1",
+    "2"
+  ],
+  "training_scene_count": 2,
+  "learned_corridor_half_width_m": 20.0,
   "target_hole_ref": "1",
   "weak_label_boundary_erosion_m": 2.0,
   "training_samples": {
-    "fairway": 41081,
-    "rough": 43328
+    "fairway": 6425,
+    "rough": 37560
   },
   "spatial_block_holdout": {
     "threshold": 0.5,
-    "fairway_recall": 0.9991,
+    "fairway_recall": 0.9369,
     "rough_false_positive_rate": 0.0,
     "fairway_precision": 1.0,
-    "f1": 0.9996,
-    "roc_auc": 1.0,
-    "average_precision": 1.0,
-    "test_pixels": 13486
+    "f1": 0.9674,
+    "roc_auc": 0.9923,
+    "average_precision": 0.9954,
+    "test_pixels": 33119
   },
+  "training_scene_reports": [
+    {
+      "hole_ref": "1",
+      "training_samples": {
+        "fairway": 3072,
+        "rough": 20056
+      },
+      "spatial_block_holdout": {
+        "threshold": 0.5,
+        "fairway_recall": 0.9448,
+        "rough_false_positive_rate": 0.0,
+        "fairway_precision": 1.0,
+        "f1": 0.9716,
+        "roc_auc": 0.9907,
+        "average_precision": 0.9925,
+        "test_pixels": 13486
+      }
+    },
+    {
+      "hole_ref": "2",
+      "training_samples": {
+        "fairway": 3353,
+        "rough": 17504
+      },
+      "spatial_block_holdout": {
+        "threshold": 0.5,
+        "fairway_recall": 0.9325,
+        "rough_false_positive_rate": 0.0,
+        "fairway_precision": 1.0,
+        "f1": 0.9651,
+        "roc_auc": 0.9931,
+        "average_precision": 0.9968,
+        "test_pixels": 19633
+      }
+    }
+  ],
   "target_weak_label_evaluation_only": {
     "mapped_fairway_pixels": 0,
     "mapped_rough_pixels": 0
   },
-  "candidate_area_m2": 1647.6,
-  "candidate_fraction_of_corridor": 0.1565,
+  "candidate_area_m2": 443.4,
+  "candidate_fraction_of_corridor": 0.1045,
   "feature_importance": [
     {
-      "feature": "nir",
-      "importance": 0.28811
-    },
-    {
       "feature": "green",
-      "importance": 0.27361
+      "importance": 0.30352
     },
     {
       "feature": "blue",
-      "importance": 0.23268
+      "importance": 0.24839
+    },
+    {
+      "feature": "nir",
+      "importance": 0.21349
     },
     {
       "feature": "red",
-      "importance": 0.11197
-    },
-    {
-      "feature": "excess_green",
-      "importance": 0.02768
-    },
-    {
-      "feature": "centerline_distance_m",
-      "importance": 0.02293
-    },
-    {
-      "feature": "vari",
-      "importance": 0.0079
-    },
-    {
-      "feature": "ndvi",
-      "importance": 0.00702
+      "importance": 0.16168
     },
     {
       "feature": "nir_std_8px",
-      "importance": 0.00653
+      "importance": 0.02731
     },
     {
-      "feature": "gray_std_13px",
-      "importance": 0.00564
+      "feature": "ndvi",
+      "importance": 0.01013
     },
     {
       "feature": "red_green_ratio",
-      "importance": 0.00451
-    },
-    {
-      "feature": "gray_std_6px",
-      "importance": 0.00365
-    },
-    {
-      "feature": "nir_green_ratio",
-      "importance": 0.00306
-    },
-    {
-      "feature": "ndvi_std_5px",
-      "importance": 0.00143
+      "importance": 0.00786
     },
     {
       "feature": "nir_std_3px",
-      "importance": 0.00131
+      "importance": 0.00663
+    },
+    {
+      "feature": "excess_green",
+      "importance": 0.0058
+    },
+    {
+      "feature": "nir_green_ratio",
+      "importance": 0.00569
+    },
+    {
+      "feature": "vari",
+      "importance": 0.00504
+    },
+    {
+      "feature": "centerline_distance_m",
+      "importance": 0.00208
+    },
+    {
+      "feature": "gray_std_13px",
+      "importance": 0.00128
+    },
+    {
+      "feature": "ndvi_std_5px",
+      "importance": 0.00059
+    },
+    {
+      "feature": "gray_std_6px",
+      "importance": 0.00019
     },
     {
       "feature": "gray_std_3px",
-      "importance": 0.00101
+      "importance": 0.00017
     },
     {
       "feature": "edge_magnitude",
-      "importance": 0.00058
+      "importance": 0.00014
     },
     {
       "feature": "texture_coherence",
-      "importance": 0.0004
+      "importance": 3e-05
     }
   ],
   "warning": "OSM labels are incomplete weak labels, not independent ground truth. Spatial block holdout is within one hole/acquisition; cross-hole/course evaluation is diagnostic only. This sklearn model is research-only and is not an Android runtime dependency."
