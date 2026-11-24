@@ -201,9 +201,11 @@ def main():
     train_sources.extend(args.additional_train)
     rng = np.random.default_rng(20261124)
     sampled = []
+    train_scenes = []
     training_scene_reports = []
     for metadata_path, tiff_path, hole_ref in train_sources:
         scene = load_scene(args.train_geojson, metadata_path, tiff_path, hole_ref)
+        train_scenes.append(scene)
         xtr, ytr, xte, yte = sample_scene(scene, rng)
         sampled.append((xtr, ytr, xte, yte))
         training_scene_reports.append({
@@ -216,7 +218,7 @@ def main():
     y_train = np.concatenate([item[1] for item in sampled])
     fairway_seed_distances = np.concatenate([
         scene["centerline_distance_m"][scene["fairway"]]
-        for scene in [load_scene(args.train_geojson, m, t, h) for m, t, h in train_sources]
+        for scene in train_scenes
     ])
     learned_half_width_m = float(np.clip(np.quantile(fairway_seed_distances, 0.97) + 5.0, 20.0, 42.0))
     x_test = np.concatenate([item[2] for item in sampled])
