@@ -156,6 +156,19 @@ class CourseDataAuditTests(unittest.TestCase):
         self.assertEqual(errors, [])
 
 
+    def test_invalid_self_intersecting_multipolygon_is_omitted(self):
+        relation = {"members": [{
+            "type": "way", "ref": 90, "role": "outer", "geometry": [
+                {"lat": 0, "lon": 0}, {"lat": 1, "lon": 1},
+                {"lat": 0, "lon": 1}, {"lat": 1, "lon": 0},
+                {"lat": 0, "lon": 0},
+            ],
+        }]}
+        geometry, errors = audit._relation_multipolygon_geometry(relation)
+        self.assertIsNone(geometry)
+        self.assertTrue(any("self-intersects" in error or "zero area" in error
+                            for error in errors))
+
     def test_geojson_includes_osm_attribution_and_license(self):
         result = audit.to_geojson({"elements": []})
         self.assertEqual(result["metadata"]["attribution"],
