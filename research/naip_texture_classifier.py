@@ -31,6 +31,17 @@ def polygons(geometry):
         yield from geometry["coordinates"]
 
 
+def robust_scene_normalize(values, valid_mask):
+    values = np.asarray(values, dtype=np.float32)
+    reference = values[np.asarray(valid_mask, dtype=bool)]
+    if reference.size == 0:
+        raise ValueError("Cannot normalize an empty image region")
+    median = float(np.median(reference))
+    q25, q75 = np.percentile(reference, [25, 75])
+    scale = max(float(q75 - q25), 1e-4)
+    return np.clip((values - median) / scale, -5.0, 5.0).astype(np.float32)
+
+
 def local_std(values, radius):
     values = np.asarray(values, dtype=np.float32)
     size = 2 * radius + 1
@@ -39,7 +50,7 @@ def local_std(values, radius):
     return np.sqrt(np.maximum(mean_sq - mean * mean, 0.0))
 
 
-def load_scene(geojson_path, metadata_path, tiff_path, hole_ref):
+def load_scene(geojson_path, metadata_path, tiff_path, hole_ref, radiometry_mode="raw"):
     fc = json.loads(Path(geojson_path).read_text())
     meta = json.loads(Path(metadata_path).read_text())
     raw = np.asarray(Image.open(tiff_path)).astype(np.float32)
@@ -102,8 +113,22 @@ def load_scene(geojson_path, metadata_path, tiff_path, hole_ref):
     exg = 2*g-r-b
     vari = (g-r) / np.maximum(g+r-b, 1e-4)
     gray = 0.299*r + 0.587*g + 0.114*b
+    if radiometry_mode == "scene_normalized":
+        band_features = [robust_scene_normalize(band, analysis) for band in (r, g, b, n)]
+        band_names = ["red_scene_z", "green_scene_z", "blue_scene_z", "nir_scene_z"]
+    elif radiometry_mode == "raw":
+        band_features = [r, g, b, n]
+        band_names = ["red", "green", "blue", "nir"]
+    else:
+        raise ValueError(f"Unsupported radiometry mode: {radiometry_mode}")
+    feature_names = band_names + [
+        "ndvi","excess_green","vari","nir_green_ratio","red_green_ratio",
+        "gray_std_3px","gray_std_6px","gray_std_13px","nir_std_3px",
+        "nir_std_8px","ndvi_std_5px","centerline_distance_m",
+        "texture_coherence","edge_magnitude",
+    ]
     features = [
-        r, g, b, n, ndvi, exg, vari,
+        *band_features, ndvi, exg, vari,
         n / np.maximum(g, 1e-3),
         r / np.maximum(g, 1e-3),
         local_std(gray, 3), local_std(gray, 6), local_std(gray, 13),
@@ -134,6 +159,7 @@ def load_scene(geojson_path, metadata_path, tiff_path, hole_ref):
         "rough": rough, "rgb": np.stack([red, green, blue], axis=-1).clip(0,255).astype(np.uint8),
         "metadata": meta, "metres_per_pixel": metres_per_pixel,
         "centerline_distance_m": centerline_distance_m,
+        "feature_names": feature_names,
     }
 
 
@@ -222,6 +248,7 @@ def main():
     ap.add_argument("--target-metadata", required=True)
     ap.add_argument("--target-tiff", required=True)
     ap.add_argument("--target-hole-ref", default="1")
+    ap.add_argument("--radiometry-mode", choices=["raw", "scene_normalized"], default="raw")
     ap.add_argument("--out", required=True)
     args = ap.parse_args()
 
@@ -232,7 +259,7 @@ def main():
     train_scenes = []
     training_scene_reports = []
     for metadata_path, tiff_path, hole_ref in train_sources:
-        scene = load_scene(args.train_geojson, metadata_path, tiff_path, hole_ref)
+        scene = load_scene(args.train_geojson, metadata_path, tiff_path, hole_ref, args.radiometry_mode)
         train_scenes.append(scene)
         xtr, ytr, xte, yte = sample_scene(scene, rng)
         sampled.append((xtr, ytr, xte, yte))
@@ -266,17 +293,12 @@ def main():
         report.pop("holdout_features", None)
 
     target_scene = load_scene(
-        args.target_geojson, args.target_metadata, args.target_tiff, args.target_hole_ref
+        args.target_geojson, args.target_metadata, args.target_tiff, args.target_hole_ref, args.radiometry_mode
     )
     analysis = target_scene["analysis"] & (target_scene["centerline_distance_m"] <= learned_half_width_m)
     target_features = target_scene["features"]
     flat_ids = np.flatnonzero(analysis)
-    feature_names = [
-        "red","green","blue","nir","ndvi","excess_green","vari","nir_green_ratio",
-        "red_green_ratio","gray_std_3px","gray_std_6px","gray_std_13px",
-        "nir_std_3px","nir_std_8px","ndvi_std_5px","centerline_distance_m",
-        "texture_coherence","edge_magnitude",
-    ]
+    feature_names = target_scene["feature_names"]
     train_low, train_high = feature_bounds(x_train)
     target_flat = target_features.reshape(-1, target_features.shape[-1])
     target_stride = max(1, len(flat_ids) // 50000)
@@ -332,16 +354,14 @@ def main():
     importances = sorted(
         [{"feature": name, "importance": round(float(value), 5)}
          for name, value in zip(
-             ["red","green","blue","nir","ndvi","excess_green","vari","nir_green_ratio",
-              "red_green_ratio","gray_std_3px","gray_std_6px","gray_std_13px",
-              "nir_std_3px","nir_std_8px","ndvi_std_5px","centerline_distance_m",
-              "texture_coherence","edge_magnitude"],
+             feature_names,
              model.feature_importances_)],
         key=lambda item: item["importance"], reverse=True,
     )
     report = {
         "method": "ExtraTrees research diagnostic trained on spatially blocked and buffered OSM fairway/rough seed pixels from one or more holes, using RGBIR, multi-scale local texture, spectral ratios, centreline distance, structure-tensor coherence, and edge magnitude.",
         "training_course": Path(args.train_geojson).parent.name,
+        "radiometry_mode": args.radiometry_mode,
         "training_holes": [str(source[2]) for source in train_sources],
         "training_scene_count": len(train_sources),
         "learned_corridor_half_width_m": round(learned_half_width_m, 2),
