@@ -31,6 +31,7 @@ jobs:
             --train-geojson research/results/south-padre/features.geojson \
             --train-metadata research/results/south-padre/aerial-validation/hole-1-validation.json \
             --train-tiff research/results/south-padre/aerial-validation/hole-1-naip-2022-rgbir.tif \
+            --additional-train research/results/south-padre/aerial-validation/hole-2-validation.json research/results/south-padre/aerial-validation/hole-2-naip-2022-rgbir.tif 2 \
             --target-geojson research/results/south-padre/features.geojson \
             --target-metadata research/results/south-padre/aerial-validation/hole-1-validation.json \
             --target-tiff research/results/south-padre/aerial-validation/hole-1-naip-2022-rgbir.tif \
@@ -41,6 +42,7 @@ jobs:
             --train-geojson research/results/south-padre/features.geojson \
             --train-metadata research/results/south-padre/aerial-validation/hole-1-validation.json \
             --train-tiff research/results/south-padre/aerial-validation/hole-1-naip-2022-rgbir.tif \
+            --additional-train research/results/south-padre/aerial-validation/hole-2-validation.json research/results/south-padre/aerial-validation/hole-2-naip-2022-rgbir.tif 2 \
             --target-geojson research/results/south-padre/features.geojson \
             --target-metadata research/results/south-padre/aerial-validation/hole-2-validation.json \
             --target-tiff research/results/south-padre/aerial-validation/hole-2-naip-2022-rgbir.tif \
@@ -52,6 +54,7 @@ jobs:
             --train-geojson research/results/south-padre/features.geojson \
             --train-metadata research/results/south-padre/aerial-validation/hole-1-validation.json \
             --train-tiff research/results/south-padre/aerial-validation/hole-1-naip-2022-rgbir.tif \
+            --additional-train research/results/south-padre/aerial-validation/hole-2-validation.json research/results/south-padre/aerial-validation/hole-2-naip-2022-rgbir.tif 2 \
             --target-geojson research/results/westwood/features.geojson \
             --target-metadata research/results/westwood/aerial-validation/hole-1-validation.json \
             --target-tiff research/results/westwood/aerial-validation/hole-1-naip-2022-rgbir.tif \
@@ -62,6 +65,7 @@ jobs:
             --train-geojson research/results/south-padre/features.geojson \
             --train-metadata research/results/south-padre/aerial-validation/hole-1-validation.json \
             --train-tiff research/results/south-padre/aerial-validation/hole-1-naip-2022-rgbir.tif \
+            --additional-train research/results/south-padre/aerial-validation/hole-2-validation.json research/results/south-padre/aerial-validation/hole-2-naip-2022-rgbir.tif 2 \
             --target-geojson research/results/cottonwood-creek/features.geojson \
             --target-metadata research/results/cottonwood-creek/aerial-validation/hole-1-validation.json \
             --target-tiff research/results/cottonwood-creek/aerial-validation/hole-1-naip-2022-rgbir.tif \
