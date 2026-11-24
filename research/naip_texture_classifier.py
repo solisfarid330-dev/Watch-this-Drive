@@ -142,6 +142,22 @@ def spatial_holdout_mask(y, x, block_px=64):
     return ((y // block_px) * 73856093 ^ (x // block_px) * 19349663) % 5 == 0
 
 
+def spatial_train_test_masks(y, x, block_px=64, buffer_blocks=1):
+    """Split by whole blocks and exclude a one-block halo around holdout blocks."""
+    by = y // block_px
+    bx = x // block_px
+    height = int(by.max()) + 1
+    width = int(bx.max()) + 1
+    gy, gx = np.mgrid[0:height, 0:width]
+    heldout_grid = spatial_holdout_mask(gy, gx, block_px=1)
+    buffered_grid = ndimage.binary_dilation(
+        heldout_grid, iterations=buffer_blocks, border_value=0
+    )
+    is_test = heldout_grid[by, bx]
+    is_train = ~buffered_grid[by, bx]
+    return is_train, is_test
+
+
 def sample_scene(scene, rng, max_per_class=50000, block_px=64):
     y_pos, x_pos = np.where(scene["fairway"])
     y_neg, x_neg = np.where(scene["rough"])
@@ -157,13 +173,13 @@ def sample_scene(scene, rng, max_per_class=50000, block_px=64):
     y_pos, x_pos = pick(y_pos, x_pos)
     y_neg, x_neg = pick(y_neg, x_neg)
 
-    p_test = spatial_holdout_mask(y_pos, x_pos, block_px)
-    n_test = spatial_holdout_mask(y_neg, x_neg, block_px)
-    train_y = np.concatenate([y_pos[~p_test], y_neg[~n_test]])
-    train_x = np.concatenate([x_pos[~p_test], x_neg[~n_test]])
+    p_train, p_test = spatial_train_test_masks(y_pos, x_pos, block_px)
+    n_train, n_test = spatial_train_test_masks(y_neg, x_neg, block_px)
+    train_y = np.concatenate([y_pos[p_train], y_neg[n_train]])
+    train_x = np.concatenate([x_pos[p_train], x_neg[n_train]])
     test_y = np.concatenate([y_pos[p_test], y_neg[n_test]])
     test_x = np.concatenate([x_pos[p_test], x_neg[n_test]])
-    train_labels = np.concatenate([np.ones((~p_test).sum()), np.zeros((~n_test).sum())]).astype(np.uint8)
+    train_labels = np.concatenate([np.ones(p_train.sum()), np.zeros(n_train.sum())]).astype(np.uint8)
     test_labels = np.concatenate([np.ones(p_test.sum()), np.zeros(n_test.sum())]).astype(np.uint8)
     return (scene["features"][train_y, train_x], train_labels,
             scene["features"][test_y, test_x], test_labels)
@@ -279,7 +295,7 @@ def main():
         key=lambda item: item["importance"], reverse=True,
     )
     report = {
-        "method": "ExtraTrees research diagnostic trained on spatially blocked OSM fairway/rough seed pixels from one or more holes, using RGBIR, multi-scale local texture, spectral ratios, centreline distance, structure-tensor coherence, and edge magnitude.",
+        "method": "ExtraTrees research diagnostic trained on spatially blocked and buffered OSM fairway/rough seed pixels from one or more holes, using RGBIR, multi-scale local texture, spectral ratios, centreline distance, structure-tensor coherence, and edge magnitude.",
         "training_course": Path(args.train_geojson).parent.name,
         "training_holes": [str(source[2]) for source in train_sources],
         "training_scene_count": len(train_sources),
