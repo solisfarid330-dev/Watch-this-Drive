@@ -209,8 +209,8 @@ def main():
         training_scene_reports.append({
             "hole_ref": str(hole_ref),
             "training_samples": {"fairway": int((ytr == 1).sum()), "rough": int((ytr == 0).sum())},
-            "spatial_block_holdout": metrics(yte, np.zeros(len(yte), dtype=np.float32) + 0.5)
-                if False else None,
+            "holdout_labels": yte,
+            "holdout_features": xte,
         })
     x_train = np.concatenate([item[0] for item in sampled])
     y_train = np.concatenate([item[1] for item in sampled])
@@ -225,6 +225,10 @@ def main():
     model.fit(x_train, y_train)
     holdout_probability = model.predict_proba(x_test)[:, 1]
     holdout_metrics = metrics(y_test, holdout_probability)
+    for report, (_, _, xte, yte) in zip(training_scene_reports, sampled):
+        report["spatial_block_holdout"] = metrics(yte, model.predict_proba(xte)[:, 1])
+        report.pop("holdout_labels", None)
+        report.pop("holdout_features", None)
 
     analysis = target_scene["analysis"]
     target_features = target_scene["features"]
