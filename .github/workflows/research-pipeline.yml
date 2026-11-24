@@ -47,5 +47,9 @@ jobs:
                   ambiguous = sum(len(h["endpoint_marker_candidates"][marker]["ambiguous_shared_candidates"]) for h in report["holes"])
                   excluded = sum(len(h["endpoint_marker_candidates"][marker]["closer_to_another_hole"]) for h in report["holes"])
                   summary[marker] = {"unique_candidates": unique, "ambiguous_shared": ambiguous, "closer_to_other_hole": excluded}
+              corridor_unique = sum(len(h["course_wide_unique_corridor_candidates"]) for h in report["holes"])
+              corridor_ambiguous = sum(len(h["ambiguous_shared_corridor_candidates"]) for h in report["holes"])
+              corridor_excluded = sum(len(h["corridor_features_closer_to_another_hole"]) for h in report["holes"])
+              summary["corridor_features"] = {"unique_candidates": corridor_unique, "ambiguous_shared": corridor_ambiguous, "closer_to_other_hole": corridor_excluded}
               print(json.dumps({"course": path.stem, "holes": report["hole_count"], "markers": summary}, sort_keys=True))
           PY
