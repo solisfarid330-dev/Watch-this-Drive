@@ -154,11 +154,16 @@ Key findings:
   candidates without duplicate feature claims. South Padre yields 24 tee and
   18 green candidates; Cottonwood yields 9 pin candidates. These are still
   proximity-based candidates, not ground-truth assignments, and near-ties are
-  kept explicitly ambiguous. Shared fairway/hazard geometry near multiple holes
-  also remains ambiguous rather than being forced onto one hole. Corridor distance
-  measures full line segments against polygon/line geometry, so crossings between
-  sparse centerline vertices are not missed; dedicated regression tests cover
-  polygon crossings, edge distance, and cross-hole ambiguity.
+  kept explicitly ambiguous. The corridor pass reports unique-nearest
+  candidates by feature type: South Padre has 42 bunkers, 17 fairways, 14 rough
+  areas, 2 water hazards, and 14 cartpaths; Westwood has 61 bunkers, 19 fairways,
+  and 6 water hazards. Westwood also has 7 shared water-hazard candidates that
+  remain ambiguous. Cottonwood has no mapped corridor polygons. Shared
+  fairway/hazard geometry near multiple holes remains ambiguous rather than
+  being forced onto one hole. Corridor distance measures full line segments
+  against polygon/line geometry, so crossings between sparse centerline vertices
+  are not missed; dedicated regression tests cover polygon crossings, edge
+  distance, and cross-hole ambiguity.
 
 Do not port the reconstruction engine to Android yet. The research prototype
 proves generic discovery, relation serialization, imagery retrieval, and a
