@@ -285,4 +285,68 @@ class CourseGeometryParserTest {
         assertTrue(result.features.all { it.hasUsableGeometry })
         assertTrue(result.incompleteRelations.isEmpty())
     }
+    @Test
+    fun rejectsInnerRingThatCrossesOuterBoundary() {
+        val json = """
+            {"elements":[{"type":"relation","id":80,
+            "tags":{"golf":"fairway","type":"multipolygon"},
+            "members":[
+              {"type":"way","ref":1,"role":"outer","geometry":[
+                {"lat":0.0,"lon":0.0},{"lat":0.0,"lon":2.0},
+                {"lat":2.0,"lon":2.0},{"lat":2.0,"lon":0.0},{"lat":0.0,"lon":0.0}]},
+              {"type":"way","ref":2,"role":"inner","geometry":[
+                {"lat":0.5,"lon":0.5},{"lat":0.5,"lon":2.5},
+                {"lat":1.5,"lon":2.5},{"lat":1.5,"lon":0.5},{"lat":0.5,"lon":0.5}]}
+            ]}]}
+        """.trimIndent()
+        val result = CourseGeometryLoader.parseGeometry(json, course)
+        val fairway = result.features.single()
+        assertEquals(false, fairway.hasUsableGeometry)
+        assertTrue(fairway.geometryStatus.contains("inner ring is not fully contained"))
+        assertTrue(result.incompleteRelations.any { it.contains("inner ring is not fully contained") })
+    }
+
+    @Test
+    fun rejectsOverlappingOuterComponents() {
+        val json = """
+            {"elements":[{"type":"relation","id":81,
+            "tags":{"golf":"fairway","type":"multipolygon"},
+            "members":[
+              {"type":"way","ref":1,"role":"outer","geometry":[
+                {"lat":0.0,"lon":0.0},{"lat":0.0,"lon":2.0},
+                {"lat":2.0,"lon":2.0},{"lat":2.0,"lon":0.0},{"lat":0.0,"lon":0.0}]},
+              {"type":"way","ref":2,"role":"outer","geometry":[
+                {"lat":1.0,"lon":1.0},{"lat":1.0,"lon":3.0},
+                {"lat":3.0,"lon":3.0},{"lat":3.0,"lon":1.0},{"lat":1.0,"lon":1.0}]}
+            ]}]}
+        """.trimIndent()
+        val result = CourseGeometryLoader.parseGeometry(json, course)
+        val fairway = result.features.single()
+        assertEquals(false, fairway.hasUsableGeometry)
+        assertTrue(fairway.geometryStatus.contains("outer rings overlap or touch"))
+    }
+
+    @Test
+    fun rejectsNestedInnerRings() {
+        val json = """
+            {"elements":[{"type":"relation","id":82,
+            "tags":{"golf":"fairway","type":"multipolygon"},
+            "members":[
+              {"type":"way","ref":1,"role":"outer","geometry":[
+                {"lat":0.0,"lon":0.0},{"lat":0.0,"lon":3.0},
+                {"lat":3.0,"lon":3.0},{"lat":3.0,"lon":0.0},{"lat":0.0,"lon":0.0}]},
+              {"type":"way","ref":2,"role":"inner","geometry":[
+                {"lat":0.5,"lon":0.5},{"lat":0.5,"lon":2.5},
+                {"lat":2.5,"lon":2.5},{"lat":2.5,"lon":0.5},{"lat":0.5,"lon":0.5}]},
+              {"type":"way","ref":3,"role":"inner","geometry":[
+                {"lat":1.0,"lon":1.0},{"lat":1.0,"lon":2.0},
+                {"lat":2.0,"lon":2.0},{"lat":2.0,"lon":1.0},{"lat":1.0,"lon":1.0}]}
+            ]}]}
+        """.trimIndent()
+        val result = CourseGeometryLoader.parseGeometry(json, course)
+        val fairway = result.features.single()
+        assertEquals(false, fairway.hasUsableGeometry)
+        assertTrue(fairway.geometryStatus.contains("inner rings overlap, touch, or are nested"))
+    }
+
 }
