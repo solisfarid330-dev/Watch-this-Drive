@@ -101,6 +101,67 @@ def choose_line_direction(features,line,lat0):
         start,end=original_end,original_start
     return start,end,{"selected":selected,"forward_score_m":round(forward,1),"reverse_score_m":round(reverse,1),"basis":basis}
 
+def apply_course_wide_uniqueness(results, margin_m=5.0):
+    """Keep endpoint markers from being confidently claimed by neighboring holes.
+
+    This is still candidate generation, not a definitive membership assignment.
+    A marker appearing near multiple hole ends is retained only for the clearly
+    closest hole; near-ties are explicitly marked ambiguous.
+    """
+    for hole in results:
+        for cls in MARKERS:
+            hole["endpoint_marker_candidates"][cls]["course_wide_unique_candidates"] = []
+            hole["endpoint_marker_candidates"][cls]["ambiguous_shared_candidates"] = []
+            hole["endpoint_marker_candidates"][cls]["closer_to_another_hole"] = []
+
+    for cls in MARKERS:
+        grouped = {}
+        for hole_index, hole in enumerate(results):
+            for candidate in hole["endpoint_marker_candidates"][cls]["strong_endpoint_candidates"]:
+                feature_id = (candidate.get("osm_type"), candidate.get("osm_id"))
+                distance_key = "distance_to_start_m" if cls == "tee" else "distance_to_end_m"
+                grouped.setdefault(feature_id, []).append(
+                    (candidate[distance_key], hole_index, candidate)
+                )
+
+        for owners in grouped.values():
+            owners.sort(key=lambda item: item[0])
+            best_distance, best_hole_index, best_candidate = owners[0]
+            if len(owners) == 1:
+                results[best_hole_index]["endpoint_marker_candidates"][cls][
+                    "course_wide_unique_candidates"
+                ].append({**best_candidate, "course_wide_status": "single_hole_candidate"})
+                continue
+
+            second_distance = owners[1][0]
+            if second_distance - best_distance >= margin_m:
+                results[best_hole_index]["endpoint_marker_candidates"][cls][
+                    "course_wide_unique_candidates"
+                ].append({
+                    **best_candidate,
+                    "course_wide_status": "unique_nearest_hole_candidate",
+                    "distance_margin_to_next_hole_m": round(second_distance - best_distance, 1),
+                })
+                for _, other_hole_index, other_candidate in owners[1:]:
+                    results[other_hole_index]["endpoint_marker_candidates"][cls][
+                        "closer_to_another_hole"
+                    ].append({
+                        **other_candidate,
+                        "closest_hole_ref": results[best_hole_index]["hole_ref"],
+                        "course_wide_status": "candidate_closer_to_another_hole",
+                    })
+            else:
+                for distance, hole_index, candidate in owners:
+                    results[hole_index]["endpoint_marker_candidates"][cls][
+                        "ambiguous_shared_candidates"
+                    ].append({
+                        **candidate,
+                        "course_wide_status": "ambiguous_between_holes",
+                        "distance_to_nearest_hole_m": round(best_distance, 1),
+                        "distance_margin_to_next_hole_m": round(second_distance - best_distance, 1),
+                    })
+
+
 def analyze(collection, endpoint_limit_m=30.0, pin_limit_m=20.0, corridor_limit_m=45.0):
     features=collection.get("features",[])
     holes=[f for f in features if f.get("properties",{}).get("golf")=="hole" and f.get("geometry",{}).get("type") in ("LineString","MultiLineString")]
@@ -158,16 +219,18 @@ def analyze(collection, endpoint_limit_m=30.0, pin_limit_m=20.0, corridor_limit_
             "corridor_feature_candidates":corridor,
             "interpretation":"Endpoint proximity is stronger evidence for tee/green/pin association than distance to any part of the hole line, but every result remains a candidate until checked against imagery or trusted course references."
         })
+    apply_course_wide_uniqueness(results)
     return {
         "type":"WatchThisDriveHoleAssociationAudit",
-        "method":"Choose line orientation from nearest tee/green endpoints, or pin endpoint when tee/green are unavailable; report conservative endpoint and centerline candidates without forced assignment.",
-        "thresholds_m":{"tee_green_endpoint":endpoint_limit_m,"pin_green_endpoint":pin_limit_m,"corridor":corridor_limit_m},
+        "method":"Infer hole-line direction from endpoint markers, then compare each marker candidate across all hole endpoints; retain only clearly nearest-hole candidates and flag near-ties. This remains diagnostic, not definitive membership.",
+        "thresholds_m":{"tee_green_endpoint":endpoint_limit_m,"pin_green_endpoint":pin_limit_m,"corridor":corridor_limit_m,"course_wide_uniqueness_margin":5.0},
         "hole_count":len(results),
         "holes":results,
         "limitations":[
             "Line orientation is inferred from nearby tee/green markers or pins; when evidence is ambiguous, no strong endpoint candidates are emitted.",
             "Endpoint proximity does not prove feature membership.",
-            "Multiple nearby markers may belong to neighboring holes.",
+            "Course-wide nearest-endpoint comparison reduces duplicate claims, but a closest marker can still belong to another nearby hole.",
+            "Near-tied marker candidates remain explicitly ambiguous rather than being forced onto a hole.",
             "Corridor features remain unassigned without stronger topology or imagery evidence."
         ]
     }
