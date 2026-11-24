@@ -162,7 +162,7 @@ def apply_course_wide_uniqueness(results, margin_m=5.0):
                     })
 
 
-def analyze(collection, endpoint_limit_m=30.0, pin_limit_m=20.0, corridor_limit_m=45.0):
+def analyze(collection, endpoint_limit_m=30.0, pin_limit_m=20.0, corridor_limit_m=45.0, uniqueness_margin_m=5.0):
     features=collection.get("features",[])
     holes=[f for f in features if f.get("properties",{}).get("golf")=="hole" and f.get("geometry",{}).get("type") in ("LineString","MultiLineString")]
     results=[]
@@ -219,11 +219,11 @@ def analyze(collection, endpoint_limit_m=30.0, pin_limit_m=20.0, corridor_limit_
             "corridor_feature_candidates":corridor,
             "interpretation":"Endpoint proximity is stronger evidence for tee/green/pin association than distance to any part of the hole line, but every result remains a candidate until checked against imagery or trusted course references."
         })
-    apply_course_wide_uniqueness(results)
+    apply_course_wide_uniqueness(results, margin_m=uniqueness_margin_m)
     return {
         "type":"WatchThisDriveHoleAssociationAudit",
         "method":"Infer hole-line direction from endpoint markers, then compare each marker candidate across all hole endpoints; retain only clearly nearest-hole candidates and flag near-ties. This remains diagnostic, not definitive membership.",
-        "thresholds_m":{"tee_green_endpoint":endpoint_limit_m,"pin_green_endpoint":pin_limit_m,"corridor":corridor_limit_m,"course_wide_uniqueness_margin":5.0},
+        "thresholds_m":{"tee_green_endpoint":endpoint_limit_m,"pin_green_endpoint":pin_limit_m,"corridor":corridor_limit_m,"course_wide_uniqueness_margin":uniqueness_margin_m},
         "hole_count":len(results),
         "holes":results,
         "limitations":[
@@ -241,9 +241,10 @@ def main():
     p.add_argument("--endpoint-limit-m",type=float,default=30)
     p.add_argument("--pin-limit-m",type=float,default=20)
     p.add_argument("--corridor-limit-m",type=float,default=45)
+    p.add_argument("--uniqueness-margin-m",type=float,default=5)
     a=p.parse_args()
     data=json.loads(Path(a.geojson).read_text())
-    result=analyze(data,a.endpoint_limit_m,a.pin_limit_m,a.corridor_limit_m)
+    result=analyze(data,a.endpoint_limit_m,a.pin_limit_m,a.corridor_limit_m,a.uniqueness_margin_m)
     out=Path(a.out);out.parent.mkdir(parents=True,exist_ok=True)
     out.write_text(json.dumps(result,indent=2)+"\n")
     print(json.dumps({"hole_count":result["hole_count"],"output":str(out),"thresholds_m":result["thresholds_m"]},indent=2))
