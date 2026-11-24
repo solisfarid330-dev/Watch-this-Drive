@@ -13,7 +13,7 @@
       "alternatives": []
     },
     "nominatim_result": {
-      "place_id": 305294579,
+      "place_id": 304013165,
       "licence": "Data \u00a9 OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
       "osm_type": "way",
       "osm_id": 125353929,
@@ -55,15 +55,15 @@
     },
     "overpass_endpoint": "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
     "overpass_query": "[out:json][timeout:75];\nway(125353929);\nmap_to_area -> .courseArea;\n(\n  nwr(area.courseArea)[\"golf\"];\n);\nout body geom;\n",
-    "retrieved_at_utc": "2026-11-24T01:08:55Z",
+    "retrieved_at_utc": "2026-11-24T01:11:25Z",
     "osm_copyright": "\u00a9 OpenStreetMap contributors; data available under ODbL"
   },
   "overpass": {
     "version": 0.6,
     "generator": "Overpass API 0.7.62.4 2390de5a",
     "osm3s": {
-      "timestamp_osm_base": "2026-11-24T01:07:36Z",
-      "timestamp_areas_base": "2026-11-23T22:58:08Z",
+      "timestamp_osm_base": "2026-11-24T01:09:37Z",
+      "timestamp_areas_base": "2026-11-23T23:43:55Z",
       "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL."
     },
     "elements": [

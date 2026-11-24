@@ -6,14 +6,14 @@
       "osm_type": "relation",
       "osm_id": 19071561,
       "name": "South Padre Island Golf Club",
-      "display_name": "South Padre Island Golf Club, Hacienda Drive, Laguna Vista, Cameron County, Texas, 78578, United States",
+      "display_name": "South Padre Island Golf Club, Tangelo Court, Laguna Vista, Cameron County, Texas, 78578, United States",
       "lat": 26.1140091,
       "lon": -97.3081677,
       "score": 2.15,
       "alternatives": []
     },
     "nominatim_result": {
-      "place_id": 315750992,
+      "place_id": 314664175,
       "licence": "Data \u00a9 OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
       "osm_type": "relation",
       "osm_id": 19071561,
@@ -25,10 +25,10 @@
       "importance": 3.786907759208083e-05,
       "addresstype": "leisure",
       "name": "South Padre Island Golf Club",
-      "display_name": "South Padre Island Golf Club, Hacienda Drive, Laguna Vista, Cameron County, Texas, 78578, United States",
+      "display_name": "South Padre Island Golf Club, Tangelo Court, Laguna Vista, Cameron County, Texas, 78578, United States",
       "address": {
         "leisure": "South Padre Island Golf Club",
-        "road": "Hacienda Drive",
+        "road": "Tangelo Court",
         "village": "Laguna Vista",
         "county": "Cameron County",
         "state": "Texas",
@@ -48,9 +48,9 @@
         "-97.2957895"
       ]
     },
-    "overpass_endpoint": "https://ovp.dresel.systems/api-na/interpreter",
+    "overpass_endpoint": "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
     "overpass_query": "[out:json][timeout:75];\nrelation(19071561);\nmap_to_area -> .courseArea;\n(\n  nwr(area.courseArea)[\"golf\"];\n);\nout body geom;\n",
-    "retrieved_at_utc": "2026-11-24T01:08:20Z",
+    "retrieved_at_utc": "2026-11-24T01:10:45Z",
     "osm_copyright": "\u00a9 OpenStreetMap contributors; data available under ODbL"
   },
   "inventory": {
