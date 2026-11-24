@@ -255,6 +255,9 @@ def main():
         report.pop("holdout_labels", None)
         report.pop("holdout_features", None)
 
+    target_scene = load_scene(
+        args.target_geojson, args.target_metadata, args.target_tiff, args.target_hole_ref
+    )
     analysis = target_scene["analysis"] & (target_scene["centerline_distance_m"] <= learned_half_width_m)
     target_features = target_scene["features"]
     flat_ids = np.flatnonzero(analysis)
