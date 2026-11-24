@@ -228,12 +228,17 @@ def main():
     )
     count = int(segments.max()) + 1
     flat = segments.ravel()
-    pixel_count = np.bincount(flat, minlength=count).astype(np.float64)
+    analysis_weights = analysis.ravel().astype(np.float64)
+    analysis_pixel_count = np.bincount(
+        flat, weights=analysis_weights, minlength=count
+    )
 
     def average_by_segment(values):
         return np.bincount(
-            flat, weights=values.ravel().astype(np.float64), minlength=count
-        ) / np.maximum(pixel_count, 1.0)
+            flat,
+            weights=values.ravel().astype(np.float64) * analysis_weights,
+            minlength=count,
+        ) / np.maximum(analysis_pixel_count, 1.0)
 
     centerline_distance = ndimage.distance_transform_edt(~spine) * metres_per_pixel
     feature_matrix = {
@@ -248,7 +253,7 @@ def main():
         feature_matrix["texture"],
         feature_matrix["centerline_distance_m"],
     )
-    analysis_fraction = average_by_segment(analysis.astype(np.float32))
+    analysis_fraction = analysis_pixel_count / np.maximum(pixel_count, 1.0)
     candidate_segment_scores = np.where(analysis_fraction >= 0.35, scores, -np.inf)
     selected_cluster = int(np.argmax(candidate_segment_scores))
     raw_candidate = (segments == selected_cluster) & analysis
