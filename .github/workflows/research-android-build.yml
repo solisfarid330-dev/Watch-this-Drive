@@ -15,6 +15,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: research-android-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-debug-apk:
     name: Compile Android app
