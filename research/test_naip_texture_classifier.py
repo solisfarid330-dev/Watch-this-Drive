@@ -1,7 +1,7 @@
 import unittest
 import numpy as np
 
-from research.naip_texture_classifier import local_std, metrics, sample_scene, spatial_holdout_mask, spatial_train_test_masks, feature_bounds, feature_outside_bounds
+from research.naip_texture_classifier import local_std, metrics, sample_scene, spatial_holdout_mask, spatial_train_test_masks, feature_bounds, feature_outside_bounds, robust_scene_normalize
 
 
 class TextureClassifierResearchTests(unittest.TestCase):
@@ -16,6 +16,14 @@ class TextureClassifierResearchTests(unittest.TestCase):
         image = np.full((32, 32), 0.42, dtype=np.float32)
         result = local_std(image, 5)
         self.assertTrue(np.allclose(result, 0.0, atol=1e-6))
+
+    def test_scene_normalization_is_robust_to_affine_radiometry(self):
+        mask = np.ones((20, 20), dtype=bool)
+        base = np.linspace(0.1, 0.8, 400, dtype=np.float32).reshape(20, 20)
+        shifted = base * 1.7 + 0.12
+        a = robust_scene_normalize(base, mask)
+        b = robust_scene_normalize(shifted, mask)
+        self.assertTrue(np.allclose(a, b, atol=1e-5))
 
     def test_feature_bounds_accept_training_distribution(self):
         training = np.array([[0, 10], [1, 11], [2, 12], [3, 13]], dtype=np.float32)
