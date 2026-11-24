@@ -180,29 +180,29 @@ independently traced reference boundaries and test a seedless fallback for
 courses with no mapped fairway polygons before making a go/no-go decision.
 
 
-## Seed-independent fairway experiment (in progress)
+## Seed-independent fairway experiment (candidate generation only)
 
-A new candidate generator has been added in `naip_seedless_fairway.py`.
-Unlike the earlier SLIC experiment, it does not use mapped fairway or rough
-polygons to choose image regions. It ranks RGBIR superpixels from NDVI,
-excess-green, multi-scale texture, and distance to the selected hole line,
-then retains coherent components linked to that line. Mapped green, bunker,
-water, and tee areas are used as exclusion masks where available.
+The first seed-independent method selected one SLIC superpixel cluster and
+failed to produce meaningful connected candidates on three of four test holes.
+That failure is retained in the commit history and reports; it was not hidden.
 
-The existing fairway and rough polygons are consulted only after selection
-to calculate weak-label overlap diagnostics. They do not affect the selected
-cluster. The experiment is being run on South Padre Holes 1 and 2, Westwood
-Hole 1, and sparse Cottonwood Hole 1. Cottonwood is the critical test because
-it has no mapped fairway polygon to seed the reconstruction.
+The next iteration replaced single-cluster selection with a pixel-wise robust
+RGBIR score using NDVI, excess green, multi-scale texture, and distance to the
+hole centreline. It smooths the score, thresholds within the hole corridor,
+and keeps substantial connected components near the line. Fairway and rough
+polygons do not influence selection. The four-hole experiment now produces
+candidate masks on South Padre Holes 1 and 2, Westwood Hole 1, and sparse
+Cottonwood Hole 1.
 
-This is still an experimental heuristic, not a solved segmentation problem.
-A cluster with greener vegetation and lower texture is not automatically a
-fairway; trees, rough, lawns, and other turf can share those properties. The
-result must be judged visually and against independently traced reference
-boundaries before any accuracy claim or Android port. A no-candidate or
-ambiguous result is preferable to silently inventing a boundary.
+These are still **not accepted fairway boundaries**. Candidate masks cover
+roughly 38–40% of the analysis corridor. Agreement diagnostics against
+incomplete OSM labels show substantial mapped-rough overlap on South Padre
+(about 45–49%), demonstrating that the candidate is too broad to distinguish
+fairway from rough reliably. Cottonwood has no mapped fairway or rough labels,
+so its result cannot be scored from OSM. A threshold sweep is being added to
+quantify the trade-off between candidate coverage and mapped rough overlap;
+these weak labels remain evaluation-only and are not independent ground truth.
 
-The image-dependent unit checks are kept separate from the standard-library-
-only offline research test suite. The aerial GitHub Actions workflow installs
-the image-processing dependencies, tests the ranking function, and runs all
-four course/hole examples.
+No candidate is promoted to app geometry. The method must still be checked
+against independently traced fairway boundaries and should be rejected when
+its confidence or specificity is inadequate.
