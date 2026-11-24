@@ -10,6 +10,7 @@ on:
       - "research/hole_feature_association.py"
       - "research/naip_superpixel_fairway.py"
       - "research/naip_seedless_fairway.py"
+      - "research/naip_seedless_fairway_checks.py"
       - ".github/workflows/aerial-hole-validation.yml"
   workflow_dispatch:
 permissions:
