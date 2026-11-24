@@ -175,5 +175,21 @@ class EndpointAssociationTests(unittest.TestCase):
                 owners.setdefault(feature_id, []).append(hole["hole_ref"])
         self.assertTrue(all(len(hole_refs) == 1 for hole_refs in owners.values()))
 
+    def test_course_wide_corridor_exclusivity_on_all_saved_course_snapshots(self):
+        for course in ("south-padre", "westwood", "cottonwood-creek"):
+            with self.subTest(course=course):
+                snapshot = Path(__file__).parent / "results" / course / "features.geojson"
+                collection = json.loads(snapshot.read_text(encoding="utf-8"))
+                result = audit.analyze(collection)
+                owners = {}
+                for hole in result["holes"]:
+                    for candidate in hole["course_wide_unique_corridor_candidates"]:
+                        feature_id = (candidate["golf"], candidate["osm_type"], candidate["osm_id"])
+                        owners.setdefault(feature_id, []).append(hole["hole_ref"])
+                self.assertTrue(all(len(hole_refs) == 1 for hole_refs in owners.values()))
+                for hole in result["holes"]:
+                    for candidate in hole["ambiguous_shared_corridor_candidates"]:
+                        self.assertEqual(candidate["course_wide_status"], "ambiguous_between_holes")
+
 
 if __name__=="__main__":unittest.main()
