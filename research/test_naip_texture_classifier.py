@@ -1,7 +1,7 @@
 import unittest
 import numpy as np
 
-from naip_texture_classifier import local_std, metrics, sample_scene, spatial_holdout_mask
+from research.naip_texture_classifier import local_std, metrics, sample_scene, spatial_holdout_mask
 
 
 class TextureClassifierResearchTests(unittest.TestCase):
