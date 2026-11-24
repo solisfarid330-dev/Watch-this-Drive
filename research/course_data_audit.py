@@ -249,6 +249,57 @@ def _point_in_ring(point: list[float], ring: list[list[float]]) -> bool:
     return inside
 
 
+def _orientation(a, b, c):
+    return (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])
+
+
+def _segments_intersect(a, b, c, d):
+    eps = 1e-12
+    o1, o2 = _orientation(a, b, c), _orientation(a, b, d)
+    o3, o4 = _orientation(c, d, a), _orientation(c, d, b)
+    proper = ((o1 > eps and o2 < -eps) or (o1 < -eps and o2 > eps)) and (
+        (o3 > eps and o4 < -eps) or (o3 < -eps and o4 > eps)
+    )
+    if proper:
+        return True
+    def on_segment(p, q, r):
+        return (abs(_orientation(p, q, r)) <= eps
+                and min(p[0], q[0]) - eps <= r[0] <= max(p[0], q[0]) + eps
+                and min(p[1], q[1]) - eps <= r[1] <= max(p[1], q[1]) + eps)
+    return (on_segment(a, b, c) or on_segment(a, b, d)
+            or on_segment(c, d, a) or on_segment(c, d, b))
+
+
+def _rings_intersect(a, b):
+    return any(_segments_intersect(a[i], a[i + 1], b[j], b[j + 1])
+               for i in range(len(a) - 1) for j in range(len(b) - 1))
+
+
+def _ring_problem(ring):
+    if len(ring) < 4 or ring[0] != ring[-1]:
+        return "ring is not closed"
+    if abs(_ring_area(ring)) < 1e-14:
+        return "ring has zero area"
+    edge_count = len(ring) - 1
+    for i in range(edge_count):
+        for j in range(i + 1, edge_count):
+            if j == i + 1 or (i == 0 and j == edge_count - 1):
+                continue
+            if _segments_intersect(ring[i], ring[i + 1], ring[j], ring[j + 1]):
+                return "ring self-intersects"
+    return None
+
+
+def _ring_strictly_inside(inner, outer):
+    return (all(_point_in_ring(point, outer) for point in inner[:-1])
+            and not _rings_intersect(inner, outer))
+
+
+def _rings_overlap(a, b):
+    return (_rings_intersect(a, b) or _point_in_ring(a[0], b)
+            or _point_in_ring(b[0], a))
+
+
 def _assemble_member_rings(members: list[dict], role: str) -> tuple[list[list[list[float]]], list[str]]:
     segments = []
     errors = []
@@ -313,19 +364,34 @@ def _relation_multipolygon_geometry(element: dict) -> tuple[dict | None, list[st
     if not outers:
         return None, errors + ["Multipolygon has no complete outer ring"]
 
+    for index, ring in enumerate(outers):
+        problem = _ring_problem(ring)
+        if problem:
+            errors.append(f"Invalid outer ring: {problem}")
+        for other in outers[:index]:
+            if _rings_overlap(ring, other):
+                errors.append("Outer rings overlap, touch, or are nested")
+    for ring in inners:
+        problem = _ring_problem(ring)
+        if problem:
+            errors.append(f"Invalid inner ring: {problem}")
+
     polygons = [[outer] for outer in outers]
     for inner in inners:
         containing = [
             index for index, outer in enumerate(outers)
-            if _point_in_ring(inner[0], outer)
+            if _ring_strictly_inside(inner, outer)
         ]
         if not containing:
             errors.append("An inner ring could not be assigned to an outer ring")
             continue
         owner = min(containing, key=lambda index: abs(_ring_area(outers[index])))
+        if any(_rings_overlap(inner, existing) for existing in polygons[owner][1:]):
+            errors.append("Inner rings overlap, touch, or are nested")
+            continue
         polygons[owner].append(inner)
 
-    if any("inner ring could not be assigned" in error for error in errors):
+    if errors:
         return None, errors
 
     # RFC 7946 winding: outer rings counter-clockwise, holes clockwise.
