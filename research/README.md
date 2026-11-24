@@ -93,13 +93,13 @@ relations with zero omissions. A structural validation pass found no open
 polygon rings, no uncontained inner rings, and no incorrect ring winding in
 those two outputs.
 
-Fifteen offline unit tests cover boundary query construction, node rejection,
+Eighteen offline unit tests cover boundary query construction, node rejection,
 inventory counting, multipolygon outer/inner rings, segmented-ring stitching,
 open hole lines, GeoJSON polygon winding, and conservative endpoint association.
 The GitHub Actions research pipeline checks have passed.
 
-The Android-side Kotlin geometry parser now has its own local JVM test suite
-(no emulator required). It includes a captured South Padre Island Overpass
+The Android-side Kotlin geometry parser now has its own 12-test local JVM test
+suite (no emulator required). It includes a captured South Padre Island Overpass
 fixture covering a real green polygon, Hole 1 centerline, and a fairway
 multipolygon with an inner ring, plus synthetic regression cases for closed
 cart paths, route-style hole relations, disconnected/incomplete rings,
