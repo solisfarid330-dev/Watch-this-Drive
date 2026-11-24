@@ -228,6 +228,7 @@ def main():
     )
     count = int(segments.max()) + 1
     flat = segments.ravel()
+    pixel_count = np.bincount(flat, minlength=count).astype(np.float64)
     analysis_weights = analysis.ravel().astype(np.float64)
     analysis_pixel_count = np.bincount(
         flat, weights=analysis_weights, minlength=count
