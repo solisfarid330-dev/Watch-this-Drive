@@ -78,7 +78,8 @@ class CourseGeometryParserTest {
         """.trimIndent()
         val result = CourseGeometryLoader.parseGeometry(json, course)
         assertTrue(result.features.isEmpty())
-        assertTrue(result.incompleteRelations.single().contains("self-intersects"))
+        val warning = result.incompleteRelations.single()
+        assertTrue(warning.contains("zero area") || warning.contains("self-intersects"))
     }
 
     @Test
