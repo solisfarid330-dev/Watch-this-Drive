@@ -1,7 +1,7 @@
 import unittest
 import numpy as np
 
-from naip_seedless_fairway import rank_clusters, robust_z
+from naip_seedless_fairway import rank_clusters, robust_z, score_corridor_pixels
 
 
 class SeedlessFairwaySelectionTests(unittest.TestCase):
@@ -49,6 +49,37 @@ class SeedlessFairwaySelectionTests(unittest.TestCase):
         scores = rank_clusters(*features)
         self.assertEqual(scores.shape, (4,))
         self.assertTrue(np.all(np.isfinite(scores)))
+
+    def test_corridor_score_never_selects_pixels_outside_analysis_mask(self):
+        rows, cols = np.mgrid[0:20, 0:20]
+        analysis = np.zeros((20, 20), dtype=bool)
+        analysis[5:15, 4:16] = True
+        ndvi = 0.2 + 0.02 * rows
+        green = 0.1 + 0.03 * cols
+        texture = np.ones((20, 20)) * 0.3
+        distance = np.abs(cols - 10).astype(float)
+        mask, score, threshold = score_corridor_pixels(
+            ndvi, green, texture, distance, analysis, percentile=58, sigma=1
+        )
+        self.assertFalse(np.any(mask & ~analysis))
+        self.assertTrue(np.all(np.isfinite(score)))
+        self.assertTrue(np.isfinite(threshold))
+        self.assertGreater(int(mask.sum()), 0)
+
+    def test_corridor_score_rejects_empty_analysis_mask(self):
+        values = np.ones((5, 5), dtype=float)
+        with self.assertRaises(ValueError):
+            score_corridor_pixels(values, values, values, values, np.zeros((5, 5), dtype=bool))
+
+    def test_corridor_score_handles_constant_image_bands(self):
+        analysis = np.ones((8, 8), dtype=bool)
+        values = np.ones((8, 8), dtype=float) * 0.4
+        mask, score, threshold = score_corridor_pixels(
+            values, values, values, values, analysis, percentile=58, sigma=1
+        )
+        self.assertTrue(np.all(np.isfinite(score)))
+        self.assertTrue(np.isfinite(threshold))
+        self.assertEqual(mask.shape, analysis.shape)
 
 
 if __name__ == "__main__":
