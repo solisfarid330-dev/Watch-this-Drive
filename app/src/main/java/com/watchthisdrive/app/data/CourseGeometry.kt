@@ -135,7 +135,13 @@ object CourseGeometryLoader {
             val name = tags.optString("name").takeIf { it.isNotBlank() }
             val members = element.optJSONArray("members")
             val parsed = if (elementType == "relation" && members != null) {
-                parseRelation(members)
+                val relationType = tags.optString("type")
+                when {
+                    relationType == "multipolygon" || relationType == "boundary" ||
+                        tags.optString("area") == "yes" -> parseRelation(members)
+                    golfType in setOf("hole", "cartpath") -> parseLinearRelation(members)
+                    else -> Parsed(error = "unsupported non-area golf relation type: ${relationType.ifBlank { "unspecified" }}")
+                }
             } else {
                 parseDirectGeometry(element)
             }
@@ -201,6 +207,41 @@ object CourseGeometryLoader {
     }
 
     private fun List<GeoPoint>.firstRing(): List<GeoPoint> = this
+
+    // Route-like golf relations (notably golf=hole) are linework, not polygon rings.
+    // Join their member ways only when there is one unambiguous continuous chain.
+    private fun parseLinearRelation(members: JSONArray): Parsed {
+        val remaining = mutableListOf<List<GeoPoint>>()
+        for (i in 0 until members.length()) {
+            val member = members.optJSONObject(i) ?: continue
+            if (member.optString("type") != "way") continue
+            val geometry = member.optJSONArray("geometry") ?: continue
+            val points = readCoordinates(geometry)
+            if (points.size >= 2) remaining.add(points)
+        }
+        if (remaining.isEmpty()) return Parsed(error = "linear relation has no usable way members")
+        val line = remaining.removeAt(0).toMutableList()
+        while (remaining.isNotEmpty()) {
+            val matches = remaining.indices.filter { index ->
+                val segment = remaining[index]
+                segment.first() == line.last() || segment.last() == line.last() ||
+                    segment.first() == line.first() || segment.last() == line.first()
+            }
+            if (matches.size != 1) {
+                return Parsed(error = if (matches.isEmpty())
+                    "linear relation contains disconnected member ways"
+                else "linear relation has ambiguous member-way junctions")
+            }
+            val segment = remaining.removeAt(matches.single())
+            when {
+                segment.first() == line.last() -> line.addAll(segment.drop(1))
+                segment.last() == line.last() -> line.addAll(segment.asReversed().drop(1))
+                segment.last() == line.first() -> line.addAll(0, segment.dropLast(1))
+                else -> line.addAll(0, segment.asReversed().dropLast(1))
+            }
+        }
+        return Parsed(CourseGeometryType.LINE, line)
+    }
 
     private fun parseRelation(members: JSONArray): Parsed {
         val outerSegments = mutableListOf<List<GeoPoint>>()
