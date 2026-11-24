@@ -47,9 +47,17 @@ jobs:
                   ambiguous = sum(len(h["endpoint_marker_candidates"][marker]["ambiguous_shared_candidates"]) for h in report["holes"])
                   excluded = sum(len(h["endpoint_marker_candidates"][marker]["closer_to_another_hole"]) for h in report["holes"])
                   summary[marker] = {"unique_candidates": unique, "ambiguous_shared": ambiguous, "closer_to_other_hole": excluded}
-              corridor_unique = sum(len(h["course_wide_unique_corridor_candidates"]) for h in report["holes"])
-              corridor_ambiguous = sum(len(h["ambiguous_shared_corridor_candidates"]) for h in report["holes"])
-              corridor_excluded = sum(len(h["corridor_features_closer_to_another_hole"]) for h in report["holes"])
-              summary["corridor_features"] = {"unique_candidates": corridor_unique, "ambiguous_shared": corridor_ambiguous, "closer_to_other_hole": corridor_excluded}
+              corridor_counts = {}
+              for hole in report["holes"]:
+                  for field, status in (
+                      ("course_wide_unique_corridor_candidates", "unique_candidates"),
+                      ("ambiguous_shared_corridor_candidates", "ambiguous_shared"),
+                      ("corridor_features_closer_to_another_hole", "closer_to_other_hole"),
+                  ):
+                      for candidate in hole[field]:
+                          golf_type = candidate["golf"]
+                          corridor_counts.setdefault(golf_type, {"unique_candidates": 0, "ambiguous_shared": 0, "closer_to_other_hole": 0})
+                          corridor_counts[golf_type][status] += 1
+              summary["corridor_features_by_type"] = corridor_counts
               print(json.dumps({"course": path.stem, "holes": report["hole_count"], "markers": summary}, sort_keys=True))
           PY
