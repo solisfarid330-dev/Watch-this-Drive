@@ -39,7 +39,7 @@ fun CourseGeometryPreview(geometry: CourseGeometry, modifier: Modifier = Modifie
     val lonSpan = (maxLon - minLon).coerceAtLeast(0.00001)
     val midLat = (minLat + maxLat) / 2.0
     val aspectCorrectedLonSpan = lonSpan * kotlin.math.cos(Math.toRadians(midLat)).coerceAtLeast(0.1)
-    val bounds = Bounds(minLat, maxLat, minLon, maxLon, latSpan, lonSpan, aspectCorrectedLonSpan)
+    val bounds = Bounds(minLat, maxLat, minLon, maxLon, latSpan, lonSpan, aspectCorrectedLonSpan, midLat)
 
     Box(modifier.clip(RoundedCornerShape(16.dp)).background(Color(0xFF14221A))) {
         Canvas(Modifier.fillMaxWidth().height(250.dp)) {
@@ -120,7 +120,8 @@ private data class Bounds(
     val maxLon: Double,
     val latSpan: Double,
     val lonSpan: Double,
-    val aspectCorrectedLonSpan: Double
+    val aspectCorrectedLonSpan: Double,
+    val midLat: Double
 )
 
 private fun featureColor(type: String): Color = when (type) {
