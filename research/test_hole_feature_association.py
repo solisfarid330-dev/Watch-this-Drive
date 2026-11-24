@@ -134,5 +134,46 @@ class EndpointAssociationTests(unittest.TestCase):
         expected = 0.1 * audit.R * 3.141592653589793 / 180.0
         self.assertAlmostEqual(distance, expected, delta=0.01)
 
+    def test_course_wide_corridor_candidate_is_kept_only_for_clear_nearest_hole(self):
+        results = [
+            {"hole_ref": "1", "corridor_feature_candidates": [
+                {"golf": "bunker", "osm_type": "way", "osm_id": 30, "distance_to_centerline_m": 4.0}
+            ]},
+            {"hole_ref": "2", "corridor_feature_candidates": [
+                {"golf": "bunker", "osm_type": "way", "osm_id": 30, "distance_to_centerline_m": 20.0}
+            ]},
+        ]
+        audit.apply_course_wide_corridor_uniqueness(results, margin_m=8.0)
+        self.assertEqual(len(results[0]["course_wide_unique_corridor_candidates"]), 1)
+        self.assertEqual(results[1]["course_wide_unique_corridor_candidates"], [])
+        self.assertEqual(
+            results[1]["corridor_features_closer_to_another_hole"][0]["closest_hole_ref"], "1"
+        )
+
+    def test_course_wide_shared_corridor_candidate_remains_ambiguous(self):
+        results = [
+            {"hole_ref": "4", "corridor_feature_candidates": [
+                {"golf": "fairway", "osm_type": "relation", "osm_id": 40, "distance_to_centerline_m": 0.0}
+            ]},
+            {"hole_ref": "5", "corridor_feature_candidates": [
+                {"golf": "fairway", "osm_type": "relation", "osm_id": 40, "distance_to_centerline_m": 2.0}
+            ]},
+        ]
+        audit.apply_course_wide_corridor_uniqueness(results, margin_m=8.0)
+        for result in results:
+            self.assertEqual(result["course_wide_unique_corridor_candidates"], [])
+            self.assertEqual(len(result["ambiguous_shared_corridor_candidates"]), 1)
+
+    def test_real_westwood_corridor_unique_candidates_are_not_double_claimed(self):
+        snapshot = Path(__file__).parent / "results" / "westwood" / "features.geojson"
+        collection = json.loads(snapshot.read_text(encoding="utf-8"))
+        result = audit.analyze(collection)
+        owners = {}
+        for hole in result["holes"]:
+            for candidate in hole["course_wide_unique_corridor_candidates"]:
+                feature_id = (candidate["golf"], candidate["osm_type"], candidate["osm_id"])
+                owners.setdefault(feature_id, []).append(hole["hole_ref"])
+        self.assertTrue(all(len(hole_refs) == 1 for hole_refs in owners.values()))
+
 
 if __name__=="__main__":unittest.main()
