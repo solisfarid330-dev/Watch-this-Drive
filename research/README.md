@@ -251,3 +251,39 @@ official hole plans or carefully traced aerial reference polygons), quantify
 boundary IoU/precision/recall and width/shape errors, and test whether a
 course-adaptive model can transfer without relying on fairway polygons. Until
 then, no image-derived fairway candidate is accepted for app geometry.
+
+
+## Multi-hole, buffered fairway classifier experiment (2026-11-24)
+
+The ExtraTrees diagnostic was expanded to train from South Padre Holes 1 and 2
+together. Spatial validation now assigns entire 64-pixel blocks to holdout and
+removes a one-block, eight-neighbour halo from training. This is stricter than
+random pixel splitting and reduces local spatial leakage. Five regression tests
+cover the image-statistic helpers, perfect-separation metrics, whole-block
+assignment, buffered holdout separation, and target feature-distribution checks.
+
+The two-hole model was evaluated on both South Padre holes, Westwood Hole 1,
+and sparsely mapped Cottonwood Hole 1. It learned a 20 m half-width corridor
+from the training fairway seed geometry. South Padre mapped-fairway recall was
+97.55% / 96.87% with 0% mapped-rough overlap, but those remain weak-label
+agreement scores. The actual masks are still too broad/irregular to accept as
+fairway geometry. Westwood mapped-fairway recall fell to 12.05%, and Cottonwood
+produced small, unrelated patches around non-fairway facilities. These outputs
+show that adding a second training hole and narrowing the corridor do not solve
+cross-course generalization.
+
+The buffered within-hole holdout produced aggregate F1 0.9674, fairway recall
+93.69%, and rough false-positive rate 0%. Per-hole holdout F1 was 0.9716 on
+Hole 1 and 0.9651 on Hole 2. These are still scores against eroded OSM-derived
+weak labels, not independent ground truth; they must not be interpreted as
+real-world boundary accuracy. The experiment also adds a target-distribution
+shift diagnostic that compares target imagery features with the training
+feature range. This diagnostic is for detecting when the model is being asked
+to extrapolate, not a way to certify predictions.
+
+**Decision: not accepted.** No classifier-generated fairway polygon is
+promoted into course geometry or Android. Next work is to quantify target
+domain shift and investigate more reliable cues or an abstaining hybrid. Any
+solution must be evaluated against independent reference boundaries, including
+a course with no mapped fairway/rough seeds. The on-device implementation
+constraint remains unchanged; scikit-learn is research-only.
