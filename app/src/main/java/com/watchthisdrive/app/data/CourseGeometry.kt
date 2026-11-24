@@ -222,17 +222,18 @@ object CourseGeometryLoader {
         if (remaining.isEmpty()) return Parsed(error = "linear relation has no usable way members")
         val line = remaining.removeAt(0).toMutableList()
         while (remaining.isNotEmpty()) {
-            val matches = remaining.indices.filter { index ->
-                val segment = remaining[index]
-                segment.first() == line.last() || segment.last() == line.last() ||
-                    segment.first() == line.first() || segment.last() == line.first()
+            val appendMatches = remaining.indices.filter { index ->
+                remaining[index].first() == line.last() || remaining[index].last() == line.last()
             }
-            if (matches.size != 1) {
-                return Parsed(error = if (matches.isEmpty())
-                    "linear relation contains disconnected member ways"
-                else "linear relation has ambiguous member-way junctions")
+            val prependMatches = remaining.indices.filter { index ->
+                remaining[index].first() == line.first() || remaining[index].last() == line.first()
             }
-            val segment = remaining.removeAt(matches.single())
+            if (appendMatches.size > 1 || prependMatches.size > 1) {
+                return Parsed(error = "linear relation has ambiguous member-way junctions")
+            }
+            val index = appendMatches.firstOrNull() ?: prependMatches.firstOrNull()
+                ?: return Parsed(error = "linear relation contains disconnected member ways")
+            val segment = remaining.removeAt(index)
             when {
                 segment.first() == line.last() -> line.addAll(segment.drop(1))
                 segment.last() == line.last() -> line.addAll(segment.asReversed().drop(1))
