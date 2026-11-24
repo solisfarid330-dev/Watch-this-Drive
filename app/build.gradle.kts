@@ -42,6 +42,8 @@ dependencies {
     implementation("com.google.android.gms:play-services-location:21.3.0")
     implementation("org.maplibre.gl:android-sdk:11.8.0")
     debugImplementation("androidx.compose.ui:ui-tooling")
-    androidTestImplementation("androidx.test.ext:junit:1.2.1")
-    androidTestImplementation("androidx.test:runner:1.6.2")
+    testImplementation("junit:junit:4.13.2")
+    // Android's org.json implementation is stubbed in local JVM tests; use the
+    // compatible JSON implementation so the parser can be tested without an emulator.
+    testImplementation("org.json:json:20240303")
 }
