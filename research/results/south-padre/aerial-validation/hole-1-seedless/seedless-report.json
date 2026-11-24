@@ -1,7 +1,7 @@
 {
   "course_hole": "1",
   "hole_osm_id": 1383052934,
-  "method": "SLIC superpixels over RGBIR; cluster rank uses NDVI, excess green, multi-scale texture and centerline distance only; retain coherent components near the hole line.",
+  "method": "Pixel-wise robust RGBIR vegetation/texture score, Gaussian smoothing, corridor-local threshold, and connected-component filtering near the hole centreline.",
   "selection_independence": {
     "fairway_polygons_used_for_selection": false,
     "rough_polygons_used_for_selection": false,
@@ -25,6 +25,64 @@
   "selected_cluster_score_diagnostic_only": 6.3883,
   "pixel_score_threshold_percentile": 58.0,
   "pixel_score_threshold": 0.12556,
+  "threshold_sweep_diagnostics": [
+    {
+      "score_percentile": 50,
+      "threshold": -0.01201,
+      "candidate_area_m2": 13755.3,
+      "corridor_fraction": 0.4847,
+      "mapped_fairway_overlap": 0.9277,
+      "mapped_rough_overlap": 0.5586
+    },
+    {
+      "score_percentile": 58,
+      "threshold": 0.12556,
+      "candidate_area_m2": 11554.4,
+      "corridor_fraction": 0.4072,
+      "mapped_fairway_overlap": 0.8573,
+      "mapped_rough_overlap": 0.4922
+    },
+    {
+      "score_percentile": 65,
+      "threshold": 0.23783,
+      "candidate_area_m2": 9628.7,
+      "corridor_fraction": 0.3393,
+      "mapped_fairway_overlap": 0.7665,
+      "mapped_rough_overlap": 0.4323
+    },
+    {
+      "score_percentile": 70,
+      "threshold": 0.31995,
+      "candidate_area_m2": 8253.2,
+      "corridor_fraction": 0.2908,
+      "mapped_fairway_overlap": 0.6869,
+      "mapped_rough_overlap": 0.3844
+    },
+    {
+      "score_percentile": 75,
+      "threshold": 0.40108,
+      "candidate_area_m2": 6877.7,
+      "corridor_fraction": 0.2424,
+      "mapped_fairway_overlap": 0.5878,
+      "mapped_rough_overlap": 0.3389
+    },
+    {
+      "score_percentile": 80,
+      "threshold": 0.4878,
+      "candidate_area_m2": 5502.2,
+      "corridor_fraction": 0.1939,
+      "mapped_fairway_overlap": 0.4699,
+      "mapped_rough_overlap": 0.2934
+    },
+    {
+      "score_percentile": 85,
+      "threshold": 0.58203,
+      "candidate_area_m2": 4126.6,
+      "corridor_fraction": 0.1454,
+      "mapped_fairway_overlap": 0.3384,
+      "mapped_rough_overlap": 0.2431
+    }
+  ],
   "cluster_feature_means": {
     "ndvi": 0.34228,
     "excess_green": 0.26439,
@@ -61,7 +119,7 @@
     "candidate_overlap_with_mapped_rough_seed": 0.4907,
     "warning": "These are incomplete OSM agreement diagnostics, not independent accuracy estimates. They did not influence candidate selection."
   },
-  "status": "unverified_candidate",
+  "status": "unverified_candidate_high_rough_overlap",
   "files": [
     "seedless-fairway-candidate.jpg",
     "seedless-clusters.jpg",
