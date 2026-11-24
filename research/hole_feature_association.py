@@ -54,12 +54,62 @@ def geometry_distance(point,geometry,lat0):
         return min((geometry_distance(point,{"type":"LineString","coordinates":line},lat0) for line in coords),default=float("inf"))
     return float("inf")
 
+def segments_intersect(a,b,c,d):
+    def orient(p,q,r):
+        return (q[0]-p[0])*(r[1]-p[1])-(q[1]-p[1])*(r[0]-p[0])
+    def on_segment(p,q,r):
+        eps=1e-9
+        return (abs(orient(p,q,r))<=eps and
+                min(p[0],q[0])-eps<=r[0]<=max(p[0],q[0])+eps and
+                min(p[1],q[1])-eps<=r[1]<=max(p[1],q[1])+eps)
+    o1,o2,o3,o4=orient(a,b,c),orient(a,b,d),orient(c,d,a),orient(c,d,b)
+    eps=1e-9
+    if ((o1>eps and o2<-eps) or (o1<-eps and o2>eps)) and ((o3>eps and o4<-eps) or (o3<-eps and o4>eps)):
+        return True
+    return on_segment(a,b,c) or on_segment(a,b,d) or on_segment(c,d,a) or on_segment(c,d,b)
+
+def segment_segment_distance(a,b,c,d):
+    if segments_intersect(a,b,c,d):
+        return 0.0
+    return min(point_segment_distance(a,c,d),point_segment_distance(b,c,d),
+               point_segment_distance(c,a,b),point_segment_distance(d,a,b))
+
+def point_in_polygon(point,rings):
+    return bool(rings) and point_in_ring(point,rings[0]) and not any(point_in_ring(point,ring) for ring in rings[1:])
+
+def segment_geometry_distance(a,b,geometry,lat0):
+    kind=geometry.get("type")
+    coords=geometry.get("coordinates",[])
+    if kind=="Point":
+        point=project(coords,lat0)
+        return point_segment_distance(point,a,b)
+    if kind in ("LineString","MultiLineString"):
+        lines=[coords] if kind=="LineString" else coords
+        best=float("inf")
+        for line in lines:
+            projected=[project(point,lat0) for point in line]
+            for c,d in zip(projected,projected[1:]):
+                best=min(best,segment_segment_distance(a,b,c,d))
+        return best
+    if kind in ("Polygon","MultiPolygon"):
+        polygons=[coords] if kind=="Polygon" else coords
+        best=float("inf")
+        for polygon in polygons:
+            rings=[[project(point,lat0) for point in ring] for ring in polygon]
+            if point_in_polygon(a,rings) or point_in_polygon(b,rings):
+                return 0.0
+            for ring in rings:
+                for c,d in zip(ring,ring[1:]):
+                    best=min(best,segment_segment_distance(a,b,c,d))
+                    if best==0.0:
+                        return 0.0
+        return best
+    return float("inf")
+
 def line_distance_to_geometry(line,geometry,lat0):
-    if geometry.get("type")=="Point":
-        p=project(geometry["coordinates"],lat0)
-        projected=[project(q,lat0) for q in line]
-        return min((point_segment_distance(p,a,b) for a,b in zip(projected,projected[1:])),default=float("inf"))
-    return min(geometry_distance(point,geometry,lat0) for point in line)
+    projected=[project(point,lat0) for point in line]
+    return min((segment_geometry_distance(a,b,geometry,lat0)
+                for a,b in zip(projected,projected[1:])),default=float("inf"))
 
 def choose_line_direction(features,line,lat0):
     original_start,original_end=line[0],line[-1]
