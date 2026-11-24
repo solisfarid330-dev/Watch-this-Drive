@@ -312,6 +312,23 @@ def main():
         row = min(height - 1, max(0, round(y)))
         line_coverage.append(float(distance_to_candidate[row, col] <= args.centerline_link_m))
 
+    # Diagnostic threshold sweep: report the precision/coverage trade-off
+    # against incomplete OSM labels without using those labels to choose a threshold.
+    threshold_sweep = []
+    for percentile in (50, 58, 65, 70, 75, 80, 85):
+        cut = float(np.percentile(smoothed_score[analysis], percentile))
+        mask = (smoothed_score >= cut) & analysis
+        fairway_overlap = float(mask[fairway_seed].mean()) if fairway_seed.any() else None
+        rough_overlap = float(mask[rough_seed].mean()) if rough_seed.any() else None
+        threshold_sweep.append({
+            "score_percentile": percentile,
+            "threshold": round(cut, 5),
+            "candidate_area_m2": round(float(mask.sum()) * metres_per_pixel ** 2, 1),
+            "corridor_fraction": round(float(mask.sum() / max(int(corridor.sum()), 1)), 4),
+            "mapped_fairway_overlap": round(fairway_overlap, 4) if fairway_overlap is not None else None,
+            "mapped_rough_overlap": round(rough_overlap, 4) if rough_overlap is not None else None,
+        })
+
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     base = np.stack([red, green, blue], axis=-1).clip(0, 255).astype(np.uint8)
@@ -359,7 +376,7 @@ def main():
     report = {
         "course_hole": args.hole_ref,
         "hole_osm_id": hole["properties"].get("osm_id"),
-        "method": "SLIC superpixels over RGBIR; cluster rank uses NDVI, excess green, multi-scale texture and centerline distance only; retain coherent components near the hole line.",
+        "method": "Pixel-wise robust RGBIR vegetation/texture score, Gaussian smoothing, corridor-local threshold, and connected-component filtering near the hole centreline.",
         "selection_independence": {
             "fairway_polygons_used_for_selection": False,
             "rough_polygons_used_for_selection": False,
@@ -373,6 +390,7 @@ def main():
         "selected_cluster_score_diagnostic_only": round(float(scores[selected_cluster]), 4),
         "pixel_score_threshold_percentile": 58.0,
         "pixel_score_threshold": round(threshold, 5),
+        "threshold_sweep_diagnostics": threshold_sweep,
         "cluster_feature_means": {
             key: round(float(values[selected_cluster]), 5)
             for key, values in feature_matrix.items()
@@ -390,7 +408,7 @@ def main():
             "candidate_overlap_with_mapped_rough_seed": rough_false_positive_rate,
             "warning": "These are incomplete OSM agreement diagnostics, not independent accuracy estimates. They did not influence candidate selection.",
         },
-        "status": "unverified_candidate" if candidate.any() else "no_candidate_found",
+        "status": ("unverified_candidate_high_rough_overlap" if candidate.any() and rough_false_positive_rate is not None and rough_false_positive_rate > 0.25 else ("unverified_candidate" if candidate.any() else "no_candidate_found")),
         "files": ["seedless-fairway-candidate.jpg", "seedless-clusters.jpg", "seedless-fairway-candidate.geojson", "seedless-report.json"],
     }
     (out / "seedless-report.json").write_text(json.dumps(report, indent=2) + "\n")
