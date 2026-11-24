@@ -198,10 +198,15 @@ These are still **not accepted fairway boundaries**. Candidate masks cover
 roughly 38–40% of the analysis corridor. Agreement diagnostics against
 incomplete OSM labels show substantial mapped-rough overlap on South Padre
 (about 45–49%), demonstrating that the candidate is too broad to distinguish
-fairway from rough reliably. Cottonwood has no mapped fairway or rough labels,
-so its result cannot be scored from OSM. A threshold sweep is being added to
-quantify the trade-off between candidate coverage and mapped rough overlap;
-these weak labels remain evaluation-only and are not independent ground truth.
+fairway from rough reliably. A threshold sweep confirms the trade-off is poor:
+on South Padre Hole 1, raising the threshold from the 58th to the 85th
+percentile reduces mapped rough overlap from 49.2% to 24.3%, but mapped fairway
+overlap also falls from 85.7% to 33.8%. On Hole 2, the same change reduces rough
+overlap from 45.5% to 28.3%, while fairway overlap falls from 84.0% to 20.4%.
+Westwood has no mapped rough seed polygons, so its rough false-positive rate
+cannot be measured. Cottonwood has no mapped fairway or rough labels, so its
+result cannot be scored from OSM. These weak labels remain evaluation-only and
+are not independent ground truth.
 
 No candidate is promoted to app geometry. The method must still be checked
 against independently traced fairway boundaries and should be rejected when
