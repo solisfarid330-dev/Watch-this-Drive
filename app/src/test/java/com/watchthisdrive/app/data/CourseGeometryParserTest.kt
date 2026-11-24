@@ -96,7 +96,7 @@ class CourseGeometryParserTest {
     fun preservesMultipleOuterRingsAsMultiPolygon() {
         val json = """
             {"elements":[{"type":"relation","id":30,
-            "tags":{"golf":"fairway"},
+            "tags":{"golf":"fairway","type":"multipolygon"},
             "members":[
               {"type":"way","ref":1,"role":"outer","geometry":[
                 {"lat":0.0,"lon":0.0},{"lat":0.0,"lon":1.0},
@@ -159,7 +159,7 @@ class CourseGeometryParserTest {
     @Test
     fun incompleteMultipolygonIsNotReportedAsUsable() {
         val json = """
-            {"elements":[{"type":"relation","id":60,"tags":{"golf":"fairway"},
+            {"elements":[{"type":"relation","id":60,"tags":{"golf":"fairway","type":"multipolygon"},
             "members":[{"type":"way","ref":1,"role":"outer","geometry":[
               {"lat":0.0,"lon":0.0},{"lat":0.0,"lon":1.0},{"lat":1.0,"lon":1.0}]}]}]}
         """.trimIndent()
