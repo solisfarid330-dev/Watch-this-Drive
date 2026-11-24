@@ -1,4 +1,6 @@
 import unittest
+import json
+from pathlib import Path
 import hole_feature_association as audit
 
 class EndpointAssociationTests(unittest.TestCase):
@@ -87,6 +89,27 @@ class EndpointAssociationTests(unittest.TestCase):
             self.assertEqual(pins["course_wide_unique_candidates"], [])
             self.assertEqual(len(pins["ambiguous_shared_candidates"]), 1)
             self.assertEqual(pins["ambiguous_shared_candidates"][0]["course_wide_status"], "ambiguous_between_holes")
+
+    def test_real_westwood_snapshot_does_not_double_claim_endpoint_markers(self):
+        snapshot = Path(__file__).parent / "results" / "westwood" / "features.geojson"
+        collection = json.loads(snapshot.read_text(encoding="utf-8"))
+        result = audit.analyze(collection)
+        self.assertEqual(result["hole_count"], 18)
+
+        for marker_type in audit.MARKERS:
+            owners = {}
+            for hole in result["holes"]:
+                candidates = hole["endpoint_marker_candidates"][marker_type]["course_wide_unique_candidates"]
+                for candidate in candidates:
+                    feature_id = (candidate["osm_type"], candidate["osm_id"])
+                    owners.setdefault(feature_id, []).append(hole["hole_ref"])
+            self.assertTrue(all(len(hole_refs) == 1 for hole_refs in owners.values()))
+
+        tee_exclusions = sum(
+            len(hole["endpoint_marker_candidates"]["tee"]["closer_to_another_hole"])
+            for hole in result["holes"]
+        )
+        self.assertGreaterEqual(tee_exclusions, 4)
 
 
 if __name__=="__main__":unittest.main()
