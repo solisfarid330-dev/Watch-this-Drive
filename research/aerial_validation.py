@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse, json, math, urllib.parse, urllib.request, io
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
+from hole_feature_association import line_distance_to_geometry
 
 R = 6378137.0
 SERVICE = "https://imagery.geographic.texas.gov/server/rest/services/NAIP/NAIP22_NCCIR_60cm/ImageServer/exportImage"
@@ -52,14 +53,10 @@ def distance_to_hole_m(point, hole_points, lat0):
     return best
 
 def feature_distance_m(geometry, hole_points, lat0):
-    vertices=list(points(geometry))
-    if not vertices: return float("inf")
-    best=min(distance_to_hole_m(p,hole_points,lat0) for p in vertices)
-    # A centerline vertex inside a mapped polygon means the feature touches/covers the line.
-    for polygon in rings(geometry):
-        if polygon and any(point_in_ring(p,polygon[0]) and not any(point_in_ring(p,h) for h in polygon[1:]) for p in hole_points):
-            return 0.0
-    return best
+    # Use full line segments, not only sparse centerline vertices. This catches
+    # polygons crossed between OSM vertices and shares the association audit's
+    # treatment of polygon holes and line geometries.
+    return line_distance_to_geometry(hole_points, geometry, lat0)
 
 def main():
     ap=argparse.ArgumentParser()
