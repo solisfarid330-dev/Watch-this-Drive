@@ -128,5 +128,11 @@ jobs:
             echo "No classifier outputs changed."
           else
             git commit -m "Update multi-scale texture classifier validation outputs"
-            git push
+            for attempt in 1 2 3; do
+              git fetch origin research/generic-course-pipeline
+              git rebase origin/research/generic-course-pipeline
+              if git push; then exit 0; fi
+              sleep 2
+            done
+            exit 1
           fi
