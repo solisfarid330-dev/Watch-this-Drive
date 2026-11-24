@@ -98,6 +98,15 @@ inventory counting, multipolygon outer/inner rings, segmented-ring stitching,
 open hole lines, GeoJSON polygon winding, and conservative endpoint association.
 The GitHub Actions research pipeline checks have passed.
 
+The Android-side Kotlin geometry parser now has its own local JVM test suite
+(no emulator required). It includes a captured South Padre Island Overpass
+fixture covering a real green polygon, Hole 1 centerline, and a fairway
+multipolygon with an inner ring, plus synthetic regression cases for closed
+cart paths, route-style hole relations, disconnected/incomplete rings,
+multipolygon components, and invalid self-intersecting areas. The Android
+parser deliberately rejects ambiguous line/ring assembly and marks partially
+invalid relations as unusable rather than presenting them as trusted geometry.
+
 ### Aerial validation milestone
 
 The branch now contains repeatable NAIP 2022 RGB and four-band RGBIR exports,
