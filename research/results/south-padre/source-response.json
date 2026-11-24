@@ -50,7 +50,7 @@
     },
     "overpass_endpoint": "https://ovp.dresel.systems/api-na/interpreter",
     "overpass_query": "[out:json][timeout:75];\nrelation(19071561);\nmap_to_area -> .courseArea;\n(\n  nwr(area.courseArea)[\"golf\"];\n);\nout body geom;\n",
-    "retrieved_at_utc": "2026-11-23T19:52:02Z",
+    "retrieved_at_utc": "2026-11-24T01:07:03Z",
     "osm_copyright": "\u00a9 OpenStreetMap contributors; data available under ODbL"
   },
   "overpass": {
