@@ -145,17 +145,20 @@ Key findings:
   tee/green/pin candidates on 17/18, 18/18, and 0/18 South Padre holes;
   18/18, 18/18, and 18/18 Westwood holes; and 0/9, 0/9, and 9/9 Cottonwood
   holes, respectively. These remain candidates, not confirmed assignments.
-- A course-wide exclusivity pass now compares each tee/green/pin candidate
-  against every hole endpoint before reporting it as a unique-nearest-hole
+- Course-wide exclusivity passes now compare each tee/green/pin candidate
+  against every hole endpoint and each fairway/bunker/rough/water/cartpath
+  candidate against every hole centerline before reporting a unique-nearest-hole
   candidate. In Westwood, four tee polygons had previously been claimed by
   two nearby holes; the global pass retained each only for the clearly closer
   hole. It reports 31 unique tee candidates, 18 green candidates, and 18 pin
   candidates without duplicate feature claims. South Padre yields 24 tee and
   18 green candidates; Cottonwood yields 9 pin candidates. These are still
   proximity-based candidates, not ground-truth assignments, and near-ties are
-  kept explicitly ambiguous. Corridor distance now measures the full line segments
-  against polygon/line geometry, so a crossing between sparse centerline vertices
-  is not missed; dedicated regression tests cover polygon crossings and edge distance.
+  kept explicitly ambiguous. Shared fairway/hazard geometry near multiple holes
+  also remains ambiguous rather than being forced onto one hole. Corridor distance
+  measures full line segments against polygon/line geometry, so crossings between
+  sparse centerline vertices are not missed; dedicated regression tests cover
+  polygon crossings, edge distance, and cross-hole ambiguity.
 
 Do not port the reconstruction engine to Android yet. The research prototype
 proves generic discovery, relation serialization, imagery retrieval, and a
