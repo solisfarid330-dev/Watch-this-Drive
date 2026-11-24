@@ -214,6 +214,11 @@ def main():
         })
     x_train = np.concatenate([item[0] for item in sampled])
     y_train = np.concatenate([item[1] for item in sampled])
+    fairway_seed_distances = np.concatenate([
+        scene["centerline_distance_m"][scene["fairway"]]
+        for scene in [load_scene(args.train_geojson, m, t, h) for m, t, h in train_sources]
+    ])
+    learned_half_width_m = float(np.clip(np.quantile(fairway_seed_distances, 0.97) + 5.0, 20.0, 42.0))
     x_test = np.concatenate([item[2] for item in sampled])
     y_test = np.concatenate([item[3] for item in sampled])
     holdout_probabilities = []
@@ -230,7 +235,7 @@ def main():
         report.pop("holdout_labels", None)
         report.pop("holdout_features", None)
 
-    analysis = target_scene["analysis"]
+    analysis = target_scene["analysis"] & (target_scene["centerline_distance_m"] <= learned_half_width_m)
     target_features = target_scene["features"]
     flat_ids = np.flatnonzero(analysis)
     probabilities = np.zeros(analysis.shape, dtype=np.float32)
@@ -275,6 +280,7 @@ def main():
         "training_course": Path(args.train_geojson).parent.name,
         "training_holes": [str(source[2]) for source in train_sources],
         "training_scene_count": len(train_sources),
+        "learned_corridor_half_width_m": round(learned_half_width_m, 2),
         "target_hole_ref": args.target_hole_ref,
         "weak_label_boundary_erosion_m": 2.0,
         "training_samples": {"fairway": int((y_train==1).sum()), "rough": int((y_train==0).sum())},
