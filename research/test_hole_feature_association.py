@@ -111,5 +111,28 @@ class EndpointAssociationTests(unittest.TestCase):
         )
         self.assertGreaterEqual(tee_exclusions, 4)
 
+    def test_corridor_distance_detects_line_crossing_polygon_between_vertices(self):
+        polygon = {
+            "type": "Polygon",
+            "coordinates": [[
+                [0.9, 0.4], [1.1, 0.4], [1.1, 0.6],
+                [0.9, 0.6], [0.9, 0.4]
+            ]]
+        }
+        distance = audit.line_distance_to_geometry([(0.0, 0.5), (2.0, 0.5)], polygon, 0.5)
+        self.assertAlmostEqual(distance, 0.0, places=6)
+
+    def test_corridor_distance_detects_nearest_polygon_edge(self):
+        polygon = {
+            "type": "Polygon",
+            "coordinates": [[
+                [0.9, 0.4], [1.1, 0.4], [1.1, 0.6],
+                [0.9, 0.6], [0.9, 0.4]
+            ]]
+        }
+        distance = audit.line_distance_to_geometry([(0.0, 0.7), (2.0, 0.7)], polygon, 0.5)
+        expected = 0.1 * audit.R * 3.141592653589793 / 180.0
+        self.assertAlmostEqual(distance, expected, delta=0.01)
+
 
 if __name__=="__main__":unittest.main()
