@@ -1,7 +1,7 @@
 import unittest
 import numpy as np
 
-from research.naip_texture_classifier import local_std, metrics, sample_scene, spatial_holdout_mask
+from research.naip_texture_classifier import local_std, metrics, sample_scene, spatial_holdout_mask, spatial_train_test_masks
 
 
 class TextureClassifierResearchTests(unittest.TestCase):
@@ -24,6 +24,17 @@ class TextureClassifierResearchTests(unittest.TestCase):
         self.assertEqual(result["f1"], 1.0)
         self.assertEqual(result["rough_false_positive_rate"], 0.0)
         self.assertEqual(result["fairway_recall"], 1.0)
+
+    def test_buffered_spatial_split_excludes_neighboring_training_blocks(self):
+        yy, xx = np.mgrid[0:256, 0:256]
+        train, test = spatial_train_test_masks(yy.ravel(), xx.ravel(), block_px=32, buffer_blocks=1)
+        train_grid = train.reshape(256, 256)
+        test_grid = test.reshape(256, 256)
+        self.assertTrue(np.any(test_grid))
+        self.assertTrue(np.any(train_grid))
+        from scipy import ndimage
+        halo = ndimage.binary_dilation(test_grid, structure=np.ones((65, 65), dtype=bool))
+        self.assertFalse(np.any(train_grid & halo))
 
     def test_spatial_sampler_keeps_blocks_disjoint(self):
         h = w = 160
