@@ -1,0 +1,97 @@
+{
+  "method": "ExtraTrees diagnostic trained on spatially held-out OSM fairway/rough seeds with RGBIR, multi-scale local texture, spectral ratios, structure-tensor coherence, and edge magnitude.",
+  "training_course_hole": "south-padre Hole 1",
+  "target_hole_ref": "1",
+  "weak_label_boundary_erosion_m": 2.0,
+  "training_samples": {
+    "fairway": 41081,
+    "rough": 43328
+  },
+  "spatial_block_holdout": {
+    "threshold": 0.5,
+    "fairway_recall": 0.9955,
+    "rough_false_positive_rate": 0.0,
+    "fairway_precision": 1.0,
+    "f1": 0.9977,
+    "roc_auc": 1.0,
+    "average_precision": 1.0,
+    "test_pixels": 13486
+  },
+  "target_weak_label_evaluation_only": {
+    "mapped_fairway_pixels": 0,
+    "mapped_rough_pixels": 0
+  },
+  "candidate_area_m2": 1854.4,
+  "candidate_fraction_of_corridor": 0.1762,
+  "feature_importance": [
+    {
+      "feature": "nir",
+      "importance": 0.35449
+    },
+    {
+      "feature": "green",
+      "importance": 0.2428
+    },
+    {
+      "feature": "blue",
+      "importance": 0.19903
+    },
+    {
+      "feature": "red",
+      "importance": 0.12118
+    },
+    {
+      "feature": "excess_green",
+      "importance": 0.02939
+    },
+    {
+      "feature": "nir_std_8px",
+      "importance": 0.01202
+    },
+    {
+      "feature": "nir_std_3px",
+      "importance": 0.00791
+    },
+    {
+      "feature": "red_green_ratio",
+      "importance": 0.00752
+    },
+    {
+      "feature": "ndvi",
+      "importance": 0.00578
+    },
+    {
+      "feature": "vari",
+      "importance": 0.00548
+    },
+    {
+      "feature": "ndvi_std_5px",
+      "importance": 0.00411
+    },
+    {
+      "feature": "nir_green_ratio",
+      "importance": 0.00327
+    },
+    {
+      "feature": "gray_std_6px",
+      "importance": 0.00258
+    },
+    {
+      "feature": "gray_std_13px",
+      "importance": 0.00221
+    },
+    {
+      "feature": "gray_std_3px",
+      "importance": 0.00115
+    },
+    {
+      "feature": "edge_magnitude",
+      "importance": 0.00075
+    },
+    {
+      "feature": "texture_coherence",
+      "importance": 0.00033
+    }
+  ],
+  "warning": "OSM labels are incomplete weak labels, not independent ground truth. Spatial block holdout is within one hole/acquisition; cross-hole/course evaluation is diagnostic only. This sklearn model is research-only and is not an Android runtime dependency."
+}
