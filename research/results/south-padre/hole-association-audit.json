@@ -1,10 +1,11 @@
 {
   "type": "WatchThisDriveHoleAssociationAudit",
-  "method": "Choose line orientation from nearest tee/green endpoints, or pin endpoint when tee/green are unavailable; report conservative endpoint and centerline candidates without forced assignment.",
+  "method": "Infer hole-line direction from endpoint markers, then compare each marker candidate across all hole endpoints; retain only clearly nearest-hole candidates and flag near-ties. This remains diagnostic, not definitive membership.",
   "thresholds_m": {
     "tee_green_endpoint": 30,
     "pin_green_endpoint": 20,
-    "corridor": 45
+    "corridor": 45,
+    "course_wide_uniqueness_margin": 5
   },
   "hole_count": 18,
   "holes": [
@@ -74,7 +75,19 @@
               "tags": {}
             }
           ],
-          "status": "candidate_only"
+          "status": "candidate_only",
+          "course_wide_unique_candidates": [
+            {
+              "osm_type": "way",
+              "osm_id": 1565321006,
+              "distance_to_start_m": 0.0,
+              "distance_to_end_m": 351.2,
+              "tags": {},
+              "course_wide_status": "single_hole_candidate"
+            }
+          ],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         },
         "green": {
           "role_test": "green_end_candidate",
@@ -124,13 +137,28 @@
               "tags": {}
             }
           ],
-          "status": "candidate_only"
+          "status": "candidate_only",
+          "course_wide_unique_candidates": [
+            {
+              "osm_type": "way",
+              "osm_id": 1565321013,
+              "distance_to_start_m": 344.4,
+              "distance_to_end_m": 0.0,
+              "tags": {},
+              "course_wide_status": "single_hole_candidate"
+            }
+          ],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         },
         "pin": {
           "role_test": "green_end_pin_candidate",
           "strong_endpoint_candidates": [],
           "nearest_candidates": [],
-          "status": "not_found_with_endpoint_rule"
+          "status": "not_found_with_endpoint_rule",
+          "course_wide_unique_candidates": [],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         }
       },
       "corridor_feature_candidates": [
@@ -266,7 +294,27 @@
               "tags": {}
             }
           ],
-          "status": "candidate_only"
+          "status": "candidate_only",
+          "course_wide_unique_candidates": [
+            {
+              "osm_type": "way",
+              "osm_id": 1565324369,
+              "distance_to_start_m": 0.0,
+              "distance_to_end_m": 163.4,
+              "tags": {},
+              "course_wide_status": "single_hole_candidate"
+            },
+            {
+              "osm_type": "way",
+              "osm_id": 1565324370,
+              "distance_to_start_m": 17.1,
+              "distance_to_end_m": 119.8,
+              "tags": {},
+              "course_wide_status": "single_hole_candidate"
+            }
+          ],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         },
         "green": {
           "role_test": "green_end_candidate",
@@ -316,13 +364,28 @@
               "tags": {}
             }
           ],
-          "status": "candidate_only"
+          "status": "candidate_only",
+          "course_wide_unique_candidates": [
+            {
+              "osm_type": "way",
+              "osm_id": 1565324372,
+              "distance_to_start_m": 145.2,
+              "distance_to_end_m": 0.0,
+              "tags": {},
+              "course_wide_status": "single_hole_candidate"
+            }
+          ],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         },
         "pin": {
           "role_test": "green_end_pin_candidate",
           "strong_endpoint_candidates": [],
           "nearest_candidates": [],
-          "status": "not_found_with_endpoint_rule"
+          "status": "not_found_with_endpoint_rule",
+          "course_wide_unique_candidates": [],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         }
       },
       "corridor_feature_candidates": [
@@ -416,7 +479,19 @@
               "tags": {}
             }
           ],
-          "status": "candidate_only"
+          "status": "candidate_only",
+          "course_wide_unique_candidates": [
+            {
+              "osm_type": "way",
+              "osm_id": 1565323140,
+              "distance_to_start_m": 0.0,
+              "distance_to_end_m": 352.2,
+              "tags": {},
+              "course_wide_status": "single_hole_candidate"
+            }
+          ],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         },
         "green": {
           "role_test": "green_end_candidate",
@@ -466,13 +541,28 @@
               "tags": {}
             }
           ],
-          "status": "candidate_only"
+          "status": "candidate_only",
+          "course_wide_unique_candidates": [
+            {
+              "osm_type": "way",
+              "osm_id": 1565323147,
+              "distance_to_start_m": 341.0,
+              "distance_to_end_m": 0.0,
+              "tags": {},
+              "course_wide_status": "single_hole_candidate"
+            }
+          ],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         },
         "pin": {
           "role_test": "green_end_pin_candidate",
           "strong_endpoint_candidates": [],
           "nearest_candidates": [],
-          "status": "not_found_with_endpoint_rule"
+          "status": "not_found_with_endpoint_rule",
+          "course_wide_unique_candidates": [],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         }
       },
       "corridor_feature_candidates": [
@@ -608,7 +698,19 @@
               "tags": {}
             }
           ],
-          "status": "candidate_only"
+          "status": "candidate_only",
+          "course_wide_unique_candidates": [
+            {
+              "osm_type": "way",
+              "osm_id": 1565324375,
+              "distance_to_start_m": 0.0,
+              "distance_to_end_m": 495.4,
+              "tags": {},
+              "course_wide_status": "single_hole_candidate"
+            }
+          ],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         },
         "green": {
           "role_test": "green_end_candidate",
@@ -658,13 +760,28 @@
               "tags": {}
             }
           ],
-          "status": "candidate_only"
+          "status": "candidate_only",
+          "course_wide_unique_candidates": [
+            {
+              "osm_type": "way",
+              "osm_id": 1565324380,
+              "distance_to_start_m": 488.9,
+              "distance_to_end_m": 0.0,
+              "tags": {},
+              "course_wide_status": "single_hole_candidate"
+            }
+          ],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         },
         "pin": {
           "role_test": "green_end_pin_candidate",
           "strong_endpoint_candidates": [],
           "nearest_candidates": [],
-          "status": "not_found_with_endpoint_rule"
+          "status": "not_found_with_endpoint_rule",
+          "course_wide_unique_candidates": [],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         }
       },
       "corridor_feature_candidates": [
@@ -779,7 +896,19 @@
               "tags": {}
             }
           ],
-          "status": "candidate_only"
+          "status": "candidate_only",
+          "course_wide_unique_candidates": [
+            {
+              "osm_type": "way",
+              "osm_id": 1565324383,
+              "distance_to_start_m": 0.0,
+              "distance_to_end_m": 268.9,
+              "tags": {},
+              "course_wide_status": "single_hole_candidate"
+            }
+          ],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         },
         "green": {
           "role_test": "green_end_candidate",
@@ -829,13 +958,28 @@
               "tags": {}
             }
           ],
-          "status": "candidate_only"
+          "status": "candidate_only",
+          "course_wide_unique_candidates": [
+            {
+              "osm_type": "way",
+              "osm_id": 1565324390,
+              "distance_to_start_m": 264.4,
+              "distance_to_end_m": 0.0,
+              "tags": {},
+              "course_wide_status": "single_hole_candidate"
+            }
+          ],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         },
         "pin": {
           "role_test": "green_end_pin_candidate",
           "strong_endpoint_candidates": [],
           "nearest_candidates": [],
-          "status": "not_found_with_endpoint_rule"
+          "status": "not_found_with_endpoint_rule",
+          "course_wide_unique_candidates": [],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         }
       },
       "corridor_feature_candidates": [
@@ -957,7 +1101,27 @@
               "tags": {}
             }
           ],
-          "status": "candidate_only"
+          "status": "candidate_only",
+          "course_wide_unique_candidates": [
+            {
+              "osm_type": "way",
+              "osm_id": 1565324876,
+              "distance_to_start_m": 0.0,
+              "distance_to_end_m": 134.8,
+              "tags": {},
+              "course_wide_status": "single_hole_candidate"
+            },
+            {
+              "osm_type": "way",
+              "osm_id": 1565324877,
+              "distance_to_start_m": 22.0,
+              "distance_to_end_m": 110.1,
+              "tags": {},
+              "course_wide_status": "single_hole_candidate"
+            }
+          ],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         },
         "green": {
           "role_test": "green_end_candidate",
@@ -1007,13 +1171,28 @@
               "tags": {}
             }
           ],
-          "status": "candidate_only"
+          "status": "candidate_only",
+          "course_wide_unique_candidates": [
+            {
+              "osm_type": "way",
+              "osm_id": 1565324880,
+              "distance_to_start_m": 127.7,
+              "distance_to_end_m": 0.0,
+              "tags": {},
+              "course_wide_status": "single_hole_candidate"
+            }
+          ],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         },
         "pin": {
           "role_test": "green_end_pin_candidate",
           "strong_endpoint_candidates": [],
           "nearest_candidates": [],
-          "status": "not_found_with_endpoint_rule"
+          "status": "not_found_with_endpoint_rule",
+          "course_wide_unique_candidates": [],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         }
       },
       "corridor_feature_candidates": [
@@ -1135,7 +1314,27 @@
               "tags": {}
             }
           ],
-          "status": "candidate_only"
+          "status": "candidate_only",
+          "course_wide_unique_candidates": [
+            {
+              "osm_type": "way",
+              "osm_id": 1565324883,
+              "distance_to_start_m": 0.0,
+              "distance_to_end_m": 450.1,
+              "tags": {},
+              "course_wide_status": "single_hole_candidate"
+            },
+            {
+              "osm_type": "way",
+              "osm_id": 1565324884,
+              "distance_to_start_m": 16.7,
+              "distance_to_end_m": 419.9,
+              "tags": {},
+              "course_wide_status": "single_hole_candidate"
+            }
+          ],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         },
         "green": {
           "role_test": "green_end_candidate",
@@ -1185,13 +1384,28 @@
               "tags": {}
             }
           ],
-          "status": "candidate_only"
+          "status": "candidate_only",
+          "course_wide_unique_candidates": [
+            {
+              "osm_type": "way",
+              "osm_id": 1565324889,
+              "distance_to_start_m": 442.8,
+              "distance_to_end_m": 0.0,
+              "tags": {},
+              "course_wide_status": "single_hole_candidate"
+            }
+          ],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         },
         "pin": {
           "role_test": "green_end_pin_candidate",
           "strong_endpoint_candidates": [],
           "nearest_candidates": [],
-          "status": "not_found_with_endpoint_rule"
+          "status": "not_found_with_endpoint_rule",
+          "course_wide_unique_candidates": [],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         }
       },
       "corridor_feature_candidates": [
@@ -1306,7 +1520,19 @@
               "tags": {}
             }
           ],
-          "status": "candidate_only"
+          "status": "candidate_only",
+          "course_wide_unique_candidates": [
+            {
+              "osm_type": "way",
+              "osm_id": 1565657127,
+              "distance_to_start_m": 0.0,
+              "distance_to_end_m": 346.7,
+              "tags": {},
+              "course_wide_status": "single_hole_candidate"
+            }
+          ],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         },
         "green": {
           "role_test": "green_end_candidate",
@@ -1356,13 +1582,28 @@
               "tags": {}
             }
           ],
-          "status": "candidate_only"
+          "status": "candidate_only",
+          "course_wide_unique_candidates": [
+            {
+              "osm_type": "way",
+              "osm_id": 1565657131,
+              "distance_to_start_m": 341.4,
+              "distance_to_end_m": 0.0,
+              "tags": {},
+              "course_wide_status": "single_hole_candidate"
+            }
+          ],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         },
         "pin": {
           "role_test": "green_end_pin_candidate",
           "strong_endpoint_candidates": [],
           "nearest_candidates": [],
-          "status": "not_found_with_endpoint_rule"
+          "status": "not_found_with_endpoint_rule",
+          "course_wide_unique_candidates": [],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         }
       },
       "corridor_feature_candidates": [
@@ -1463,7 +1704,27 @@
               "tags": {}
             }
           ],
-          "status": "candidate_only"
+          "status": "candidate_only",
+          "course_wide_unique_candidates": [
+            {
+              "osm_type": "way",
+              "osm_id": 1565657134,
+              "distance_to_start_m": 0.0,
+              "distance_to_end_m": 391.1,
+              "tags": {},
+              "course_wide_status": "single_hole_candidate"
+            },
+            {
+              "osm_type": "way",
+              "osm_id": 1565657135,
+              "distance_to_start_m": 26.0,
+              "distance_to_end_m": 354.3,
+              "tags": {},
+              "course_wide_status": "single_hole_candidate"
+            }
+          ],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         },
         "green": {
           "role_test": "green_end_candidate",
@@ -1513,13 +1774,28 @@
               "tags": {}
             }
           ],
-          "status": "candidate_only"
+          "status": "candidate_only",
+          "course_wide_unique_candidates": [
+            {
+              "osm_type": "way",
+              "osm_id": 1565657141,
+              "distance_to_start_m": 384.0,
+              "distance_to_end_m": 0.0,
+              "tags": {},
+              "course_wide_status": "single_hole_candidate"
+            }
+          ],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         },
         "pin": {
           "role_test": "green_end_pin_candidate",
           "strong_endpoint_candidates": [],
           "nearest_candidates": [],
-          "status": "not_found_with_endpoint_rule"
+          "status": "not_found_with_endpoint_rule",
+          "course_wide_unique_candidates": [],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         }
       },
       "corridor_feature_candidates": [
@@ -1620,7 +1896,19 @@
               "tags": {}
             }
           ],
-          "status": "candidate_only"
+          "status": "candidate_only",
+          "course_wide_unique_candidates": [
+            {
+              "osm_type": "way",
+              "osm_id": 1565658492,
+              "distance_to_start_m": 0.0,
+              "distance_to_end_m": 342.4,
+              "tags": {},
+              "course_wide_status": "single_hole_candidate"
+            }
+          ],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         },
         "green": {
           "role_test": "green_end_candidate",
@@ -1670,13 +1958,28 @@
               "tags": {}
             }
           ],
-          "status": "candidate_only"
+          "status": "candidate_only",
+          "course_wide_unique_candidates": [
+            {
+              "osm_type": "way",
+              "osm_id": 1565658498,
+              "distance_to_start_m": 340.8,
+              "distance_to_end_m": 0.0,
+              "tags": {},
+              "course_wide_status": "single_hole_candidate"
+            }
+          ],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         },
         "pin": {
           "role_test": "green_end_pin_candidate",
           "strong_endpoint_candidates": [],
           "nearest_candidates": [],
-          "status": "not_found_with_endpoint_rule"
+          "status": "not_found_with_endpoint_rule",
+          "course_wide_unique_candidates": [],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         }
       },
       "corridor_feature_candidates": [
@@ -1798,7 +2101,19 @@
               "tags": {}
             }
           ],
-          "status": "candidate_only"
+          "status": "candidate_only",
+          "course_wide_unique_candidates": [
+            {
+              "osm_type": "way",
+              "osm_id": 1565658501,
+              "distance_to_start_m": 0.0,
+              "distance_to_end_m": 356.6,
+              "tags": {},
+              "course_wide_status": "single_hole_candidate"
+            }
+          ],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         },
         "green": {
           "role_test": "green_end_candidate",
@@ -1848,13 +2163,28 @@
               "tags": {}
             }
           ],
-          "status": "candidate_only"
+          "status": "candidate_only",
+          "course_wide_unique_candidates": [
+            {
+              "osm_type": "way",
+              "osm_id": 1565658506,
+              "distance_to_start_m": 356.0,
+              "distance_to_end_m": 0.0,
+              "tags": {},
+              "course_wide_status": "single_hole_candidate"
+            }
+          ],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         },
         "pin": {
           "role_test": "green_end_pin_candidate",
           "strong_endpoint_candidates": [],
           "nearest_candidates": [],
-          "status": "not_found_with_endpoint_rule"
+          "status": "not_found_with_endpoint_rule",
+          "course_wide_unique_candidates": [],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         }
       },
       "corridor_feature_candidates": [
@@ -1990,7 +2320,27 @@
               "tags": {}
             }
           ],
-          "status": "candidate_only"
+          "status": "candidate_only",
+          "course_wide_unique_candidates": [
+            {
+              "osm_type": "way",
+              "osm_id": 1565658514,
+              "distance_to_start_m": 0.0,
+              "distance_to_end_m": 108.7,
+              "tags": {},
+              "course_wide_status": "single_hole_candidate"
+            },
+            {
+              "osm_type": "way",
+              "osm_id": 1565658515,
+              "distance_to_start_m": 13.2,
+              "distance_to_end_m": 86.8,
+              "tags": {},
+              "course_wide_status": "single_hole_candidate"
+            }
+          ],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         },
         "green": {
           "role_test": "green_end_candidate",
@@ -2040,13 +2390,28 @@
               "tags": {}
             }
           ],
-          "status": "candidate_only"
+          "status": "candidate_only",
+          "course_wide_unique_candidates": [
+            {
+              "osm_type": "way",
+              "osm_id": 1565658511,
+              "distance_to_start_m": 101.2,
+              "distance_to_end_m": 0.0,
+              "tags": {},
+              "course_wide_status": "single_hole_candidate"
+            }
+          ],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         },
         "pin": {
           "role_test": "green_end_pin_candidate",
           "strong_endpoint_candidates": [],
           "nearest_candidates": [],
-          "status": "not_found_with_endpoint_rule"
+          "status": "not_found_with_endpoint_rule",
+          "course_wide_unique_candidates": [],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         }
       },
       "corridor_feature_candidates": [
@@ -2147,7 +2512,19 @@
               "tags": {}
             }
           ],
-          "status": "candidate_only"
+          "status": "candidate_only",
+          "course_wide_unique_candidates": [
+            {
+              "osm_type": "way",
+              "osm_id": 1565660100,
+              "distance_to_start_m": 0.0,
+              "distance_to_end_m": 443.3,
+              "tags": {},
+              "course_wide_status": "single_hole_candidate"
+            }
+          ],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         },
         "green": {
           "role_test": "green_end_candidate",
@@ -2197,13 +2574,28 @@
               "tags": {}
             }
           ],
-          "status": "candidate_only"
+          "status": "candidate_only",
+          "course_wide_unique_candidates": [
+            {
+              "osm_type": "way",
+              "osm_id": 1565660096,
+              "distance_to_start_m": 447.5,
+              "distance_to_end_m": 0.0,
+              "tags": {},
+              "course_wide_status": "single_hole_candidate"
+            }
+          ],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         },
         "pin": {
           "role_test": "green_end_pin_candidate",
           "strong_endpoint_candidates": [],
           "nearest_candidates": [],
-          "status": "not_found_with_endpoint_rule"
+          "status": "not_found_with_endpoint_rule",
+          "course_wide_unique_candidates": [],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         }
       },
       "corridor_feature_candidates": [
@@ -2325,7 +2717,19 @@
               "tags": {}
             }
           ],
-          "status": "candidate_only"
+          "status": "candidate_only",
+          "course_wide_unique_candidates": [
+            {
+              "osm_type": "way",
+              "osm_id": 1565660103,
+              "distance_to_start_m": 0.0,
+              "distance_to_end_m": 376.4,
+              "tags": {},
+              "course_wide_status": "single_hole_candidate"
+            }
+          ],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         },
         "green": {
           "role_test": "green_end_candidate",
@@ -2375,13 +2779,28 @@
               "tags": {}
             }
           ],
-          "status": "candidate_only"
+          "status": "candidate_only",
+          "course_wide_unique_candidates": [
+            {
+              "osm_type": "way",
+              "osm_id": 1565660109,
+              "distance_to_start_m": 378.8,
+              "distance_to_end_m": 0.0,
+              "tags": {},
+              "course_wide_status": "single_hole_candidate"
+            }
+          ],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         },
         "pin": {
           "role_test": "green_end_pin_candidate",
           "strong_endpoint_candidates": [],
           "nearest_candidates": [],
-          "status": "not_found_with_endpoint_rule"
+          "status": "not_found_with_endpoint_rule",
+          "course_wide_unique_candidates": [],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         }
       },
       "corridor_feature_candidates": [
@@ -2489,7 +2908,19 @@
               "tags": {}
             }
           ],
-          "status": "candidate_only"
+          "status": "candidate_only",
+          "course_wide_unique_candidates": [
+            {
+              "osm_type": "way",
+              "osm_id": 1565660116,
+              "distance_to_start_m": 0.0,
+              "distance_to_end_m": 89.7,
+              "tags": {},
+              "course_wide_status": "single_hole_candidate"
+            }
+          ],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         },
         "green": {
           "role_test": "green_end_candidate",
@@ -2539,13 +2970,28 @@
               "tags": {}
             }
           ],
-          "status": "candidate_only"
+          "status": "candidate_only",
+          "course_wide_unique_candidates": [
+            {
+              "osm_type": "way",
+              "osm_id": 1565660113,
+              "distance_to_start_m": 132.5,
+              "distance_to_end_m": 0.0,
+              "tags": {},
+              "course_wide_status": "single_hole_candidate"
+            }
+          ],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         },
         "pin": {
           "role_test": "green_end_pin_candidate",
           "strong_endpoint_candidates": [],
           "nearest_candidates": [],
-          "status": "not_found_with_endpoint_rule"
+          "status": "not_found_with_endpoint_rule",
+          "course_wide_unique_candidates": [],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         }
       },
       "corridor_feature_candidates": [
@@ -2646,7 +3092,27 @@
               "tags": {}
             }
           ],
-          "status": "candidate_only"
+          "status": "candidate_only",
+          "course_wide_unique_candidates": [
+            {
+              "osm_type": "way",
+              "osm_id": 1565660117,
+              "distance_to_start_m": 0.0,
+              "distance_to_end_m": 350.0,
+              "tags": {},
+              "course_wide_status": "single_hole_candidate"
+            },
+            {
+              "osm_type": "way",
+              "osm_id": 1565660118,
+              "distance_to_start_m": 28.9,
+              "distance_to_end_m": 320.4,
+              "tags": {},
+              "course_wide_status": "single_hole_candidate"
+            }
+          ],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         },
         "green": {
           "role_test": "green_end_candidate",
@@ -2696,13 +3162,28 @@
               "tags": {}
             }
           ],
-          "status": "candidate_only"
+          "status": "candidate_only",
+          "course_wide_unique_candidates": [
+            {
+              "osm_type": "way",
+              "osm_id": 1565660122,
+              "distance_to_start_m": 344.6,
+              "distance_to_end_m": 0.0,
+              "tags": {},
+              "course_wide_status": "single_hole_candidate"
+            }
+          ],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         },
         "pin": {
           "role_test": "green_end_pin_candidate",
           "strong_endpoint_candidates": [],
           "nearest_candidates": [],
-          "status": "not_found_with_endpoint_rule"
+          "status": "not_found_with_endpoint_rule",
+          "course_wide_unique_candidates": [],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         }
       },
       "corridor_feature_candidates": [
@@ -2802,7 +3283,10 @@
               "tags": {}
             }
           ],
-          "status": "not_found_with_endpoint_rule"
+          "status": "not_found_with_endpoint_rule",
+          "course_wide_unique_candidates": [],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         },
         "green": {
           "role_test": "green_end_candidate",
@@ -2852,13 +3336,28 @@
               "tags": {}
             }
           ],
-          "status": "candidate_only"
+          "status": "candidate_only",
+          "course_wide_unique_candidates": [
+            {
+              "osm_type": "way",
+              "osm_id": 1565660133,
+              "distance_to_start_m": 459.8,
+              "distance_to_end_m": 0.0,
+              "tags": {},
+              "course_wide_status": "single_hole_candidate"
+            }
+          ],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         },
         "pin": {
           "role_test": "green_end_pin_candidate",
           "strong_endpoint_candidates": [],
           "nearest_candidates": [],
-          "status": "not_found_with_endpoint_rule"
+          "status": "not_found_with_endpoint_rule",
+          "course_wide_unique_candidates": [],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         }
       },
       "corridor_feature_candidates": [
@@ -3001,7 +3500,27 @@
               "tags": {}
             }
           ],
-          "status": "candidate_only"
+          "status": "candidate_only",
+          "course_wide_unique_candidates": [
+            {
+              "osm_type": "way",
+              "osm_id": 1565660136,
+              "distance_to_start_m": 0.0,
+              "distance_to_end_m": 363.8,
+              "tags": {},
+              "course_wide_status": "single_hole_candidate"
+            },
+            {
+              "osm_type": "way",
+              "osm_id": 1565660137,
+              "distance_to_start_m": 17.4,
+              "distance_to_end_m": 334.6,
+              "tags": {},
+              "course_wide_status": "single_hole_candidate"
+            }
+          ],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         },
         "green": {
           "role_test": "green_end_candidate",
@@ -3051,13 +3570,28 @@
               "tags": {}
             }
           ],
-          "status": "candidate_only"
+          "status": "candidate_only",
+          "course_wide_unique_candidates": [
+            {
+              "osm_type": "way",
+              "osm_id": 1565660142,
+              "distance_to_start_m": 348.9,
+              "distance_to_end_m": 0.0,
+              "tags": {},
+              "course_wide_status": "single_hole_candidate"
+            }
+          ],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         },
         "pin": {
           "role_test": "green_end_pin_candidate",
           "strong_endpoint_candidates": [],
           "nearest_candidates": [],
-          "status": "not_found_with_endpoint_rule"
+          "status": "not_found_with_endpoint_rule",
+          "course_wide_unique_candidates": [],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         }
       },
       "corridor_feature_candidates": [
@@ -3131,7 +3665,8 @@
   "limitations": [
     "Line orientation is inferred from nearby tee/green markers or pins; when evidence is ambiguous, no strong endpoint candidates are emitted.",
     "Endpoint proximity does not prove feature membership.",
-    "Multiple nearby markers may belong to neighboring holes.",
+    "Course-wide nearest-endpoint comparison reduces duplicate claims, but a closest marker can still belong to another nearby hole.",
+    "Near-tied marker candidates remain explicitly ambiguous rather than being forced onto a hole.",
     "Corridor features remain unassigned without stronger topology or imagery evidence."
   ]
 }

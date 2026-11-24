@@ -1,10 +1,11 @@
 {
   "type": "WatchThisDriveHoleAssociationAudit",
-  "method": "Choose line orientation from nearest tee/green endpoints, or pin endpoint when tee/green are unavailable; report conservative endpoint and centerline candidates without forced assignment.",
+  "method": "Infer hole-line direction from endpoint markers, then compare each marker candidate across all hole endpoints; retain only clearly nearest-hole candidates and flag near-ties. This remains diagnostic, not definitive membership.",
   "thresholds_m": {
     "tee_green_endpoint": 30,
     "pin_green_endpoint": 20,
-    "corridor": 45
+    "corridor": 45,
+    "course_wide_uniqueness_margin": 5
   },
   "hole_count": 9,
   "holes": [
@@ -30,13 +31,19 @@
           "role_test": "tee_end_candidate",
           "strong_endpoint_candidates": [],
           "nearest_candidates": [],
-          "status": "not_found_with_endpoint_rule"
+          "status": "not_found_with_endpoint_rule",
+          "course_wide_unique_candidates": [],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         },
         "green": {
           "role_test": "green_end_candidate",
           "strong_endpoint_candidates": [],
           "nearest_candidates": [],
-          "status": "not_found_with_endpoint_rule"
+          "status": "not_found_with_endpoint_rule",
+          "course_wide_unique_candidates": [],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         },
         "pin": {
           "role_test": "green_end_pin_candidate",
@@ -86,7 +93,19 @@
               "tags": {}
             }
           ],
-          "status": "candidate_only"
+          "status": "candidate_only",
+          "course_wide_unique_candidates": [
+            {
+              "osm_type": "node",
+              "osm_id": 12374869535,
+              "distance_to_start_m": 99.1,
+              "distance_to_end_m": 0.0,
+              "tags": {},
+              "course_wide_status": "single_hole_candidate"
+            }
+          ],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         }
       },
       "corridor_feature_candidates": [],
@@ -114,13 +133,19 @@
           "role_test": "tee_end_candidate",
           "strong_endpoint_candidates": [],
           "nearest_candidates": [],
-          "status": "not_found_with_endpoint_rule"
+          "status": "not_found_with_endpoint_rule",
+          "course_wide_unique_candidates": [],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         },
         "green": {
           "role_test": "green_end_candidate",
           "strong_endpoint_candidates": [],
           "nearest_candidates": [],
-          "status": "not_found_with_endpoint_rule"
+          "status": "not_found_with_endpoint_rule",
+          "course_wide_unique_candidates": [],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         },
         "pin": {
           "role_test": "green_end_pin_candidate",
@@ -170,7 +195,19 @@
               "tags": {}
             }
           ],
-          "status": "candidate_only"
+          "status": "candidate_only",
+          "course_wide_unique_candidates": [
+            {
+              "osm_type": "node",
+              "osm_id": 12374869538,
+              "distance_to_start_m": 134.2,
+              "distance_to_end_m": 0.0,
+              "tags": {},
+              "course_wide_status": "single_hole_candidate"
+            }
+          ],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         }
       },
       "corridor_feature_candidates": [],
@@ -198,13 +235,19 @@
           "role_test": "tee_end_candidate",
           "strong_endpoint_candidates": [],
           "nearest_candidates": [],
-          "status": "not_found_with_endpoint_rule"
+          "status": "not_found_with_endpoint_rule",
+          "course_wide_unique_candidates": [],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         },
         "green": {
           "role_test": "green_end_candidate",
           "strong_endpoint_candidates": [],
           "nearest_candidates": [],
-          "status": "not_found_with_endpoint_rule"
+          "status": "not_found_with_endpoint_rule",
+          "course_wide_unique_candidates": [],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         },
         "pin": {
           "role_test": "green_end_pin_candidate",
@@ -254,7 +297,19 @@
               "tags": {}
             }
           ],
-          "status": "candidate_only"
+          "status": "candidate_only",
+          "course_wide_unique_candidates": [
+            {
+              "osm_type": "node",
+              "osm_id": 12374869540,
+              "distance_to_start_m": 106.1,
+              "distance_to_end_m": 0.0,
+              "tags": {},
+              "course_wide_status": "single_hole_candidate"
+            }
+          ],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         }
       },
       "corridor_feature_candidates": [],
@@ -282,13 +337,19 @@
           "role_test": "tee_end_candidate",
           "strong_endpoint_candidates": [],
           "nearest_candidates": [],
-          "status": "not_found_with_endpoint_rule"
+          "status": "not_found_with_endpoint_rule",
+          "course_wide_unique_candidates": [],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         },
         "green": {
           "role_test": "green_end_candidate",
           "strong_endpoint_candidates": [],
           "nearest_candidates": [],
-          "status": "not_found_with_endpoint_rule"
+          "status": "not_found_with_endpoint_rule",
+          "course_wide_unique_candidates": [],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         },
         "pin": {
           "role_test": "green_end_pin_candidate",
@@ -338,7 +399,19 @@
               "tags": {}
             }
           ],
-          "status": "candidate_only"
+          "status": "candidate_only",
+          "course_wide_unique_candidates": [
+            {
+              "osm_type": "node",
+              "osm_id": 12374869542,
+              "distance_to_start_m": 94.1,
+              "distance_to_end_m": 0.0,
+              "tags": {},
+              "course_wide_status": "single_hole_candidate"
+            }
+          ],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         }
       },
       "corridor_feature_candidates": [],
@@ -366,13 +439,19 @@
           "role_test": "tee_end_candidate",
           "strong_endpoint_candidates": [],
           "nearest_candidates": [],
-          "status": "not_found_with_endpoint_rule"
+          "status": "not_found_with_endpoint_rule",
+          "course_wide_unique_candidates": [],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         },
         "green": {
           "role_test": "green_end_candidate",
           "strong_endpoint_candidates": [],
           "nearest_candidates": [],
-          "status": "not_found_with_endpoint_rule"
+          "status": "not_found_with_endpoint_rule",
+          "course_wide_unique_candidates": [],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         },
         "pin": {
           "role_test": "green_end_pin_candidate",
@@ -422,7 +501,19 @@
               "tags": {}
             }
           ],
-          "status": "candidate_only"
+          "status": "candidate_only",
+          "course_wide_unique_candidates": [
+            {
+              "osm_type": "node",
+              "osm_id": 12374869544,
+              "distance_to_start_m": 150.9,
+              "distance_to_end_m": 0.0,
+              "tags": {},
+              "course_wide_status": "single_hole_candidate"
+            }
+          ],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         }
       },
       "corridor_feature_candidates": [],
@@ -450,13 +541,19 @@
           "role_test": "tee_end_candidate",
           "strong_endpoint_candidates": [],
           "nearest_candidates": [],
-          "status": "not_found_with_endpoint_rule"
+          "status": "not_found_with_endpoint_rule",
+          "course_wide_unique_candidates": [],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         },
         "green": {
           "role_test": "green_end_candidate",
           "strong_endpoint_candidates": [],
           "nearest_candidates": [],
-          "status": "not_found_with_endpoint_rule"
+          "status": "not_found_with_endpoint_rule",
+          "course_wide_unique_candidates": [],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         },
         "pin": {
           "role_test": "green_end_pin_candidate",
@@ -506,7 +603,19 @@
               "tags": {}
             }
           ],
-          "status": "candidate_only"
+          "status": "candidate_only",
+          "course_wide_unique_candidates": [
+            {
+              "osm_type": "node",
+              "osm_id": 12374869546,
+              "distance_to_start_m": 219.2,
+              "distance_to_end_m": 0.0,
+              "tags": {},
+              "course_wide_status": "single_hole_candidate"
+            }
+          ],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         }
       },
       "corridor_feature_candidates": [],
@@ -534,13 +643,19 @@
           "role_test": "tee_end_candidate",
           "strong_endpoint_candidates": [],
           "nearest_candidates": [],
-          "status": "not_found_with_endpoint_rule"
+          "status": "not_found_with_endpoint_rule",
+          "course_wide_unique_candidates": [],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         },
         "green": {
           "role_test": "green_end_candidate",
           "strong_endpoint_candidates": [],
           "nearest_candidates": [],
-          "status": "not_found_with_endpoint_rule"
+          "status": "not_found_with_endpoint_rule",
+          "course_wide_unique_candidates": [],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         },
         "pin": {
           "role_test": "green_end_pin_candidate",
@@ -590,7 +705,19 @@
               "tags": {}
             }
           ],
-          "status": "candidate_only"
+          "status": "candidate_only",
+          "course_wide_unique_candidates": [
+            {
+              "osm_type": "node",
+              "osm_id": 12374869548,
+              "distance_to_start_m": 106.7,
+              "distance_to_end_m": 0.0,
+              "tags": {},
+              "course_wide_status": "single_hole_candidate"
+            }
+          ],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         }
       },
       "corridor_feature_candidates": [],
@@ -618,13 +745,19 @@
           "role_test": "tee_end_candidate",
           "strong_endpoint_candidates": [],
           "nearest_candidates": [],
-          "status": "not_found_with_endpoint_rule"
+          "status": "not_found_with_endpoint_rule",
+          "course_wide_unique_candidates": [],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         },
         "green": {
           "role_test": "green_end_candidate",
           "strong_endpoint_candidates": [],
           "nearest_candidates": [],
-          "status": "not_found_with_endpoint_rule"
+          "status": "not_found_with_endpoint_rule",
+          "course_wide_unique_candidates": [],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         },
         "pin": {
           "role_test": "green_end_pin_candidate",
@@ -674,7 +807,19 @@
               "tags": {}
             }
           ],
-          "status": "candidate_only"
+          "status": "candidate_only",
+          "course_wide_unique_candidates": [
+            {
+              "osm_type": "node",
+              "osm_id": 12374869551,
+              "distance_to_start_m": 194.3,
+              "distance_to_end_m": 0.0,
+              "tags": {},
+              "course_wide_status": "single_hole_candidate"
+            }
+          ],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         }
       },
       "corridor_feature_candidates": [],
@@ -702,13 +847,19 @@
           "role_test": "tee_end_candidate",
           "strong_endpoint_candidates": [],
           "nearest_candidates": [],
-          "status": "not_found_with_endpoint_rule"
+          "status": "not_found_with_endpoint_rule",
+          "course_wide_unique_candidates": [],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         },
         "green": {
           "role_test": "green_end_candidate",
           "strong_endpoint_candidates": [],
           "nearest_candidates": [],
-          "status": "not_found_with_endpoint_rule"
+          "status": "not_found_with_endpoint_rule",
+          "course_wide_unique_candidates": [],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         },
         "pin": {
           "role_test": "green_end_pin_candidate",
@@ -758,7 +909,19 @@
               "tags": {}
             }
           ],
-          "status": "candidate_only"
+          "status": "candidate_only",
+          "course_wide_unique_candidates": [
+            {
+              "osm_type": "node",
+              "osm_id": 12374869553,
+              "distance_to_start_m": 112.4,
+              "distance_to_end_m": 0.0,
+              "tags": {},
+              "course_wide_status": "single_hole_candidate"
+            }
+          ],
+          "ambiguous_shared_candidates": [],
+          "closer_to_another_hole": []
         }
       },
       "corridor_feature_candidates": [],
@@ -768,7 +931,8 @@
   "limitations": [
     "Line orientation is inferred from nearby tee/green markers or pins; when evidence is ambiguous, no strong endpoint candidates are emitted.",
     "Endpoint proximity does not prove feature membership.",
-    "Multiple nearby markers may belong to neighboring holes.",
+    "Course-wide nearest-endpoint comparison reduces duplicate claims, but a closest marker can still belong to another nearby hole.",
+    "Near-tied marker candidates remain explicitly ambiguous rather than being forced onto a hole.",
     "Corridor features remain unassigned without stronger topology or imagery evidence."
   ]
 }
