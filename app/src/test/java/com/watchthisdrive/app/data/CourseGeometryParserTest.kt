@@ -103,6 +103,30 @@ class CourseGeometryParserTest {
     }
 
     @Test
+    fun closedCartPathRemainsALine() {
+        val json = """
+            {"elements":[{"type":"way","id":42,"tags":{"golf":"cartpath"},
+            "geometry":[{"lat":0.0,"lon":0.0},{"lat":0.0,"lon":1.0},
+            {"lat":1.0,"lon":1.0},{"lat":1.0,"lon":0.0},
+            {"lat":0.0,"lon":0.0}]}]}
+        """.trimIndent()
+        val result = CourseGeometryLoader.parseGeometry(json, course)
+        assertEquals(CourseGeometryType.LINE, result.features.single().geometryType)
+    }
+
+    @Test
+    fun incompleteMultipolygonIsNotReportedAsUsable() {
+        val json = """
+            {"elements":[{"type":"relation","id":60,"tags":{"golf":"fairway"},
+            "members":[{"type":"way","ref":1,"role":"outer","geometry":[
+              {"lat":0.0,"lon":0.0},{"lat":0.0,"lon":1.0},{"lat":1.0,"lon":1.0}]}]}]}
+        """.trimIndent()
+        val result = CourseGeometryLoader.parseGeometry(json, course)
+        assertTrue(result.features.isEmpty())
+        assertTrue(result.incompleteRelations.single().contains("could not close"))
+    }
+
+    @Test
     fun closedHoleCenterlineRemainsALine() {
         val json = """
             {"elements":[{"type":"way","id":41,"tags":{"golf":"hole","ref":"2"},
