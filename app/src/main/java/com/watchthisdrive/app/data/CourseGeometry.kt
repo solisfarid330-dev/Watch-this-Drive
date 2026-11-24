@@ -140,7 +140,8 @@ object CourseGeometryLoader {
                 parseDirectGeometry(element)
             }
             if (parsed.geometryType == CourseGeometryType.UNKNOWN) {
-                if (elementType == "relation") relationErrors.add("relation/$id: no complete polygon rings")
+                val detail = parsed.error ?: "no usable geometry"
+                relationErrors.add("$elementType/$id: $detail")
                 continue
             }
             features.add(CourseFeature(
