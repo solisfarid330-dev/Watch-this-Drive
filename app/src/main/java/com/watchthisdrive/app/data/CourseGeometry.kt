@@ -327,24 +327,19 @@ object CourseGeometryLoader {
                 val prependMatches = remaining.indices.filter { index ->
                     remaining[index].first() == ring.first() || remaining[index].last() == ring.first()
                 }
-                val candidates = (appendMatches + prependMatches).distinct()
-                if (candidates.isEmpty()) break
-                if (candidates.size > 1) {
+                if (appendMatches.size > 1 || prependMatches.size > 1) {
                     errors.add("ambiguous ring junction: multiple member ways share an endpoint")
                     break
                 }
-                val index = candidates.single()
+                val appendIndex = appendMatches.firstOrNull()
+                val prependIndex = prependMatches.firstOrNull()
+                val index = appendIndex ?: prependIndex ?: break
                 val segment = remaining.removeAt(index)
                 when {
                     segment.first() == ring.last() -> ring.addAll(segment.drop(1))
                     segment.last() == ring.last() -> ring.addAll(segment.asReversed().drop(1))
-                    segment.last() == ring.first() -> {
-                        ring.addAll(0, segment.dropLast(1))
-                    }
-                    segment.first() == ring.first() -> {
-                        val reversed = segment.asReversed()
-                        ring.addAll(0, reversed.dropLast(1))
-                    }
+                    segment.last() == ring.first() -> ring.addAll(0, segment.dropLast(1))
+                    segment.first() == ring.first() -> ring.addAll(0, segment.asReversed().dropLast(1))
                 }
             }
             if (ring.size >= 4 && ring.first() == ring.last()) rings.add(ring)
