@@ -32,11 +32,11 @@ def lines(g):
     if g["type"]=="LineString": yield g["coordinates"]
     elif g["type"]=="MultiLineString": yield from g["coordinates"]
 
-def feature_distance_m(geometry, hole_points, lat0):
+def feature_distance_m(geometry, hole_lines, lat0):
     # Use full line segments, not only sparse centerline vertices. This catches
     # polygons crossed between OSM vertices and shares the association audit's
     # treatment of polygon holes and line geometries.
-    return line_distance_to_geometry(hole_points, geometry, lat0)
+    return min((line_distance_to_geometry(line, geometry, lat0) for line in hole_lines), default=float("inf"))
 
 def main():
     ap=argparse.ArgumentParser()
@@ -48,7 +48,9 @@ def main():
     fc=json.loads(Path(a.geojson).read_text()); fs=fc["features"]
     hs=[f for f in fs if f["properties"].get("golf")=="hole" and str(f["properties"].get("ref") or f["properties"].get("golf:hole") or "")==a.hole_ref]
     if len(hs)!=1: raise SystemExit(f"Expected one explicitly numbered hole {a.hole_ref}; found {len(hs)}")
-    hole=hs[0]; hole_coords=list(points(hole["geometry"])); hp=[mercator(*p) for p in hole_coords]
+    hole=hs[0]; hole_lines=list(lines(hole["geometry"]))
+    hole_coords=[point for line in hole_lines for point in line]
+    hp=[mercator(*p) for p in hole_coords]
     lat0=sum(p[1] for p in hole_coords)/len(hole_coords)*math.pi/180
     if len(hp)<2: raise SystemExit("Selected hole has insufficient geometry")
     minx=min(p[0] for p in hp)-a.buffer_m; maxx=max(p[0] for p in hp)+a.buffer_m
@@ -85,7 +87,7 @@ def main():
     for f in fs:
         g=f["geometry"]; kind=f["properties"].get("golf")
         if kind not in COLORS or f is hole or kind=="hole": continue
-        distance=feature_distance_m(g,hole_coords,lat0)
+        distance=feature_distance_m(g,hole_lines,lat0)
         if distance>a.feature_corridor_m: continue
         candidate_distances.append({"osm_type":f["properties"].get("osm_type"),"osm_id":f["properties"].get("osm_id"),"golf":kind,"distance_to_hole_centerline_m":round(distance,1),"assignment":"proximity candidate only"})
         ps=[mercator(*p) for p in points(g)]
