@@ -211,3 +211,43 @@ are not independent ground truth.
 No candidate is promoted to app geometry. The method must still be checked
 against independently traced fairway boundaries and should be rejected when
 its confidence or specificity is inadequate.
+
+
+## Multi-scale texture classifier experiment (2026-11-24)
+
+A new research-only ExtraTrees classifier was tested using 17 RGBIR and local
+texture descriptors: four raw bands, NDVI, excess-green, vegetation ratios,
+multi-scale RGB/NIR/NDVI local standard deviation, structure-tensor coherence,
+and edge magnitude. Weak fairway and rough training masks were eroded by 2 m
+to reduce boundary mixing. Training/holdout pixels were separated by spatial
+blocks rather than random pixel sampling. OSM target labels were consulted only
+after prediction.
+
+The workflow completed successfully on four targets. Its within-hole South
+Padre Hole 1 spatial holdout was extremely strong (99.55% fairway recall and
+0% rough false-positive rate at a 0.5 threshold). The same model also reported
+99.9% mapped-fairway recall and 0% mapped-rough overlap on Hole 1, and 98.92%
+mapped-fairway recall with 2.79% mapped-rough overlap on Hole 2.
+
+**These impressive numbers do not mean the method is solved.** The rendered
+overlays expose a serious generalization problem: the South Padre Hole 1
+prediction spreads across large areas of surrounding turf; the Hole 2 output
+also includes broad and fragmented regions. Transfer to Westwood recognizes
+only 29.73% of mapped fairway pixels, with no mapped rough polygons available
+to estimate false positives. Cottonwood has no mapped fairway/rough labels,
+and its prediction includes scattered areas that cannot be independently
+scored. Feature importance is dominated by NIR, green, blue and red reflectance;
+texture and directional descriptors contribute much less than hoped.
+
+This is a useful negative result: excellent spatial holdout against one hole's
+OSM-derived labels can coexist with visually poor boundaries and poor
+cross-course transfer. OSM weak labels are incomplete and potentially
+systematically biased; the spatial holdout is not independent field truth.
+The ExtraTrees/sklearn experiment is strictly an offline diagnostic and is
+not an Android dependency or production algorithm.
+
+Next work must establish independent reference boundaries (georeferenced
+official hole plans or carefully traced aerial reference polygons), quantify
+boundary IoU/precision/recall and width/shape errors, and test whether a
+course-adaptive model can transfer without relying on fairway polygons. Until
+then, no image-derived fairway candidate is accepted for app geometry.
