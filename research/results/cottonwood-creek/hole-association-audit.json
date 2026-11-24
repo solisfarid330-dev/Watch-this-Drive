@@ -5,7 +5,8 @@
     "tee_green_endpoint": 30,
     "pin_green_endpoint": 20,
     "corridor": 45,
-    "course_wide_uniqueness_margin": 5
+    "course_wide_uniqueness_margin": 5,
+    "corridor_uniqueness_margin": 8.0
   },
   "hole_count": 9,
   "holes": [
@@ -109,7 +110,10 @@
         }
       },
       "corridor_feature_candidates": [],
-      "interpretation": "Endpoint proximity is stronger evidence for tee/green/pin association than distance to any part of the hole line, but every result remains a candidate until checked against imagery or trusted course references."
+      "interpretation": "Endpoint proximity is stronger evidence for tee/green/pin association than distance to any part of the hole line, but every result remains a candidate until checked against imagery or trusted course references.",
+      "course_wide_unique_corridor_candidates": [],
+      "ambiguous_shared_corridor_candidates": [],
+      "corridor_features_closer_to_another_hole": []
     },
     {
       "hole_ref": "2",
@@ -211,7 +215,10 @@
         }
       },
       "corridor_feature_candidates": [],
-      "interpretation": "Endpoint proximity is stronger evidence for tee/green/pin association than distance to any part of the hole line, but every result remains a candidate until checked against imagery or trusted course references."
+      "interpretation": "Endpoint proximity is stronger evidence for tee/green/pin association than distance to any part of the hole line, but every result remains a candidate until checked against imagery or trusted course references.",
+      "course_wide_unique_corridor_candidates": [],
+      "ambiguous_shared_corridor_candidates": [],
+      "corridor_features_closer_to_another_hole": []
     },
     {
       "hole_ref": "3",
@@ -313,7 +320,10 @@
         }
       },
       "corridor_feature_candidates": [],
-      "interpretation": "Endpoint proximity is stronger evidence for tee/green/pin association than distance to any part of the hole line, but every result remains a candidate until checked against imagery or trusted course references."
+      "interpretation": "Endpoint proximity is stronger evidence for tee/green/pin association than distance to any part of the hole line, but every result remains a candidate until checked against imagery or trusted course references.",
+      "course_wide_unique_corridor_candidates": [],
+      "ambiguous_shared_corridor_candidates": [],
+      "corridor_features_closer_to_another_hole": []
     },
     {
       "hole_ref": "4",
@@ -415,7 +425,10 @@
         }
       },
       "corridor_feature_candidates": [],
-      "interpretation": "Endpoint proximity is stronger evidence for tee/green/pin association than distance to any part of the hole line, but every result remains a candidate until checked against imagery or trusted course references."
+      "interpretation": "Endpoint proximity is stronger evidence for tee/green/pin association than distance to any part of the hole line, but every result remains a candidate until checked against imagery or trusted course references.",
+      "course_wide_unique_corridor_candidates": [],
+      "ambiguous_shared_corridor_candidates": [],
+      "corridor_features_closer_to_another_hole": []
     },
     {
       "hole_ref": "5",
@@ -517,7 +530,10 @@
         }
       },
       "corridor_feature_candidates": [],
-      "interpretation": "Endpoint proximity is stronger evidence for tee/green/pin association than distance to any part of the hole line, but every result remains a candidate until checked against imagery or trusted course references."
+      "interpretation": "Endpoint proximity is stronger evidence for tee/green/pin association than distance to any part of the hole line, but every result remains a candidate until checked against imagery or trusted course references.",
+      "course_wide_unique_corridor_candidates": [],
+      "ambiguous_shared_corridor_candidates": [],
+      "corridor_features_closer_to_another_hole": []
     },
     {
       "hole_ref": "6",
@@ -619,7 +635,10 @@
         }
       },
       "corridor_feature_candidates": [],
-      "interpretation": "Endpoint proximity is stronger evidence for tee/green/pin association than distance to any part of the hole line, but every result remains a candidate until checked against imagery or trusted course references."
+      "interpretation": "Endpoint proximity is stronger evidence for tee/green/pin association than distance to any part of the hole line, but every result remains a candidate until checked against imagery or trusted course references.",
+      "course_wide_unique_corridor_candidates": [],
+      "ambiguous_shared_corridor_candidates": [],
+      "corridor_features_closer_to_another_hole": []
     },
     {
       "hole_ref": "9",
@@ -721,7 +740,10 @@
         }
       },
       "corridor_feature_candidates": [],
-      "interpretation": "Endpoint proximity is stronger evidence for tee/green/pin association than distance to any part of the hole line, but every result remains a candidate until checked against imagery or trusted course references."
+      "interpretation": "Endpoint proximity is stronger evidence for tee/green/pin association than distance to any part of the hole line, but every result remains a candidate until checked against imagery or trusted course references.",
+      "course_wide_unique_corridor_candidates": [],
+      "ambiguous_shared_corridor_candidates": [],
+      "corridor_features_closer_to_another_hole": []
     },
     {
       "hole_ref": null,
@@ -823,7 +845,10 @@
         }
       },
       "corridor_feature_candidates": [],
-      "interpretation": "Endpoint proximity is stronger evidence for tee/green/pin association than distance to any part of the hole line, but every result remains a candidate until checked against imagery or trusted course references."
+      "interpretation": "Endpoint proximity is stronger evidence for tee/green/pin association than distance to any part of the hole line, but every result remains a candidate until checked against imagery or trusted course references.",
+      "course_wide_unique_corridor_candidates": [],
+      "ambiguous_shared_corridor_candidates": [],
+      "corridor_features_closer_to_another_hole": []
     },
     {
       "hole_ref": "7",
@@ -925,7 +950,10 @@
         }
       },
       "corridor_feature_candidates": [],
-      "interpretation": "Endpoint proximity is stronger evidence for tee/green/pin association than distance to any part of the hole line, but every result remains a candidate until checked against imagery or trusted course references."
+      "interpretation": "Endpoint proximity is stronger evidence for tee/green/pin association than distance to any part of the hole line, but every result remains a candidate until checked against imagery or trusted course references.",
+      "course_wide_unique_corridor_candidates": [],
+      "ambiguous_shared_corridor_candidates": [],
+      "corridor_features_closer_to_another_hole": []
     }
   ],
   "limitations": [

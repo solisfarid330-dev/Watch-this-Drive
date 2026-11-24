@@ -5,7 +5,8 @@
     "tee_green_endpoint": 30,
     "pin_green_endpoint": 20,
     "corridor": 45,
-    "course_wide_uniqueness_margin": 5
+    "course_wide_uniqueness_margin": 5,
+    "corridor_uniqueness_margin": 8.0
   },
   "hole_count": 18,
   "holes": [
@@ -163,6 +164,13 @@
       },
       "corridor_feature_candidates": [
         {
+          "golf": "rough",
+          "osm_type": "way",
+          "osm_id": 1565321015,
+          "distance_to_centerline_m": 0.0,
+          "assignment": "corridor_candidate_only"
+        },
+        {
           "golf": "fairway",
           "osm_type": "relation",
           "osm_id": 21503736,
@@ -170,10 +178,10 @@
           "assignment": "corridor_candidate_only"
         },
         {
-          "golf": "rough",
+          "golf": "bunker",
           "osm_type": "way",
-          "osm_id": 1565321015,
-          "distance_to_centerline_m": 7.2,
+          "osm_id": 1565321012,
+          "distance_to_centerline_m": 9.0,
           "assignment": "corridor_candidate_only"
         },
         {
@@ -184,42 +192,104 @@
           "assignment": "corridor_candidate_only"
         },
         {
-          "golf": "bunker",
+          "golf": "cartpath",
           "osm_type": "way",
-          "osm_id": 1565321012,
-          "distance_to_centerline_m": 16.6,
+          "osm_id": 1383045755,
+          "distance_to_centerline_m": 16.9,
           "assignment": "corridor_candidate_only"
         },
         {
           "golf": "bunker",
           "osm_type": "way",
           "osm_id": 1565321011,
-          "distance_to_centerline_m": 18.2,
-          "assignment": "corridor_candidate_only"
-        },
-        {
-          "golf": "cartpath",
-          "osm_type": "way",
-          "osm_id": 1383045755,
-          "distance_to_centerline_m": 20.2,
+          "distance_to_centerline_m": 18.0,
           "assignment": "corridor_candidate_only"
         },
         {
           "golf": "bunker",
           "osm_type": "way",
           "osm_id": 1565321010,
-          "distance_to_centerline_m": 23.8,
+          "distance_to_centerline_m": 23.2,
           "assignment": "corridor_candidate_only"
         },
         {
           "golf": "bunker",
           "osm_type": "way",
           "osm_id": 1565321009,
-          "distance_to_centerline_m": 32.1,
+          "distance_to_centerline_m": 24.8,
           "assignment": "corridor_candidate_only"
         }
       ],
-      "interpretation": "Endpoint proximity is stronger evidence for tee/green/pin association than distance to any part of the hole line, but every result remains a candidate until checked against imagery or trusted course references."
+      "interpretation": "Endpoint proximity is stronger evidence for tee/green/pin association than distance to any part of the hole line, but every result remains a candidate until checked against imagery or trusted course references.",
+      "course_wide_unique_corridor_candidates": [
+        {
+          "golf": "rough",
+          "osm_type": "way",
+          "osm_id": 1565321015,
+          "distance_to_centerline_m": 0.0,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
+        },
+        {
+          "golf": "fairway",
+          "osm_type": "relation",
+          "osm_id": 21503736,
+          "distance_to_centerline_m": 0.0,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
+        },
+        {
+          "golf": "bunker",
+          "osm_type": "way",
+          "osm_id": 1565321012,
+          "distance_to_centerline_m": 9.0,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
+        },
+        {
+          "golf": "cartpath",
+          "osm_type": "way",
+          "osm_id": 1383045752,
+          "distance_to_centerline_m": 13.0,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
+        },
+        {
+          "golf": "cartpath",
+          "osm_type": "way",
+          "osm_id": 1383045755,
+          "distance_to_centerline_m": 16.9,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "unique_nearest_hole_corridor_candidate",
+          "distance_margin_to_next_hole_m": 9.8
+        },
+        {
+          "golf": "bunker",
+          "osm_type": "way",
+          "osm_id": 1565321011,
+          "distance_to_centerline_m": 18.0,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
+        },
+        {
+          "golf": "bunker",
+          "osm_type": "way",
+          "osm_id": 1565321010,
+          "distance_to_centerline_m": 23.2,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
+        },
+        {
+          "golf": "bunker",
+          "osm_type": "way",
+          "osm_id": 1565321009,
+          "distance_to_centerline_m": 24.8,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
+        }
+      ],
+      "ambiguous_shared_corridor_candidates": [],
+      "corridor_features_closer_to_another_hole": []
     },
     {
       "hole_ref": "3",
@@ -390,28 +460,59 @@
       },
       "corridor_feature_candidates": [
         {
+          "golf": "cartpath",
+          "osm_type": "way",
+          "osm_id": 1383052903,
+          "distance_to_centerline_m": 0.0,
+          "assignment": "corridor_candidate_only"
+        },
+        {
           "golf": "fairway",
           "osm_type": "relation",
           "osm_id": 21503767,
-          "distance_to_centerline_m": 6.7,
+          "distance_to_centerline_m": 0.0,
           "assignment": "corridor_candidate_only"
         },
         {
           "golf": "bunker",
           "osm_type": "way",
           "osm_id": 1565324371,
-          "distance_to_centerline_m": 10.2,
+          "distance_to_centerline_m": 9.8,
           "assignment": "corridor_candidate_only"
+        }
+      ],
+      "interpretation": "Endpoint proximity is stronger evidence for tee/green/pin association than distance to any part of the hole line, but every result remains a candidate until checked against imagery or trusted course references.",
+      "course_wide_unique_corridor_candidates": [
+        {
+          "golf": "fairway",
+          "osm_type": "relation",
+          "osm_id": 21503767,
+          "distance_to_centerline_m": 0.0,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
         },
+        {
+          "golf": "bunker",
+          "osm_type": "way",
+          "osm_id": 1565324371,
+          "distance_to_centerline_m": 9.8,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
+        }
+      ],
+      "ambiguous_shared_corridor_candidates": [
         {
           "golf": "cartpath",
           "osm_type": "way",
           "osm_id": 1383052903,
-          "distance_to_centerline_m": 12.1,
-          "assignment": "corridor_candidate_only"
+          "distance_to_centerline_m": 0.0,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "ambiguous_between_holes",
+          "distance_to_nearest_hole_m": 0.0,
+          "distance_margin_to_next_hole_m": 0.0
         }
       ],
-      "interpretation": "Endpoint proximity is stronger evidence for tee/green/pin association than distance to any part of the hole line, but every result remains a candidate until checked against imagery or trusted course references."
+      "corridor_features_closer_to_another_hole": []
     },
     {
       "hole_ref": "2",
@@ -567,6 +668,13 @@
       },
       "corridor_feature_candidates": [
         {
+          "golf": "rough",
+          "osm_type": "way",
+          "osm_id": 1565323143,
+          "distance_to_centerline_m": 0.0,
+          "assignment": "corridor_candidate_only"
+        },
+        {
           "golf": "fairway",
           "osm_type": "relation",
           "osm_id": 21503750,
@@ -575,23 +683,16 @@
         },
         {
           "golf": "rough",
-          "osm_type": "way",
-          "osm_id": 1565323143,
-          "distance_to_centerline_m": 8.5,
-          "assignment": "corridor_candidate_only"
-        },
-        {
-          "golf": "rough",
           "osm_type": "relation",
           "osm_id": 21503749,
-          "distance_to_centerline_m": 8.6,
+          "distance_to_centerline_m": 3.1,
           "assignment": "corridor_candidate_only"
         },
         {
           "golf": "bunker",
           "osm_type": "way",
           "osm_id": 1565323146,
-          "distance_to_centerline_m": 9.3,
+          "distance_to_centerline_m": 4.8,
           "assignment": "corridor_candidate_only"
         },
         {
@@ -609,28 +710,106 @@
           "assignment": "corridor_candidate_only"
         },
         {
-          "golf": "cartpath",
-          "osm_type": "way",
-          "osm_id": 1383045755,
-          "distance_to_centerline_m": 26.7,
-          "assignment": "corridor_candidate_only"
-        },
-        {
           "golf": "bunker",
           "osm_type": "way",
           "osm_id": 1565323145,
-          "distance_to_centerline_m": 28.4,
+          "distance_to_centerline_m": 25.6,
           "assignment": "corridor_candidate_only"
         },
         {
           "golf": "bunker",
           "osm_type": "way",
           "osm_id": 1565323144,
-          "distance_to_centerline_m": 39.4,
+          "distance_to_centerline_m": 26.4,
+          "assignment": "corridor_candidate_only"
+        },
+        {
+          "golf": "cartpath",
+          "osm_type": "way",
+          "osm_id": 1383045755,
+          "distance_to_centerline_m": 26.7,
           "assignment": "corridor_candidate_only"
         }
       ],
-      "interpretation": "Endpoint proximity is stronger evidence for tee/green/pin association than distance to any part of the hole line, but every result remains a candidate until checked against imagery or trusted course references."
+      "interpretation": "Endpoint proximity is stronger evidence for tee/green/pin association than distance to any part of the hole line, but every result remains a candidate until checked against imagery or trusted course references.",
+      "course_wide_unique_corridor_candidates": [
+        {
+          "golf": "rough",
+          "osm_type": "way",
+          "osm_id": 1565323143,
+          "distance_to_centerline_m": 0.0,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
+        },
+        {
+          "golf": "fairway",
+          "osm_type": "relation",
+          "osm_id": 21503750,
+          "distance_to_centerline_m": 0.0,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
+        },
+        {
+          "golf": "rough",
+          "osm_type": "relation",
+          "osm_id": 21503749,
+          "distance_to_centerline_m": 3.1,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
+        },
+        {
+          "golf": "bunker",
+          "osm_type": "way",
+          "osm_id": 1565323146,
+          "distance_to_centerline_m": 4.8,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
+        },
+        {
+          "golf": "cartpath",
+          "osm_type": "way",
+          "osm_id": 1383045754,
+          "distance_to_centerline_m": 10.6,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
+        },
+        {
+          "golf": "cartpath",
+          "osm_type": "way",
+          "osm_id": 1383045756,
+          "distance_to_centerline_m": 15.5,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
+        },
+        {
+          "golf": "bunker",
+          "osm_type": "way",
+          "osm_id": 1565323145,
+          "distance_to_centerline_m": 25.6,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
+        },
+        {
+          "golf": "bunker",
+          "osm_type": "way",
+          "osm_id": 1565323144,
+          "distance_to_centerline_m": 26.4,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
+        }
+      ],
+      "ambiguous_shared_corridor_candidates": [],
+      "corridor_features_closer_to_another_hole": [
+        {
+          "golf": "cartpath",
+          "osm_type": "way",
+          "osm_id": 1383045755,
+          "distance_to_centerline_m": 26.7,
+          "assignment": "corridor_candidate_only",
+          "closest_hole_ref": "1",
+          "course_wide_status": "candidate_closer_to_another_hole"
+        }
+      ]
     },
     {
       "hole_ref": "4",
@@ -786,6 +965,13 @@
       },
       "corridor_feature_candidates": [
         {
+          "golf": "cartpath",
+          "osm_type": "way",
+          "osm_id": 1383052903,
+          "distance_to_centerline_m": 0.0,
+          "assignment": "corridor_candidate_only"
+        },
+        {
           "golf": "fairway",
           "osm_type": "relation",
           "osm_id": 21503768,
@@ -796,39 +982,89 @@
           "golf": "bunker",
           "osm_type": "way",
           "osm_id": 1565324379,
-          "distance_to_centerline_m": 11.4,
-          "assignment": "corridor_candidate_only"
-        },
-        {
-          "golf": "cartpath",
-          "osm_type": "way",
-          "osm_id": 1383052903,
-          "distance_to_centerline_m": 12.5,
+          "distance_to_centerline_m": 8.7,
           "assignment": "corridor_candidate_only"
         },
         {
           "golf": "bunker",
           "osm_type": "way",
           "osm_id": 1565324378,
-          "distance_to_centerline_m": 16.6,
+          "distance_to_centerline_m": 8.8,
           "assignment": "corridor_candidate_only"
         },
         {
           "golf": "cartpath",
           "osm_type": "way",
           "osm_id": 1383052910,
-          "distance_to_centerline_m": 25.5,
+          "distance_to_centerline_m": 23.4,
           "assignment": "corridor_candidate_only"
         },
         {
           "golf": "cartpath",
           "osm_type": "way",
           "osm_id": 1383052909,
-          "distance_to_centerline_m": 38.4,
+          "distance_to_centerline_m": 23.6,
           "assignment": "corridor_candidate_only"
         }
       ],
-      "interpretation": "Endpoint proximity is stronger evidence for tee/green/pin association than distance to any part of the hole line, but every result remains a candidate until checked against imagery or trusted course references."
+      "interpretation": "Endpoint proximity is stronger evidence for tee/green/pin association than distance to any part of the hole line, but every result remains a candidate until checked against imagery or trusted course references.",
+      "course_wide_unique_corridor_candidates": [
+        {
+          "golf": "fairway",
+          "osm_type": "relation",
+          "osm_id": 21503768,
+          "distance_to_centerline_m": 0.0,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
+        },
+        {
+          "golf": "bunker",
+          "osm_type": "way",
+          "osm_id": 1565324379,
+          "distance_to_centerline_m": 8.7,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
+        },
+        {
+          "golf": "bunker",
+          "osm_type": "way",
+          "osm_id": 1565324378,
+          "distance_to_centerline_m": 8.8,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
+        },
+        {
+          "golf": "cartpath",
+          "osm_type": "way",
+          "osm_id": 1383052909,
+          "distance_to_centerline_m": 23.6,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
+        }
+      ],
+      "ambiguous_shared_corridor_candidates": [
+        {
+          "golf": "cartpath",
+          "osm_type": "way",
+          "osm_id": 1383052903,
+          "distance_to_centerline_m": 0.0,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "ambiguous_between_holes",
+          "distance_to_nearest_hole_m": 0.0,
+          "distance_margin_to_next_hole_m": 0.0
+        }
+      ],
+      "corridor_features_closer_to_another_hole": [
+        {
+          "golf": "cartpath",
+          "osm_type": "way",
+          "osm_id": 1383052910,
+          "distance_to_centerline_m": 23.4,
+          "assignment": "corridor_candidate_only",
+          "closest_hole_ref": "6",
+          "course_wide_status": "candidate_closer_to_another_hole"
+        }
+      ]
     },
     {
       "hole_ref": "5",
@@ -1008,25 +1244,82 @@
           "golf": "bunker",
           "osm_type": "way",
           "osm_id": 1565324387,
-          "distance_to_centerline_m": 17.6,
+          "distance_to_centerline_m": 14.0,
           "assignment": "corridor_candidate_only"
         },
         {
           "golf": "bunker",
           "osm_type": "way",
           "osm_id": 1565324386,
-          "distance_to_centerline_m": 27.9,
+          "distance_to_centerline_m": 19.2,
           "assignment": "corridor_candidate_only"
         },
         {
           "golf": "cartpath",
           "osm_type": "way",
           "osm_id": 1383052910,
-          "distance_to_centerline_m": 31.9,
+          "distance_to_centerline_m": 31.1,
           "assignment": "corridor_candidate_only"
         }
       ],
-      "interpretation": "Endpoint proximity is stronger evidence for tee/green/pin association than distance to any part of the hole line, but every result remains a candidate until checked against imagery or trusted course references."
+      "interpretation": "Endpoint proximity is stronger evidence for tee/green/pin association than distance to any part of the hole line, but every result remains a candidate until checked against imagery or trusted course references.",
+      "course_wide_unique_corridor_candidates": [
+        {
+          "golf": "fairway",
+          "osm_type": "relation",
+          "osm_id": 21503769,
+          "distance_to_centerline_m": 0.0,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "unique_nearest_hole_corridor_candidate",
+          "distance_margin_to_next_hole_m": 29.7
+        },
+        {
+          "golf": "bunker",
+          "osm_type": "way",
+          "osm_id": 1565324388,
+          "distance_to_centerline_m": 10.8,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "unique_nearest_hole_corridor_candidate",
+          "distance_margin_to_next_hole_m": 27.7
+        },
+        {
+          "golf": "bunker",
+          "osm_type": "way",
+          "osm_id": 1565324389,
+          "distance_to_centerline_m": 11.0,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "unique_nearest_hole_corridor_candidate",
+          "distance_margin_to_next_hole_m": 15.4
+        },
+        {
+          "golf": "bunker",
+          "osm_type": "way",
+          "osm_id": 1565324387,
+          "distance_to_centerline_m": 14.0,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
+        },
+        {
+          "golf": "bunker",
+          "osm_type": "way",
+          "osm_id": 1565324386,
+          "distance_to_centerline_m": 19.2,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
+        }
+      ],
+      "ambiguous_shared_corridor_candidates": [],
+      "corridor_features_closer_to_another_hole": [
+        {
+          "golf": "cartpath",
+          "osm_type": "way",
+          "osm_id": 1383052910,
+          "distance_to_centerline_m": 31.1,
+          "assignment": "corridor_candidate_only",
+          "closest_hole_ref": "6",
+          "course_wide_status": "candidate_closer_to_another_hole"
+        }
+      ]
     },
     {
       "hole_ref": "6",
@@ -1200,14 +1493,14 @@
           "golf": "fairway",
           "osm_type": "relation",
           "osm_id": 21503774,
-          "distance_to_centerline_m": 5.8,
+          "distance_to_centerline_m": 0.0,
           "assignment": "corridor_candidate_only"
         },
         {
           "golf": "bunker",
           "osm_type": "way",
           "osm_id": 1565324879,
-          "distance_to_centerline_m": 9.0,
+          "distance_to_centerline_m": 6.2,
           "assignment": "corridor_candidate_only"
         },
         {
@@ -1239,7 +1532,64 @@
           "assignment": "corridor_candidate_only"
         }
       ],
-      "interpretation": "Endpoint proximity is stronger evidence for tee/green/pin association than distance to any part of the hole line, but every result remains a candidate until checked against imagery or trusted course references."
+      "interpretation": "Endpoint proximity is stronger evidence for tee/green/pin association than distance to any part of the hole line, but every result remains a candidate until checked against imagery or trusted course references.",
+      "course_wide_unique_corridor_candidates": [
+        {
+          "golf": "cartpath",
+          "osm_type": "way",
+          "osm_id": 1383052910,
+          "distance_to_centerline_m": 13.7,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "unique_nearest_hole_corridor_candidate",
+          "distance_margin_to_next_hole_m": 9.7
+        },
+        {
+          "golf": "fairway",
+          "osm_type": "relation",
+          "osm_id": 21503774,
+          "distance_to_centerline_m": 0.0,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
+        },
+        {
+          "golf": "bunker",
+          "osm_type": "way",
+          "osm_id": 1565324879,
+          "distance_to_centerline_m": 6.2,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
+        }
+      ],
+      "ambiguous_shared_corridor_candidates": [],
+      "corridor_features_closer_to_another_hole": [
+        {
+          "golf": "fairway",
+          "osm_type": "relation",
+          "osm_id": 21503769,
+          "distance_to_centerline_m": 29.7,
+          "assignment": "corridor_candidate_only",
+          "closest_hole_ref": "5",
+          "course_wide_status": "candidate_closer_to_another_hole"
+        },
+        {
+          "golf": "bunker",
+          "osm_type": "way",
+          "osm_id": 1565324388,
+          "distance_to_centerline_m": 38.5,
+          "assignment": "corridor_candidate_only",
+          "closest_hole_ref": "5",
+          "course_wide_status": "candidate_closer_to_another_hole"
+        },
+        {
+          "golf": "bunker",
+          "osm_type": "way",
+          "osm_id": 1565324389,
+          "distance_to_centerline_m": 26.4,
+          "assignment": "corridor_candidate_only",
+          "closest_hole_ref": "5",
+          "course_wide_status": "candidate_closer_to_another_hole"
+        }
+      ]
     },
     {
       "hole_ref": "7",
@@ -1410,6 +1760,13 @@
       },
       "corridor_feature_candidates": [
         {
+          "golf": "cartpath",
+          "osm_type": "way",
+          "osm_id": 1383052908,
+          "distance_to_centerline_m": 0.0,
+          "assignment": "corridor_candidate_only"
+        },
+        {
           "golf": "fairway",
           "osm_type": "relation",
           "osm_id": 21503775,
@@ -1417,24 +1774,24 @@
           "assignment": "corridor_candidate_only"
         },
         {
-          "golf": "cartpath",
+          "golf": "bunker",
           "osm_type": "way",
-          "osm_id": 1383052908,
-          "distance_to_centerline_m": 11.6,
+          "osm_id": 1565324888,
+          "distance_to_centerline_m": 8.7,
           "assignment": "corridor_candidate_only"
         },
         {
           "golf": "cartpath",
           "osm_type": "way",
           "osm_id": 1383052926,
-          "distance_to_centerline_m": 11.7,
+          "distance_to_centerline_m": 11.0,
           "assignment": "corridor_candidate_only"
         },
         {
           "golf": "bunker",
           "osm_type": "way",
-          "osm_id": 1565324888,
-          "distance_to_centerline_m": 12.2,
+          "osm_id": 1565324887,
+          "distance_to_centerline_m": 17.0,
           "assignment": "corridor_candidate_only"
         },
         {
@@ -1445,6 +1802,13 @@
           "assignment": "corridor_candidate_only"
         },
         {
+          "golf": "bunker",
+          "osm_type": "way",
+          "osm_id": 1565324886,
+          "distance_to_centerline_m": 20.5,
+          "assignment": "corridor_candidate_only"
+        },
+        {
           "golf": "cartpath",
           "osm_type": "way",
           "osm_id": 1383052910,
@@ -1452,7 +1816,80 @@
           "assignment": "corridor_candidate_only"
         }
       ],
-      "interpretation": "Endpoint proximity is stronger evidence for tee/green/pin association than distance to any part of the hole line, but every result remains a candidate until checked against imagery or trusted course references."
+      "interpretation": "Endpoint proximity is stronger evidence for tee/green/pin association than distance to any part of the hole line, but every result remains a candidate until checked against imagery or trusted course references.",
+      "course_wide_unique_corridor_candidates": [
+        {
+          "golf": "cartpath",
+          "osm_type": "way",
+          "osm_id": 1383052908,
+          "distance_to_centerline_m": 0.0,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "unique_nearest_hole_corridor_candidate",
+          "distance_margin_to_next_hole_m": 11.2
+        },
+        {
+          "golf": "fairway",
+          "osm_type": "relation",
+          "osm_id": 21503775,
+          "distance_to_centerline_m": 0.0,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "unique_nearest_hole_corridor_candidate",
+          "distance_margin_to_next_hole_m": 33.0
+        },
+        {
+          "golf": "bunker",
+          "osm_type": "way",
+          "osm_id": 1565324888,
+          "distance_to_centerline_m": 8.7,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "unique_nearest_hole_corridor_candidate",
+          "distance_margin_to_next_hole_m": 32.6
+        },
+        {
+          "golf": "cartpath",
+          "osm_type": "way",
+          "osm_id": 1383052926,
+          "distance_to_centerline_m": 11.0,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
+        },
+        {
+          "golf": "bunker",
+          "osm_type": "way",
+          "osm_id": 1565324887,
+          "distance_to_centerline_m": 17.0,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
+        },
+        {
+          "golf": "cartpath",
+          "osm_type": "way",
+          "osm_id": 1383052911,
+          "distance_to_centerline_m": 19.5,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
+        },
+        {
+          "golf": "bunker",
+          "osm_type": "way",
+          "osm_id": 1565324886,
+          "distance_to_centerline_m": 20.5,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
+        }
+      ],
+      "ambiguous_shared_corridor_candidates": [],
+      "corridor_features_closer_to_another_hole": [
+        {
+          "golf": "cartpath",
+          "osm_type": "way",
+          "osm_id": 1383052910,
+          "distance_to_centerline_m": 33.9,
+          "assignment": "corridor_candidate_only",
+          "closest_hole_ref": "6",
+          "course_wide_status": "candidate_closer_to_another_hole"
+        }
+      ]
     },
     {
       "hole_ref": "8",
@@ -1608,17 +2045,17 @@
       },
       "corridor_feature_candidates": [
         {
-          "golf": "fairway",
-          "osm_type": "relation",
-          "osm_id": 21522596,
+          "golf": "bunker",
+          "osm_type": "way",
+          "osm_id": 1565657130,
           "distance_to_centerline_m": 0.0,
           "assignment": "corridor_candidate_only"
         },
         {
-          "golf": "bunker",
-          "osm_type": "way",
-          "osm_id": 1565657130,
-          "distance_to_centerline_m": 10.0,
+          "golf": "fairway",
+          "osm_type": "relation",
+          "osm_id": 21522596,
+          "distance_to_centerline_m": 0.0,
           "assignment": "corridor_candidate_only"
         },
         {
@@ -1627,9 +2064,71 @@
           "osm_id": 1383052908,
           "distance_to_centerline_m": 11.2,
           "assignment": "corridor_candidate_only"
+        },
+        {
+          "golf": "fairway",
+          "osm_type": "relation",
+          "osm_id": 21503775,
+          "distance_to_centerline_m": 33.0,
+          "assignment": "corridor_candidate_only"
+        },
+        {
+          "golf": "bunker",
+          "osm_type": "way",
+          "osm_id": 1565324888,
+          "distance_to_centerline_m": 41.3,
+          "assignment": "corridor_candidate_only"
         }
       ],
-      "interpretation": "Endpoint proximity is stronger evidence for tee/green/pin association than distance to any part of the hole line, but every result remains a candidate until checked against imagery or trusted course references."
+      "interpretation": "Endpoint proximity is stronger evidence for tee/green/pin association than distance to any part of the hole line, but every result remains a candidate until checked against imagery or trusted course references.",
+      "course_wide_unique_corridor_candidates": [
+        {
+          "golf": "bunker",
+          "osm_type": "way",
+          "osm_id": 1565657130,
+          "distance_to_centerline_m": 0.0,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
+        },
+        {
+          "golf": "fairway",
+          "osm_type": "relation",
+          "osm_id": 21522596,
+          "distance_to_centerline_m": 0.0,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
+        }
+      ],
+      "ambiguous_shared_corridor_candidates": [],
+      "corridor_features_closer_to_another_hole": [
+        {
+          "golf": "cartpath",
+          "osm_type": "way",
+          "osm_id": 1383052908,
+          "distance_to_centerline_m": 11.2,
+          "assignment": "corridor_candidate_only",
+          "closest_hole_ref": "7",
+          "course_wide_status": "candidate_closer_to_another_hole"
+        },
+        {
+          "golf": "fairway",
+          "osm_type": "relation",
+          "osm_id": 21503775,
+          "distance_to_centerline_m": 33.0,
+          "assignment": "corridor_candidate_only",
+          "closest_hole_ref": "7",
+          "course_wide_status": "candidate_closer_to_another_hole"
+        },
+        {
+          "golf": "bunker",
+          "osm_type": "way",
+          "osm_id": 1565324888,
+          "distance_to_centerline_m": 41.3,
+          "assignment": "corridor_candidate_only",
+          "closest_hole_ref": "7",
+          "course_wide_status": "candidate_closer_to_another_hole"
+        }
+      ]
     },
     {
       "hole_ref": "9",
@@ -1810,7 +2309,7 @@
           "golf": "bunker",
           "osm_type": "way",
           "osm_id": 1565657140,
-          "distance_to_centerline_m": 11.7,
+          "distance_to_centerline_m": 11.6,
           "assignment": "corridor_candidate_only"
         },
         {
@@ -1824,11 +2323,94 @@
           "golf": "cartpath",
           "osm_type": "way",
           "osm_id": 1383052906,
-          "distance_to_centerline_m": 25.5,
+          "distance_to_centerline_m": 20.1,
+          "assignment": "corridor_candidate_only"
+        },
+        {
+          "golf": "bunker",
+          "osm_type": "way",
+          "osm_id": 1565657138,
+          "distance_to_centerline_m": 27.0,
+          "assignment": "corridor_candidate_only"
+        },
+        {
+          "golf": "bunker",
+          "osm_type": "way",
+          "osm_id": 1565657137,
+          "distance_to_centerline_m": 29.0,
+          "assignment": "corridor_candidate_only"
+        },
+        {
+          "golf": "cartpath",
+          "osm_type": "way",
+          "osm_id": 1383052908,
+          "distance_to_centerline_m": 43.7,
           "assignment": "corridor_candidate_only"
         }
       ],
-      "interpretation": "Endpoint proximity is stronger evidence for tee/green/pin association than distance to any part of the hole line, but every result remains a candidate until checked against imagery or trusted course references."
+      "interpretation": "Endpoint proximity is stronger evidence for tee/green/pin association than distance to any part of the hole line, but every result remains a candidate until checked against imagery or trusted course references.",
+      "course_wide_unique_corridor_candidates": [
+        {
+          "golf": "fairway",
+          "osm_type": "relation",
+          "osm_id": 21522597,
+          "distance_to_centerline_m": 0.0,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
+        },
+        {
+          "golf": "bunker",
+          "osm_type": "way",
+          "osm_id": 1565657140,
+          "distance_to_centerline_m": 11.6,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
+        },
+        {
+          "golf": "bunker",
+          "osm_type": "way",
+          "osm_id": 1565657139,
+          "distance_to_centerline_m": 13.3,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
+        },
+        {
+          "golf": "cartpath",
+          "osm_type": "way",
+          "osm_id": 1383052906,
+          "distance_to_centerline_m": 20.1,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
+        },
+        {
+          "golf": "bunker",
+          "osm_type": "way",
+          "osm_id": 1565657138,
+          "distance_to_centerline_m": 27.0,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
+        },
+        {
+          "golf": "bunker",
+          "osm_type": "way",
+          "osm_id": 1565657137,
+          "distance_to_centerline_m": 29.0,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
+        }
+      ],
+      "ambiguous_shared_corridor_candidates": [],
+      "corridor_features_closer_to_another_hole": [
+        {
+          "golf": "cartpath",
+          "osm_type": "way",
+          "osm_id": 1383052908,
+          "distance_to_centerline_m": 43.7,
+          "assignment": "corridor_candidate_only",
+          "closest_hole_ref": "7",
+          "course_wide_status": "candidate_closer_to_another_hole"
+        }
+      ]
     },
     {
       "hole_ref": "10",
@@ -1994,7 +2576,14 @@
           "golf": "bunker",
           "osm_type": "way",
           "osm_id": 1565658497,
-          "distance_to_centerline_m": 13.0,
+          "distance_to_centerline_m": 12.8,
+          "assignment": "corridor_candidate_only"
+        },
+        {
+          "golf": "bunker",
+          "osm_type": "way",
+          "osm_id": 1565658496,
+          "distance_to_centerline_m": 19.3,
           "assignment": "corridor_candidate_only"
         },
         {
@@ -2007,22 +2596,15 @@
         {
           "golf": "bunker",
           "osm_type": "way",
-          "osm_id": 1565658496,
-          "distance_to_centerline_m": 20.1,
-          "assignment": "corridor_candidate_only"
-        },
-        {
-          "golf": "bunker",
-          "osm_type": "way",
           "osm_id": 1565658495,
-          "distance_to_centerline_m": 30.2,
+          "distance_to_centerline_m": 24.2,
           "assignment": "corridor_candidate_only"
         },
         {
           "golf": "water_hazard",
           "osm_type": "way",
           "osm_id": 666423200,
-          "distance_to_centerline_m": 33.4,
+          "distance_to_centerline_m": 25.5,
           "assignment": "corridor_candidate_only"
         },
         {
@@ -2033,7 +2615,70 @@
           "assignment": "corridor_candidate_only"
         }
       ],
-      "interpretation": "Endpoint proximity is stronger evidence for tee/green/pin association than distance to any part of the hole line, but every result remains a candidate until checked against imagery or trusted course references."
+      "interpretation": "Endpoint proximity is stronger evidence for tee/green/pin association than distance to any part of the hole line, but every result remains a candidate until checked against imagery or trusted course references.",
+      "course_wide_unique_corridor_candidates": [
+        {
+          "golf": "fairway",
+          "osm_type": "relation",
+          "osm_id": 21522608,
+          "distance_to_centerline_m": 0.0,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
+        },
+        {
+          "golf": "bunker",
+          "osm_type": "way",
+          "osm_id": 1565658497,
+          "distance_to_centerline_m": 12.8,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
+        },
+        {
+          "golf": "bunker",
+          "osm_type": "way",
+          "osm_id": 1565658496,
+          "distance_to_centerline_m": 19.3,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
+        },
+        {
+          "golf": "cartpath",
+          "osm_type": "way",
+          "osm_id": 1383045761,
+          "distance_to_centerline_m": 19.5,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
+        },
+        {
+          "golf": "bunker",
+          "osm_type": "way",
+          "osm_id": 1565658495,
+          "distance_to_centerline_m": 24.2,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
+        }
+      ],
+      "ambiguous_shared_corridor_candidates": [],
+      "corridor_features_closer_to_another_hole": [
+        {
+          "golf": "water_hazard",
+          "osm_type": "way",
+          "osm_id": 666423200,
+          "distance_to_centerline_m": 25.5,
+          "assignment": "corridor_candidate_only",
+          "closest_hole_ref": "18",
+          "course_wide_status": "candidate_closer_to_another_hole"
+        },
+        {
+          "golf": "cartpath",
+          "osm_type": "way",
+          "osm_id": 1383045765,
+          "distance_to_centerline_m": 34.3,
+          "assignment": "corridor_candidate_only",
+          "closest_hole_ref": "17",
+          "course_wide_status": "candidate_closer_to_another_hole"
+        }
+      ]
     },
     {
       "hole_ref": "11",
@@ -2189,6 +2834,13 @@
       },
       "corridor_feature_candidates": [
         {
+          "golf": "cartpath",
+          "osm_type": "way",
+          "osm_id": 1383045762,
+          "distance_to_centerline_m": 0.0,
+          "assignment": "corridor_candidate_only"
+        },
+        {
           "golf": "fairway",
           "osm_type": "relation",
           "osm_id": 21522610,
@@ -2197,30 +2849,23 @@
         },
         {
           "golf": "rough",
+          "osm_type": "way",
+          "osm_id": 1565658504,
+          "distance_to_centerline_m": 4.1,
+          "assignment": "corridor_candidate_only"
+        },
+        {
+          "golf": "rough",
           "osm_type": "relation",
           "osm_id": 21522609,
-          "distance_to_centerline_m": 9.2,
+          "distance_to_centerline_m": 5.0,
           "assignment": "corridor_candidate_only"
         },
         {
           "golf": "bunker",
           "osm_type": "way",
           "osm_id": 1565658505,
-          "distance_to_centerline_m": 10.5,
-          "assignment": "corridor_candidate_only"
-        },
-        {
-          "golf": "rough",
-          "osm_type": "way",
-          "osm_id": 1565658504,
-          "distance_to_centerline_m": 11.6,
-          "assignment": "corridor_candidate_only"
-        },
-        {
-          "golf": "cartpath",
-          "osm_type": "way",
-          "osm_id": 1383045762,
-          "distance_to_centerline_m": 12.4,
+          "distance_to_centerline_m": 6.4,
           "assignment": "corridor_candidate_only"
         },
         {
@@ -2241,11 +2886,87 @@
           "golf": "cartpath",
           "osm_type": "way",
           "osm_id": 1383045765,
-          "distance_to_centerline_m": 35.2,
+          "distance_to_centerline_m": 34.9,
           "assignment": "corridor_candidate_only"
         }
       ],
-      "interpretation": "Endpoint proximity is stronger evidence for tee/green/pin association than distance to any part of the hole line, but every result remains a candidate until checked against imagery or trusted course references."
+      "interpretation": "Endpoint proximity is stronger evidence for tee/green/pin association than distance to any part of the hole line, but every result remains a candidate until checked against imagery or trusted course references.",
+      "course_wide_unique_corridor_candidates": [
+        {
+          "golf": "fairway",
+          "osm_type": "relation",
+          "osm_id": 21522610,
+          "distance_to_centerline_m": 0.0,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
+        },
+        {
+          "golf": "rough",
+          "osm_type": "way",
+          "osm_id": 1565658504,
+          "distance_to_centerline_m": 4.1,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
+        },
+        {
+          "golf": "rough",
+          "osm_type": "relation",
+          "osm_id": 21522609,
+          "distance_to_centerline_m": 5.0,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
+        },
+        {
+          "golf": "bunker",
+          "osm_type": "way",
+          "osm_id": 1565658505,
+          "distance_to_centerline_m": 6.4,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
+        }
+      ],
+      "ambiguous_shared_corridor_candidates": [
+        {
+          "golf": "cartpath",
+          "osm_type": "way",
+          "osm_id": 1383045762,
+          "distance_to_centerline_m": 0.0,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "ambiguous_between_holes",
+          "distance_to_nearest_hole_m": 0.0,
+          "distance_margin_to_next_hole_m": 0.0
+        },
+        {
+          "golf": "cartpath",
+          "osm_type": "way",
+          "osm_id": 1383045764,
+          "distance_to_centerline_m": 27.6,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "ambiguous_between_holes",
+          "distance_to_nearest_hole_m": 27.6,
+          "distance_margin_to_next_hole_m": 2.2
+        }
+      ],
+      "corridor_features_closer_to_another_hole": [
+        {
+          "golf": "cartpath",
+          "osm_type": "way",
+          "osm_id": 1383045765,
+          "distance_to_centerline_m": 34.9,
+          "assignment": "corridor_candidate_only",
+          "closest_hole_ref": "17",
+          "course_wide_status": "candidate_closer_to_another_hole"
+        },
+        {
+          "golf": "cartpath",
+          "osm_type": "way",
+          "osm_id": 1383045763,
+          "distance_to_centerline_m": 33.8,
+          "assignment": "corridor_candidate_only",
+          "closest_hole_ref": "18",
+          "course_wide_status": "candidate_closer_to_another_hole"
+        }
+      ]
     },
     {
       "hole_ref": "12",
@@ -2426,14 +3147,14 @@
           "golf": "rough",
           "osm_type": "relation",
           "osm_id": 21522611,
-          "distance_to_centerline_m": 6.9,
+          "distance_to_centerline_m": 0.0,
           "assignment": "corridor_candidate_only"
         },
         {
           "golf": "bunker",
           "osm_type": "way",
           "osm_id": 1565658510,
-          "distance_to_centerline_m": 10.7,
+          "distance_to_centerline_m": 9.5,
           "assignment": "corridor_candidate_only"
         },
         {
@@ -2444,7 +3165,47 @@
           "assignment": "corridor_candidate_only"
         }
       ],
-      "interpretation": "Endpoint proximity is stronger evidence for tee/green/pin association than distance to any part of the hole line, but every result remains a candidate until checked against imagery or trusted course references."
+      "interpretation": "Endpoint proximity is stronger evidence for tee/green/pin association than distance to any part of the hole line, but every result remains a candidate until checked against imagery or trusted course references.",
+      "course_wide_unique_corridor_candidates": [
+        {
+          "golf": "rough",
+          "osm_type": "way",
+          "osm_id": 1565658513,
+          "distance_to_centerline_m": 0.0,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
+        },
+        {
+          "golf": "rough",
+          "osm_type": "relation",
+          "osm_id": 21522611,
+          "distance_to_centerline_m": 0.0,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "unique_nearest_hole_corridor_candidate",
+          "distance_margin_to_next_hole_m": 24.7
+        },
+        {
+          "golf": "bunker",
+          "osm_type": "way",
+          "osm_id": 1565658510,
+          "distance_to_centerline_m": 9.5,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
+        }
+      ],
+      "ambiguous_shared_corridor_candidates": [
+        {
+          "golf": "cartpath",
+          "osm_type": "way",
+          "osm_id": 1383045762,
+          "distance_to_centerline_m": 17.1,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "ambiguous_between_holes",
+          "distance_to_nearest_hole_m": 0.0,
+          "distance_margin_to_next_hole_m": 0.0
+        }
+      ],
+      "corridor_features_closer_to_another_hole": []
     },
     {
       "hole_ref": "13",
@@ -2600,9 +3361,9 @@
       },
       "corridor_feature_candidates": [
         {
-          "golf": "fairway",
-          "osm_type": "relation",
-          "osm_id": 21522635,
+          "golf": "cartpath",
+          "osm_type": "way",
+          "osm_id": 1383045762,
           "distance_to_centerline_m": 0.0,
           "assignment": "corridor_candidate_only"
         },
@@ -2610,28 +3371,35 @@
           "golf": "rough",
           "osm_type": "relation",
           "osm_id": 21522634,
-          "distance_to_centerline_m": 8.8,
+          "distance_to_centerline_m": 0.0,
+          "assignment": "corridor_candidate_only"
+        },
+        {
+          "golf": "fairway",
+          "osm_type": "relation",
+          "osm_id": 21522635,
+          "distance_to_centerline_m": 0.0,
           "assignment": "corridor_candidate_only"
         },
         {
           "golf": "bunker",
           "osm_type": "way",
           "osm_id": 1565660094,
-          "distance_to_centerline_m": 9.7,
-          "assignment": "corridor_candidate_only"
-        },
-        {
-          "golf": "cartpath",
-          "osm_type": "way",
-          "osm_id": 1383045762,
-          "distance_to_centerline_m": 12.4,
+          "distance_to_centerline_m": 1.1,
           "assignment": "corridor_candidate_only"
         },
         {
           "golf": "bunker",
           "osm_type": "way",
           "osm_id": 1565660093,
-          "distance_to_centerline_m": 19.0,
+          "distance_to_centerline_m": 13.6,
+          "assignment": "corridor_candidate_only"
+        },
+        {
+          "golf": "cartpath",
+          "osm_type": "way",
+          "osm_id": 1383052930,
+          "distance_to_centerline_m": 21.7,
           "assignment": "corridor_candidate_only"
         },
         {
@@ -2640,16 +3408,74 @@
           "osm_id": 21522611,
           "distance_to_centerline_m": 24.7,
           "assignment": "corridor_candidate_only"
+        }
+      ],
+      "interpretation": "Endpoint proximity is stronger evidence for tee/green/pin association than distance to any part of the hole line, but every result remains a candidate until checked against imagery or trusted course references.",
+      "course_wide_unique_corridor_candidates": [
+        {
+          "golf": "rough",
+          "osm_type": "relation",
+          "osm_id": 21522634,
+          "distance_to_centerline_m": 0.0,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
+        },
+        {
+          "golf": "fairway",
+          "osm_type": "relation",
+          "osm_id": 21522635,
+          "distance_to_centerline_m": 0.0,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
+        },
+        {
+          "golf": "bunker",
+          "osm_type": "way",
+          "osm_id": 1565660094,
+          "distance_to_centerline_m": 1.1,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
+        },
+        {
+          "golf": "bunker",
+          "osm_type": "way",
+          "osm_id": 1565660093,
+          "distance_to_centerline_m": 13.6,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
         },
         {
           "golf": "cartpath",
           "osm_type": "way",
           "osm_id": 1383052930,
-          "distance_to_centerline_m": 31.7,
-          "assignment": "corridor_candidate_only"
+          "distance_to_centerline_m": 21.7,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
         }
       ],
-      "interpretation": "Endpoint proximity is stronger evidence for tee/green/pin association than distance to any part of the hole line, but every result remains a candidate until checked against imagery or trusted course references."
+      "ambiguous_shared_corridor_candidates": [
+        {
+          "golf": "cartpath",
+          "osm_type": "way",
+          "osm_id": 1383045762,
+          "distance_to_centerline_m": 0.0,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "ambiguous_between_holes",
+          "distance_to_nearest_hole_m": 0.0,
+          "distance_margin_to_next_hole_m": 0.0
+        }
+      ],
+      "corridor_features_closer_to_another_hole": [
+        {
+          "golf": "rough",
+          "osm_type": "relation",
+          "osm_id": 21522611,
+          "distance_to_centerline_m": 24.7,
+          "assignment": "corridor_candidate_only",
+          "closest_hole_ref": "12",
+          "course_wide_status": "candidate_closer_to_another_hole"
+        }
+      ]
     },
     {
       "hole_ref": "14",
@@ -2821,8 +3647,15 @@
         {
           "golf": "bunker",
           "osm_type": "way",
+          "osm_id": 1565660108,
+          "distance_to_centerline_m": 3.4,
+          "assignment": "corridor_candidate_only"
+        },
+        {
+          "golf": "bunker",
+          "osm_type": "way",
           "osm_id": 1565660107,
-          "distance_to_centerline_m": 10.8,
+          "distance_to_centerline_m": 10.0,
           "assignment": "corridor_candidate_only"
         },
         {
@@ -2835,12 +3668,67 @@
         {
           "golf": "bunker",
           "osm_type": "way",
-          "osm_id": 1565660108,
-          "distance_to_centerline_m": 13.1,
+          "osm_id": 1565660106,
+          "distance_to_centerline_m": 22.1,
           "assignment": "corridor_candidate_only"
         }
       ],
-      "interpretation": "Endpoint proximity is stronger evidence for tee/green/pin association than distance to any part of the hole line, but every result remains a candidate until checked against imagery or trusted course references."
+      "interpretation": "Endpoint proximity is stronger evidence for tee/green/pin association than distance to any part of the hole line, but every result remains a candidate until checked against imagery or trusted course references.",
+      "course_wide_unique_corridor_candidates": [
+        {
+          "golf": "rough",
+          "osm_type": "way",
+          "osm_id": 1565660102,
+          "distance_to_centerline_m": 0.0,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
+        },
+        {
+          "golf": "fairway",
+          "osm_type": "relation",
+          "osm_id": 21522636,
+          "distance_to_centerline_m": 0.0,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
+        },
+        {
+          "golf": "bunker",
+          "osm_type": "way",
+          "osm_id": 1565660108,
+          "distance_to_centerline_m": 3.4,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
+        },
+        {
+          "golf": "bunker",
+          "osm_type": "way",
+          "osm_id": 1565660107,
+          "distance_to_centerline_m": 10.0,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
+        },
+        {
+          "golf": "bunker",
+          "osm_type": "way",
+          "osm_id": 1565660106,
+          "distance_to_centerline_m": 22.1,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
+        }
+      ],
+      "ambiguous_shared_corridor_candidates": [
+        {
+          "golf": "cartpath",
+          "osm_type": "way",
+          "osm_id": 1383052928,
+          "distance_to_centerline_m": 13.1,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "ambiguous_between_holes",
+          "distance_to_nearest_hole_m": 7.0,
+          "distance_margin_to_next_hole_m": 1.9
+        }
+      ],
+      "corridor_features_closer_to_another_hole": []
     },
     {
       "hole_ref": "15",
@@ -2999,25 +3887,56 @@
           "golf": "fairway",
           "osm_type": "relation",
           "osm_id": 21522637,
-          "distance_to_centerline_m": 6.6,
+          "distance_to_centerline_m": 0.0,
           "assignment": "corridor_candidate_only"
         },
         {
           "golf": "cartpath",
           "osm_type": "way",
           "osm_id": 1383052928,
-          "distance_to_centerline_m": 9.3,
+          "distance_to_centerline_m": 7.0,
           "assignment": "corridor_candidate_only"
         },
         {
           "golf": "bunker",
           "osm_type": "way",
           "osm_id": 1565660112,
-          "distance_to_centerline_m": 14.0,
+          "distance_to_centerline_m": 7.0,
           "assignment": "corridor_candidate_only"
         }
       ],
-      "interpretation": "Endpoint proximity is stronger evidence for tee/green/pin association than distance to any part of the hole line, but every result remains a candidate until checked against imagery or trusted course references."
+      "interpretation": "Endpoint proximity is stronger evidence for tee/green/pin association than distance to any part of the hole line, but every result remains a candidate until checked against imagery or trusted course references.",
+      "course_wide_unique_corridor_candidates": [
+        {
+          "golf": "fairway",
+          "osm_type": "relation",
+          "osm_id": 21522637,
+          "distance_to_centerline_m": 0.0,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
+        },
+        {
+          "golf": "bunker",
+          "osm_type": "way",
+          "osm_id": 1565660112,
+          "distance_to_centerline_m": 7.0,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
+        }
+      ],
+      "ambiguous_shared_corridor_candidates": [
+        {
+          "golf": "cartpath",
+          "osm_type": "way",
+          "osm_id": 1383052928,
+          "distance_to_centerline_m": 7.0,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "ambiguous_between_holes",
+          "distance_to_nearest_hole_m": 7.0,
+          "distance_margin_to_next_hole_m": 1.9
+        }
+      ],
+      "corridor_features_closer_to_another_hole": []
     },
     {
       "hole_ref": "16",
@@ -3188,10 +4107,24 @@
       },
       "corridor_feature_candidates": [
         {
+          "golf": "water_hazard",
+          "osm_type": "way",
+          "osm_id": 1329408729,
+          "distance_to_centerline_m": 0.0,
+          "assignment": "corridor_candidate_only"
+        },
+        {
           "golf": "fairway",
           "osm_type": "relation",
           "osm_id": 21522638,
           "distance_to_centerline_m": 0.0,
+          "assignment": "corridor_candidate_only"
+        },
+        {
+          "golf": "bunker",
+          "osm_type": "way",
+          "osm_id": 1565660121,
+          "distance_to_centerline_m": 1.3,
           "assignment": "corridor_candidate_only"
         },
         {
@@ -3204,26 +4137,59 @@
         {
           "golf": "bunker",
           "osm_type": "way",
-          "osm_id": 1565660121,
-          "distance_to_centerline_m": 9.3,
+          "osm_id": 1565660120,
+          "distance_to_centerline_m": 11.9,
           "assignment": "corridor_candidate_only"
+        }
+      ],
+      "interpretation": "Endpoint proximity is stronger evidence for tee/green/pin association than distance to any part of the hole line, but every result remains a candidate until checked against imagery or trusted course references.",
+      "course_wide_unique_corridor_candidates": [
+        {
+          "golf": "water_hazard",
+          "osm_type": "way",
+          "osm_id": 1329408729,
+          "distance_to_centerline_m": 0.0,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
+        },
+        {
+          "golf": "fairway",
+          "osm_type": "relation",
+          "osm_id": 21522638,
+          "distance_to_centerline_m": 0.0,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
+        },
+        {
+          "golf": "bunker",
+          "osm_type": "way",
+          "osm_id": 1565660121,
+          "distance_to_centerline_m": 1.3,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
         },
         {
           "golf": "bunker",
           "osm_type": "way",
           "osm_id": 1565660120,
           "distance_to_centerline_m": 11.9,
-          "assignment": "corridor_candidate_only"
-        },
-        {
-          "golf": "water_hazard",
-          "osm_type": "way",
-          "osm_id": 1329408729,
-          "distance_to_centerline_m": 21.5,
-          "assignment": "corridor_candidate_only"
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
         }
       ],
-      "interpretation": "Endpoint proximity is stronger evidence for tee/green/pin association than distance to any part of the hole line, but every result remains a candidate until checked against imagery or trusted course references."
+      "ambiguous_shared_corridor_candidates": [
+        {
+          "golf": "cartpath",
+          "osm_type": "way",
+          "osm_id": 1383052928,
+          "distance_to_centerline_m": 8.9,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "ambiguous_between_holes",
+          "distance_to_nearest_hole_m": 7.0,
+          "distance_margin_to_next_hole_m": 1.9
+        }
+      ],
+      "corridor_features_closer_to_another_hole": []
     },
     {
       "hole_ref": "17",
@@ -3362,6 +4328,13 @@
       },
       "corridor_feature_candidates": [
         {
+          "golf": "cartpath",
+          "osm_type": "way",
+          "osm_id": 1383045765,
+          "distance_to_centerline_m": 0.0,
+          "assignment": "corridor_candidate_only"
+        },
+        {
           "golf": "rough",
           "osm_type": "way",
           "osm_id": 1565660125,
@@ -3385,8 +4358,36 @@
         {
           "golf": "bunker",
           "osm_type": "way",
+          "osm_id": 1565660132,
+          "distance_to_centerline_m": 5.2,
+          "assignment": "corridor_candidate_only"
+        },
+        {
+          "golf": "rough",
+          "osm_type": "way",
+          "osm_id": 1565660128,
+          "distance_to_centerline_m": 6.8,
+          "assignment": "corridor_candidate_only"
+        },
+        {
+          "golf": "rough",
+          "osm_type": "way",
+          "osm_id": 1565660127,
+          "distance_to_centerline_m": 7.6,
+          "assignment": "corridor_candidate_only"
+        },
+        {
+          "golf": "bunker",
+          "osm_type": "way",
           "osm_id": 1565660130,
-          "distance_to_centerline_m": 9.3,
+          "distance_to_centerline_m": 9.0,
+          "assignment": "corridor_candidate_only"
+        },
+        {
+          "golf": "rough",
+          "osm_type": "way",
+          "osm_id": 1565660129,
+          "distance_to_centerline_m": 10.1,
           "assignment": "corridor_candidate_only"
         },
         {
@@ -3395,37 +4396,94 @@
           "osm_id": 1565660131,
           "distance_to_centerline_m": 12.6,
           "assignment": "corridor_candidate_only"
-        },
+        }
+      ],
+      "interpretation": "Endpoint proximity is stronger evidence for tee/green/pin association than distance to any part of the hole line, but every result remains a candidate until checked against imagery or trusted course references.",
+      "course_wide_unique_corridor_candidates": [
         {
           "golf": "cartpath",
           "osm_type": "way",
           "osm_id": 1383045765,
-          "distance_to_centerline_m": 17.4,
-          "assignment": "corridor_candidate_only"
+          "distance_to_centerline_m": 0.0,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "unique_nearest_hole_corridor_candidate",
+          "distance_margin_to_next_hole_m": 13.4
+        },
+        {
+          "golf": "rough",
+          "osm_type": "way",
+          "osm_id": 1565660125,
+          "distance_to_centerline_m": 0.0,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
+        },
+        {
+          "golf": "rough",
+          "osm_type": "way",
+          "osm_id": 1565660126,
+          "distance_to_centerline_m": 0.0,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
+        },
+        {
+          "golf": "fairway",
+          "osm_type": "relation",
+          "osm_id": 21522639,
+          "distance_to_centerline_m": 0.0,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
         },
         {
           "golf": "bunker",
           "osm_type": "way",
           "osm_id": 1565660132,
-          "distance_to_centerline_m": 20.1,
-          "assignment": "corridor_candidate_only"
-        },
-        {
-          "golf": "rough",
-          "osm_type": "way",
-          "osm_id": 1565660127,
-          "distance_to_centerline_m": 30.3,
-          "assignment": "corridor_candidate_only"
+          "distance_to_centerline_m": 5.2,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
         },
         {
           "golf": "rough",
           "osm_type": "way",
           "osm_id": 1565660128,
-          "distance_to_centerline_m": 44.5,
-          "assignment": "corridor_candidate_only"
+          "distance_to_centerline_m": 6.8,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
+        },
+        {
+          "golf": "rough",
+          "osm_type": "way",
+          "osm_id": 1565660127,
+          "distance_to_centerline_m": 7.6,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
+        },
+        {
+          "golf": "bunker",
+          "osm_type": "way",
+          "osm_id": 1565660130,
+          "distance_to_centerline_m": 9.0,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
+        },
+        {
+          "golf": "rough",
+          "osm_type": "way",
+          "osm_id": 1565660129,
+          "distance_to_centerline_m": 10.1,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
+        },
+        {
+          "golf": "bunker",
+          "osm_type": "way",
+          "osm_id": 1565660131,
+          "distance_to_centerline_m": 12.6,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
         }
       ],
-      "interpretation": "Endpoint proximity is stronger evidence for tee/green/pin association than distance to any part of the hole line, but every result remains a candidate until checked against imagery or trusted course references."
+      "ambiguous_shared_corridor_candidates": [],
+      "corridor_features_closer_to_another_hole": []
     },
     {
       "hole_ref": "18",
@@ -3596,10 +4654,24 @@
       },
       "corridor_feature_candidates": [
         {
+          "golf": "water_hazard",
+          "osm_type": "way",
+          "osm_id": 666423200,
+          "distance_to_centerline_m": 0.0,
+          "assignment": "corridor_candidate_only"
+        },
+        {
           "golf": "fairway",
           "osm_type": "way",
           "osm_id": 1565660143,
           "distance_to_centerline_m": 0.0,
+          "assignment": "corridor_candidate_only"
+        },
+        {
+          "golf": "cartpath",
+          "osm_type": "way",
+          "osm_id": 1383045763,
+          "distance_to_centerline_m": 9.9,
           "assignment": "corridor_candidate_only"
         },
         {
@@ -3617,24 +4689,17 @@
           "assignment": "corridor_candidate_only"
         },
         {
-          "golf": "water_hazard",
+          "golf": "bunker",
           "osm_type": "way",
-          "osm_id": 666423200,
-          "distance_to_centerline_m": 13.8,
+          "osm_id": 1565660140,
+          "distance_to_centerline_m": 15.3,
           "assignment": "corridor_candidate_only"
         },
         {
           "golf": "bunker",
           "osm_type": "way",
-          "osm_id": 1565660140,
-          "distance_to_centerline_m": 15.4,
-          "assignment": "corridor_candidate_only"
-        },
-        {
-          "golf": "cartpath",
-          "osm_type": "way",
-          "osm_id": 1383045763,
-          "distance_to_centerline_m": 15.6,
+          "osm_id": 1565660139,
+          "distance_to_centerline_m": 16.7,
           "assignment": "corridor_candidate_only"
         },
         {
@@ -3650,16 +4715,94 @@
           "osm_id": 1383045762,
           "distance_to_centerline_m": 35.8,
           "assignment": "corridor_candidate_only"
+        }
+      ],
+      "interpretation": "Endpoint proximity is stronger evidence for tee/green/pin association than distance to any part of the hole line, but every result remains a candidate until checked against imagery or trusted course references.",
+      "course_wide_unique_corridor_candidates": [
+        {
+          "golf": "water_hazard",
+          "osm_type": "way",
+          "osm_id": 666423200,
+          "distance_to_centerline_m": 0.0,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "unique_nearest_hole_corridor_candidate",
+          "distance_margin_to_next_hole_m": 25.5
+        },
+        {
+          "golf": "cartpath",
+          "osm_type": "way",
+          "osm_id": 1383045763,
+          "distance_to_centerline_m": 9.9,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "unique_nearest_hole_corridor_candidate",
+          "distance_margin_to_next_hole_m": 23.9
+        },
+        {
+          "golf": "fairway",
+          "osm_type": "way",
+          "osm_id": 1565660143,
+          "distance_to_centerline_m": 0.0,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
+        },
+        {
+          "golf": "bunker",
+          "osm_type": "way",
+          "osm_id": 1565660141,
+          "distance_to_centerline_m": 12.8,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
+        },
+        {
+          "golf": "bunker",
+          "osm_type": "way",
+          "osm_id": 1565660140,
+          "distance_to_centerline_m": 15.3,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
         },
         {
           "golf": "bunker",
           "osm_type": "way",
           "osm_id": 1565660139,
-          "distance_to_centerline_m": 37.8,
-          "assignment": "corridor_candidate_only"
+          "distance_to_centerline_m": 16.7,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "single_hole_corridor_candidate"
         }
       ],
-      "interpretation": "Endpoint proximity is stronger evidence for tee/green/pin association than distance to any part of the hole line, but every result remains a candidate until checked against imagery or trusted course references."
+      "ambiguous_shared_corridor_candidates": [
+        {
+          "golf": "cartpath",
+          "osm_type": "way",
+          "osm_id": 1383045762,
+          "distance_to_centerline_m": 35.8,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "ambiguous_between_holes",
+          "distance_to_nearest_hole_m": 0.0,
+          "distance_margin_to_next_hole_m": 0.0
+        },
+        {
+          "golf": "cartpath",
+          "osm_type": "way",
+          "osm_id": 1383045764,
+          "distance_to_centerline_m": 29.8,
+          "assignment": "corridor_candidate_only",
+          "course_wide_status": "ambiguous_between_holes",
+          "distance_to_nearest_hole_m": 27.6,
+          "distance_margin_to_next_hole_m": 2.2
+        }
+      ],
+      "corridor_features_closer_to_another_hole": [
+        {
+          "golf": "cartpath",
+          "osm_type": "way",
+          "osm_id": 1383045765,
+          "distance_to_centerline_m": 13.4,
+          "assignment": "corridor_candidate_only",
+          "closest_hole_ref": "17",
+          "course_wide_status": "candidate_closer_to_another_hole"
+        }
+      ]
     }
   ],
   "limitations": [
