@@ -153,7 +153,9 @@ Key findings:
   candidates without duplicate feature claims. South Padre yields 24 tee and
   18 green candidates; Cottonwood yields 9 pin candidates. These are still
   proximity-based candidates, not ground-truth assignments, and near-ties are
-  kept explicitly ambiguous.
+  kept explicitly ambiguous. Corridor distance now measures the full line segments
+  against polygon/line geometry, so a crossing between sparse centerline vertices
+  is not missed; dedicated regression tests cover polygon crossings and edge distance.
 
 Do not port the reconstruction engine to Android yet. The research prototype
 proves generic discovery, relation serialization, imagery retrieval, and a
