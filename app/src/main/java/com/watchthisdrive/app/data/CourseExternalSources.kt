@@ -58,8 +58,9 @@ object OpenGolfApiCourseLoader {
         }
     }
 
-    internal fun buildSearchUrl(courseName: String): String =
-        "$BASE_URL/search?q=${URLEncoder.encode(courseName.trim(), "UTF-8")}&limit=20"
+    internal fun buildSearchUrl(course: GolfCourse): String =
+        "$BASE_URL/search?q=${URLEncoder.encode(course.name.trim(), "UTF-8")}" +
+            "&lat=${course.latitude}&lng=${course.longitude}&radius_mi=10&limit=20"
 
     internal fun chooseMatch(
         candidates: JSONArray,
@@ -151,7 +152,7 @@ object OpenGolfApiCourseLoader {
     }
 
     private fun loadBlocking(course: GolfCourse): ExternalCourseMetadata? {
-        val search = getJson(buildSearchUrl(course.name))
+        val search = getJson(buildSearchUrl(course))
         val candidates = findArray(search, "courses")
             ?: findArray(search, "results")
             ?: JSONArray()
