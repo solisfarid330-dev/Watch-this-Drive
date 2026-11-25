@@ -13,10 +13,10 @@ object ClubCarryDistances {
 
     // Generic editable starter carry estimates in yards, not player-specific recommendations.
     private val starterCarries = linkedMapOf(
-        "Driver" to 230, "3 Wood" to 215, "5 Wood" to 200,
-        "3 Hybrid" to 190, "4 Hybrid" to 180, "4 Iron" to 170,
-        "5 Iron" to 160, "6 Iron" to 150, "7 Iron" to 140,
-        "8 Iron" to 130, "9 Iron" to 120, "Pitching Wedge" to 105,
+        "Driver" to 220, "3 Wood" to 200, "5 Wood" to 185,
+        "4 Iron" to 170, "5 Iron" to 160, "6 Iron" to 150,
+        "7 Iron" to 140, "8 Iron" to 130, "9 Iron" to 120,
+        "Pitching Wedge" to 105,
         "Gap Wedge" to 90, "Sand Wedge" to 75, "Lob Wedge" to 60
     )
 
