@@ -229,8 +229,11 @@ object CourseReconstructionEngine {
         CourseGeometryType.UNKNOWN -> emptyList()
     }
 
-    private fun representativePoint(feature: CourseFeature): GeoPoint? =
-        feature.points.firstOrNull() ?: polygonCenter(feature)
+    private fun representativePoint(feature: CourseFeature): GeoPoint? = when (feature.geometryType) {
+        CourseGeometryType.POINT, CourseGeometryType.LINE -> feature.points.firstOrNull()
+        CourseGeometryType.POLYGON, CourseGeometryType.MULTI_POLYGON -> polygonCenter(feature)
+        CourseGeometryType.UNKNOWN -> null
+    }
 
     private fun polygonCenter(feature: CourseFeature): GeoPoint? {
         val polygons = if (feature.geometryType == CourseGeometryType.POLYGON) listOf(feature.rings) else feature.polygons
