@@ -38,6 +38,8 @@ fun ActiveHoleScreen(
     holeIndex: Int,
     holeCount: Int,
     strokes: Int,
+    overallStrokes: Int,
+    overallRelativeToPar: Int?,
     carryDistances: Map<String, Int>,
     geometry: CourseGeometry?,
     reconstruction: CourseReconstruction?,
@@ -177,9 +179,12 @@ fun ActiveHoleScreen(
             }
             Surface(color = Color(0xE91A251E), shape = RoundedCornerShape(16.dp)) {
                 Column(Modifier.padding(horizontal = 14.dp, vertical = 10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("SCORE", color = Color(0xFFB6C1B9), style = MaterialTheme.typography.labelSmall)
+                    Text("THIS HOLE", color = Color(0xFFB6C1B9), style = MaterialTheme.typography.labelSmall)
                     Text(relativeLabel, color = Color.White, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
                     Text("Strokes $strokes", color = Color(0xFFB8F36B), style = MaterialTheme.typography.labelMedium)
+                    Spacer(Modifier.height(4.dp))
+                    Text("ROUND", color = Color(0xFFB6C1B9), style = MaterialTheme.typography.labelSmall)
+                    Text("$overallStrokes · ${overallRelativeToPar?.let { if (it == 0) "E" else if (it > 0) "+$it" else it.toString() } ?: "—"}", color = Color.White, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 }
             }
             IconButton(onClick = { northUp = !northUp }, modifier = Modifier.background(Color(0xE91A251E), RoundedCornerShape(14.dp))) {
