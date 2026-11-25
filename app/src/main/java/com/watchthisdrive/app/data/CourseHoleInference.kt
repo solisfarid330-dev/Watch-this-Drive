@@ -96,36 +96,50 @@ object CourseHoleInference {
     ): List<CourseFeature> {
         // The sequence is only inferable as a run bounded by known holes.
         if (missing.size !in 1..2 || missing.zipWithNext().any { (a, b) -> b != a + 1 }) return emptyList()
-        // A marker can be numbered even when the matching centerline is absent.
-        // Keep markers for the missing numbers in this fallback, especially when
-        // direct numbered pairing was ambiguous (for example, multiple green areas).
+        // Keep the full marker set for orienting already-mapped neighboring holes.
+        // Filtering to the missing numbers too early discards numbered markers for
+        // those neighbors, making the sequence anchors disappear.
+        val allTeeClusters = clusterTees(allTees)
+        val allGreenPoints = allGreens.mapNotNull { feature ->
+            representativePoint(feature)?.let { feature to it }
+        }
+        if (allTeeClusters.isEmpty() || allGreenPoints.isEmpty()) return emptyList()
+
+        // Candidate endpoints are restricted to unnumbered markers and markers
+        // explicitly tagged for a missing hole. Numbered markers for mapped holes
+        // remain available above only as orientation/consumption evidence.
         val missingNumbers = missing.toSet()
-        val tees = allTees.filter {
-            it.holeNumber.isNullOrBlank() || it.holeNumber?.toIntOrNull()?.let { number -> number in missingNumbers } == true
+        val candidateTeeFeatures = allTees.filter {
+            it.holeNumber.isNullOrBlank() ||
+                it.holeNumber?.toIntOrNull()?.let { number -> number in missingNumbers } == true
         }
-        val greens = allGreens.filter {
-            it.holeNumber.isNullOrBlank() || it.holeNumber?.toIntOrNull()?.let { number -> number in missingNumbers } == true
+        val candidateGreenPoints = allGreenPoints.filter { (feature, _) ->
+            feature.holeNumber.isNullOrBlank() ||
+                feature.holeNumber?.toIntOrNull()?.let { number -> number in missingNumbers } == true
         }
-        val clusters = clusterTees(tees)
-        if (clusters.isEmpty()) return emptyList()
-        val greenPoints = greens.mapNotNull { feature -> representativePoint(feature)?.let { feature to it } }
-        if (greenPoints.isEmpty()) return emptyList()
 
         val beforeHole = mappedHoles.firstOrNull { it.holeNumber?.toIntOrNull() == missing.first() - 1 }
         val afterHole = mappedHoles.firstOrNull { it.holeNumber?.toIntOrNull() == missing.last() + 1 }
-        val before = beforeHole?.let { orientMappedHole(it, clusters, greenPoints)?.green }
-        val after = afterHole?.let { orientMappedHole(it, clusters, greenPoints)?.tee }
+        val before = beforeHole?.let { orientMappedHole(it, allTeeClusters, allGreenPoints)?.green }
+        val after = afterHole?.let { orientMappedHole(it, allTeeClusters, allGreenPoints)?.tee }
         if (before == null && after == null) return emptyList()
 
-        val usedTeeClusters = mutableSetOf<TeeCluster>()
-        val usedGreens = mutableSetOf<CourseFeature>()
+        val usedTeeKeys = mutableSetOf<Pair<String, Long>>()
+        val usedGreenKeys = mutableSetOf<Pair<String, Long>>()
         mappedHoles.forEach { hole ->
-            val anchors = orientMappedHole(hole, clusters, greenPoints) ?: return@forEach
-            clusters.filter { meters(it.point, anchors.tee) <= MARKER_MATCH_LIMIT_M }.forEach(usedTeeClusters::add)
-            greenPoints.filter { meters(it.second, anchors.green) <= MARKER_MATCH_LIMIT_M }.forEach { usedGreens.add(it.first) }
+            val anchors = orientMappedHole(hole, allTeeClusters, allGreenPoints) ?: return@forEach
+            allTeeClusters.filter { meters(it.point, anchors.tee) <= MARKER_MATCH_LIMIT_M }
+                .flatMap { it.features }
+                .forEach { usedTeeKeys.add(it.elementType to it.id) }
+            allGreenPoints.filter { meters(it.second, anchors.green) <= MARKER_MATCH_LIMIT_M }
+                .forEach { usedGreenKeys.add(it.first.elementType to it.first.id) }
         }
-        val availableTees = clusters.filterNot { it in usedTeeClusters }
-        val availableGreens = greenPoints.filterNot { it.first in usedGreens }
+        val availableTees = clusterTees(candidateTeeFeatures.filterNot {
+            (it.elementType to it.id) in usedTeeKeys
+        })
+        val availableGreens = candidateGreenPoints.filterNot {
+            (it.first.elementType to it.first.id) in usedGreenKeys
+        }
         if (availableTees.size < missing.size || availableGreens.size < missing.size) return emptyList()
 
         val candidates = mutableListOf<Candidate>()
