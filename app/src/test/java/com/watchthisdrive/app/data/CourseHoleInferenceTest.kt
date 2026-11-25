@@ -151,4 +151,28 @@ class CourseHoleInferenceTest {
         assertEquals(listOf("6"), inferred.mapNotNull { it.holeNumber })
     }
 
+
+    @Test
+    fun recoversNumberedHoleWhenMultipleGreenAreasMakeDirectPairingAmbiguous() {
+        val alternateGreen = green().copy(
+            id = 207,
+            points = listOf(
+                GeoPoint(0.0017, 0.0117), GeoPoint(0.0017, 0.0119),
+                GeoPoint(0.0019, 0.0119), GeoPoint(0.0019, 0.0117),
+                GeoPoint(0.0017, 0.0117)
+            ),
+            rings = listOf(listOf(
+                GeoPoint(0.0017, 0.0117), GeoPoint(0.0017, 0.0119),
+                GeoPoint(0.0019, 0.0119), GeoPoint(0.0019, 0.0117),
+                GeoPoint(0.0017, 0.0117)
+            ))
+        )
+        val input = CourseGeometry(1, "Generic", holes() + listOf(tee(), green(), alternateGreen, fairway()))
+        val inferred = CourseHoleInference.addInferredHoles(input).features.single {
+            it.origin == CourseFeatureOrigin.INFERRED && it.featureType == "hole"
+        }
+        assertEquals("6", inferred.holeNumber)
+        assertEquals("inferred_from_numbered_tee_green_and_fairway", inferred.geometryStatus)
+    }
+
 }
