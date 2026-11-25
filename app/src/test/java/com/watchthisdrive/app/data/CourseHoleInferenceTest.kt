@@ -154,25 +154,30 @@ class CourseHoleInferenceTest {
 
     @Test
     fun recoversNumberedHoleWhenMultipleGreenAreasMakeDirectPairingAmbiguous() {
-        val alternateGreen = green().copy(
-            id = 207,
+        val primaryGreen = green().copy(
             points = listOf(
-                GeoPoint(0.0017, 0.0117), GeoPoint(0.0017, 0.0119),
-                GeoPoint(0.0019, 0.0119), GeoPoint(0.0019, 0.0117),
-                GeoPoint(0.0017, 0.0117)
+                GeoPoint(0.0015, 0.0115), GeoPoint(0.0015, 0.0117),
+                GeoPoint(0.0017, 0.0117), GeoPoint(0.0017, 0.0115),
+                GeoPoint(0.0015, 0.0115)
             ),
             rings = listOf(listOf(
-                GeoPoint(0.0017, 0.0117), GeoPoint(0.0017, 0.0119),
-                GeoPoint(0.0019, 0.0119), GeoPoint(0.0019, 0.0117),
-                GeoPoint(0.0017, 0.0117)
+                GeoPoint(0.0015, 0.0115), GeoPoint(0.0015, 0.0117),
+                GeoPoint(0.0017, 0.0117), GeoPoint(0.0017, 0.0115),
+                GeoPoint(0.0015, 0.0115)
             ))
         )
-        val input = CourseGeometry(1, "Generic", holes() + listOf(tee(), green(), alternateGreen, fairway()))
+        val alternateGreen = green().copy(id = 207)
+        val previousHole = CourseFeature(
+            5, "way", "hole", "5", null,
+            listOf(GeoPoint(0.0, 0.009), GeoPoint(0.0005, 0.011)),
+            CourseGeometryType.LINE
+        )
+        val mapped = holes().filterNot { it.holeNumber in setOf("5", "6") } + previousHole
+        val input = CourseGeometry(1, "Generic", mapped + listOf(tee(), primaryGreen, alternateGreen, fairway()))
         val inferred = CourseHoleInference.addInferredHoles(input).features.single {
             it.origin == CourseFeatureOrigin.INFERRED && it.featureType == "hole"
         }
         assertEquals("6", inferred.holeNumber)
         assertEquals("inferred_from_numbered_tee_green_and_fairway", inferred.geometryStatus)
     }
-
 }
