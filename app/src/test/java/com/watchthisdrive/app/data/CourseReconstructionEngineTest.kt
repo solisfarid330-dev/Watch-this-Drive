@@ -76,6 +76,27 @@ class CourseReconstructionEngineTest {
         assertTrue(result.holes.all { it.pin != null && it.pinSource == PinSource.MAPPED })
     }
 
+    @Test fun doesNotReuseOneTeeMarkerAcrossNearbyHoles() {
+        val tee = CourseFeature(
+            5, "node", "tee", "1", null,
+            listOf(GeoPoint(0.0, 0.0)), CourseGeometryType.POINT
+        )
+        val firstHole = CourseFeature(
+            1, "way", "hole", "1", null,
+            listOf(GeoPoint(0.0, 0.0), GeoPoint(0.004, 0.002)), CourseGeometryType.LINE
+        )
+        val secondHole = CourseFeature(
+            2, "way", "hole", "2", null,
+            listOf(GeoPoint(0.0001, 0.0), GeoPoint(0.004, 0.003)), CourseGeometryType.LINE
+        )
+        val result = CourseReconstructionEngine.reconstruct(
+            CourseGeometry(10, "Test", listOf(firstHole, secondHole, tee))
+        )
+        assertEquals(1, result.holes.count { it.tee != null })
+        assertEquals(tee.id, result.holes.single { it.number == "1" }.tee?.id)
+        assertNull(result.holes.single { it.number == "2" }.tee)
+    }
+
     @Test fun preservesMappedParAndMarksEvidenceBasedHoleDirection() {
         val tee = CourseFeature(
             2, "node", "tee", "1", null,
