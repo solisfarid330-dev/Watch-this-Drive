@@ -1,6 +1,7 @@
 package com.watchthisdrive.app
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -23,11 +24,16 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.google.android.gms.location.LocationServices
 import com.watchthisdrive.app.data.CourseDiscovery
+import com.watchthisdrive.app.data.OpenGolfApiCourseLoader
+import com.watchthisdrive.app.data.ExternalCourseMetadata
+import com.watchthisdrive.app.data.NaipImageryLoader
 import com.watchthisdrive.app.data.ClubCarryDistances
 import com.watchthisdrive.app.data.CourseGeometry
 import com.watchthisdrive.app.data.CourseGeometryLoader
@@ -817,6 +823,10 @@ private fun CourseDetailScreen(
         mutableStateOf<String?>(null)
     }
     val appContext = androidx.compose.ui.platform.LocalContext.current
+    var externalMetadata by remember(course.id) { mutableStateOf<ExternalCourseMetadata?>(null) }
+    var externalMetadataMessage by remember(course.id) { mutableStateOf("Checking OpenGolfAPI course records…") }
+    var naipBitmap by remember(course.id) { mutableStateOf<android.graphics.Bitmap?>(null) }
+    var naipMessage by remember(course.id) { mutableStateOf("Loading public aerial imagery…") }
     var recoveryLoading by remember(course.id) { mutableStateOf(false) }
     var recoveryMessage by remember(course.id) { mutableStateOf<String?>(null) }
     var showMissingFeatureDialog by remember(course.id) { mutableStateOf(false) }
@@ -926,6 +936,41 @@ private fun CourseDetailScreen(
     }
 
     LaunchedEffect(course.id) {
+        OpenGolfApiCourseLoader.load(course) { result ->
+            result.onSuccess { metadata ->
+                externalMetadata = metadata
+                externalMetadataMessage = if (metadata == null) {
+                    "No sufficiently close OpenGolfAPI match. OSM geometry remains unchanged."
+                } else {
+                    "Matched by exact course name and geographic proximity."
+                }
+                val externalHoleCount = metadata?.holeCount?.takeIf { it == 9 || it == 18 }
+                if (selectedExpectedHoleCount == null && externalHoleCount != null) {
+                    selectedExpectedHoleCount = externalHoleCount
+                    geometry?.let { current ->
+                        val enriched = current.copy(expectedHoleCount = externalHoleCount)
+                        val inferred = CourseFeatureInference.addInferredFeatures(
+                            CourseHoleInference.addInferredHoles(enriched)
+                        )
+                        geometry = inferred
+                        reconstruction = CourseReconstructionEngine.reconstruct(inferred)
+                    }
+                }
+            }.onFailure {
+                externalMetadataMessage = "OpenGolfAPI unavailable; continuing with OSM data."
+            }
+        }
+        NaipImageryLoader.load(course) { result ->
+            result.onSuccess {
+                naipBitmap = it
+                naipMessage = "USGS / USDA NAIP · public-domain aerial reference"
+            }.onFailure {
+                naipMessage = "Aerial imagery unavailable at this location."
+            }
+        }
+    }
+
+    LaunchedEffect(course.id) {
         CourseGeometryLoader.load(course) { result ->
             result.fold(
                 onSuccess = {
@@ -976,6 +1021,63 @@ private fun CourseDetailScreen(
             color = Color(0xFFB6C1B9),
             style = MaterialTheme.typography.bodyLarge
         )
+
+        Card(
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF1B2520)),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                Text("Additional course evidence", color = Color.White, fontWeight = FontWeight.Bold)
+                Text("OpenGolfAPI", color = Color(0xFFB8F36B), fontWeight = FontWeight.SemiBold)
+                Text(externalMetadataMessage, color = Color(0xFFB6C1B9), style = MaterialTheme.typography.bodySmall)
+                externalMetadata?.let { metadata ->
+                    Text(
+                        metadata.name + " · " +
+                            (metadata.holeCount?.toString() ?: "hole count unknown") + " · " +
+                            (metadata.totalPar?.let { "Par " + it } ?: "Par unavailable") + " · " +
+                            (metadata.totalYardage?.let { it.toString() + " yd" } ?: "yardage unavailable"),
+                        color = Color.White,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    metadata.tees.forEach { tee ->
+                        Text(
+                            tee.name + ": " + (tee.totalYardage?.let { it.toString() + " yd" } ?: "yardage unavailable") +
+                                (tee.courseRating?.let { " · Rating " + "%.1f".format(Locale.US, it) } ?: "") +
+                                (tee.slopeRating?.let { " · Slope " + it } ?: ""),
+                            color = Color.White,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                    metadata.holes.take(18).forEach { hole ->
+                        Text(
+                            "Hole " + hole.number +
+                                (hole.par?.let { " · Par " + it } ?: "") +
+                                (hole.yardage?.let { " · " + it + " yd" } ?: "") +
+                                (hole.handicap?.let { " · HCP " + it } ?: ""),
+                            color = Color(0xFFB6C1B9),
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                    Text(metadata.attribution, color = Color(0xFFB6C1B9), style = MaterialTheme.typography.labelSmall)
+                }
+                Divider(color = Color(0xFF344238))
+                Text("NAIP aerial imagery", color = Color(0xFFB8F36B), fontWeight = FontWeight.SemiBold)
+                Text(naipMessage, color = Color(0xFFB6C1B9), style = MaterialTheme.typography.bodySmall)
+                naipBitmap?.let { bitmap ->
+                    Image(
+                        bitmap = bitmap.asImageBitmap(),
+                        contentDescription = "Public NAIP aerial image centered on the selected golf course",
+                        modifier = Modifier.fillMaxWidth().height(220.dp),
+                        contentScale = ContentScale.Crop
+                    )
+                }
+                Text(
+                    "Ariad is retained as a reference-only cross-check. Its published atlas describes maps as interpretations of published course geometry and identifies OSM and OpenGolfAPI among its data sources, so it is not treated as independent geometry.",
+                    color = Color(0xFFB6C1B9),
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+        }
 
         Card(
             colors = CardDefaults.cardColors(
