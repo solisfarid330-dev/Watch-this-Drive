@@ -2,6 +2,7 @@ import unittest
 from urllib.parse import parse_qs, urlparse
 
 from multi_source_course_audit import (
+    OPEN_GOLF_API,
     SourceError,
     choose_course,
     naip_export_url,
@@ -9,6 +10,9 @@ from multi_source_course_audit import (
 
 
 class MultiSourceCourseAuditTests(unittest.TestCase):
+    def test_uses_current_open_golf_api_v1_base_path(self):
+        self.assertEqual(OPEN_GOLF_API, "https://api.opengolfapi.org/api/v1")
+
     def test_course_match_prefers_exact_name_and_nearby_reference(self):
         records = [
             {"id": "far", "name": "Howling Trails Golf Course", "latitude": 27.0, "longitude": -98.0},
