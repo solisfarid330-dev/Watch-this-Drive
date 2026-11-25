@@ -220,7 +220,7 @@ private fun WatchThisDriveApp() {
                                 carryDistances = clubCarries,
                                 geometry = mapGeometry,
                                 reconstruction = mapReconstruction,
-                                onStrokesChange = { value -> roundStrokes = roundStrokes + (hole.number to value.coerceAtLeast(1)) },
+                                onStrokesChange = { value -> roundStrokes = roundStrokes + (hole.number to value.coerceAtLeast(0)) },
                                 onPreviousHole = { if (safeIndex > 0) activeHoleIndex = safeIndex - 1 },
                                 onNextHole = { if (safeIndex < holes.lastIndex) activeHoleIndex = safeIndex + 1 },
                                 onExitRound = { activeRound = false }
