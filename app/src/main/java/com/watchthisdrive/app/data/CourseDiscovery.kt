@@ -73,12 +73,21 @@ object CourseDiscovery {
         }
     }
 
+    internal fun buildGeocodingUrl(searchText: String): String {
+        val normalized = searchText.trim()
+        val zip = Regex("^\\d{5}(?:-\\d{4})?$").matches(normalized)
+        val query = if (zip) {
+            val postalCode = normalized.take(5)
+            "postalcode=${URLEncoder.encode(postalCode, "UTF-8")}" +
+                "&country=United%20States&countrycodes=us"
+        } else {
+            "q=${URLEncoder.encode(normalized, "UTF-8")}"
+        }
+        return "https://nominatim.openstreetmap.org/search?$query&format=jsonv2&limit=1"
+    }
+
     private fun geocode(searchText: String): SearchLocation {
-        val encoded = URLEncoder.encode(searchText.trim(), "UTF-8")
-        val url = URL(
-            "https://nominatim.openstreetmap.org/search" +
-                "?q=$encoded&format=jsonv2&limit=1"
-        )
+        val url = URL(buildGeocodingUrl(searchText))
 
         val connection = url.openConnection() as HttpURLConnection
 
