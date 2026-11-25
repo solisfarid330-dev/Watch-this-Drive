@@ -73,11 +73,26 @@ object CourseReconstructionEngine {
             }
         }
         val teeAssociations = mutableMapOf<Pair<Int, Boolean>, Pair<CourseFeature, Double>>()
-        val usedTeeMarkers = mutableSetOf<Pair<String, Long>>()
-        teeMatches.sortedWith(compareBy<TeeMatch> { it.distance }.thenBy { it.holeIndex }).forEach { match ->
+        val teeWarnings = mutableMapOf<Int, String>()
+        val uniqueTeeMatches = mutableListOf<TeeMatch>()
+        teeMatches.groupBy { it.feature.elementType to it.feature.id }.values.forEach { owners ->
+            val sorted = owners.sortedBy { it.distance }
+            if (sorted.size == 1) {
+                uniqueTeeMatches.add(sorted.first())
+            } else if (sorted[1].distance - sorted[0].distance >= MARKER_UNIQUENESS_MARGIN_M) {
+                uniqueTeeMatches.add(sorted.first())
+                sorted.drop(1).forEach { loser ->
+                    teeWarnings[loser.holeIndex] = "Tee candidate is closer to another hole endpoint"
+                }
+            } else {
+                owners.forEach { owner ->
+                    teeWarnings[owner.holeIndex] = "Tee association ambiguous across nearby holes"
+                }
+            }
+        }
+        uniqueTeeMatches.sortedBy { it.distance }.forEach { match ->
             val slot = match.holeIndex to match.isStart
-            val markerKey = match.feature.elementType to match.feature.id
-            if (slot !in teeAssociations && usedTeeMarkers.add(markerKey)) {
+            if (slot !in teeAssociations) {
                 teeAssociations[slot] = match.feature to match.distance
             }
         }
@@ -172,7 +187,8 @@ object CourseReconstructionEngine {
             } else null
 
             Draft(hole, line, tee, greenCandidate, pinCandidate, teeToGreenOriented).also { draft ->
-                if (tee == null) draft.warnings.add("No confident tee association")
+                if (tee == null) draft.warnings.add(teeWarnings[index] ?: "No confident tee association")
+                else teeWarnings[index]?.let(draft.warnings::add)
             }
         }
 
