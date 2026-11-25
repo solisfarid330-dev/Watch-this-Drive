@@ -869,8 +869,9 @@ private fun CourseDetailScreen(
             .edit()
             .putStringSet("course_${course.elementType}_${course.id}", updated)
             .apply()
-        recoveryMessage = "${feature.label} marked as missing on this device. We'll use this feedback to guide future recovery attempts."
+        recoveryMessage = "${feature.label} marked as missing. Checking for additional mapped data now…"
         showMissingFeatureDialog = false
+        improveMapping()
     }
 
     LaunchedEffect(course.id) {
