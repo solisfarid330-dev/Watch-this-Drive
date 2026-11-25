@@ -31,4 +31,14 @@ class CourseGeometryQueryTest {
         assertTrue(query.contains("nwr(area.courseArea)[\"golf:hole\"];"))
         assertFalse(query.contains("[\"golf\"=\"null\"]"))
     }
+    @Test
+    fun recoveryQueryRedirectsWaySelectorBeforeTerminatingStatement() {
+        val course = GolfCourse(42L, "way", "Way-bounded course", 0.0, 0.0, 0f)
+
+        val query = CourseGeometryLoader.buildRecoveryQuery(course)
+
+        assertTrue(query.contains("way(42) -> .course;"))
+        assertFalse(query.contains("; -> .course;"))
+    }
+
 }
