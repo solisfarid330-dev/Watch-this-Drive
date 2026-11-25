@@ -29,7 +29,7 @@ object CourseReconstructionEngine {
     private const val PIN_ENDPOINT_LIMIT_M = 20.0
     private const val DIRECTION_MARGIN_M = 10.0
     private const val MARKER_UNIQUENESS_MARGIN_M = 5.0
-    private const val CORRIDOR_LIMIT_M = 55.0
+    private const val CORRIDOR_LIMIT_M = 45.0
     private const val UNIQUE_MARGIN_M = 8.0
 
     fun reconstruct(course: CourseGeometry): CourseReconstruction {
