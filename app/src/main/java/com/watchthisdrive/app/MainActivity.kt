@@ -839,12 +839,12 @@ private fun CourseDetailScreen(
                     .values.map { candidates ->
                         candidates.firstOrNull { it.hasUsableGeometry } ?: candidates.first()
                     }
-                val merged = CourseFeatureInference.addInferredFeatures(CourseGeometry(
+                val merged = CourseFeatureInference.addInferredFeatures(CourseHoleInference.addInferredHoles(CourseGeometry(
                     courseId = course.id,
                     courseName = course.name,
                     features = mergedFeatures,
                     incompleteRelations = (previous?.incompleteRelations.orEmpty() + recovered.incompleteRelations).distinct()
-                ))
+                )))
                 val improved = CourseReconstructionEngine.reconstruct(merged)
                 val oldCount = reconstruction?.holes?.size ?: 0
                 geometry = merged
@@ -879,7 +879,7 @@ private fun CourseDetailScreen(
         CourseGeometryLoader.load(course) { result ->
             result.fold(
                 onSuccess = {
-                    val enriched = CourseFeatureInference.addInferredFeatures(it)
+                    val enriched = CourseFeatureInference.addInferredFeatures(CourseHoleInference.addInferredHoles(it))
                     geometry = enriched
                     reconstruction = CourseReconstructionEngine.reconstruct(enriched)
                     loading = false
