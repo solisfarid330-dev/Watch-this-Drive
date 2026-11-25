@@ -19,10 +19,10 @@ import com.watchthisdrive.app.data.RoundPlayer
 import com.watchthisdrive.app.data.RoundScorecard
 
 @Composable
-fun GlobalScorecardScreen(round: RoundScorecard, onScoreChange: (String, Int, Int) -> Unit, onAddPlayer: (String) -> Unit, onRemovePlayer: (String) -> Unit, onFinishRound: () -> Unit) {
+fun GlobalScorecardScreen(round: RoundScorecard, onScoreChange: (String, String, Int) -> Unit, onAddPlayer: (String) -> Unit, onRemovePlayer: (String) -> Unit, onFinishRound: () -> Unit) {
     var newPlayerName by remember { mutableStateOf("") }
     var showFinishDialog by remember { mutableStateOf(false) }
-    val holes = round.holePars.keys.sorted()
+    val holes = round.holePars.keys.sortedWith(compareBy<String> { it.toIntOrNull() ?: Int.MAX_VALUE }.thenBy { it })
     val userComplete = holes.isNotEmpty() && holes.all { (round.user.scores[it] ?: 0) > 0 }
     Column(Modifier.fillMaxSize().background(Color(0xFF101713)).verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("GLOBAL SCORECARD", color = Color(0xFFB8F36B), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
@@ -73,7 +73,7 @@ fun GlobalScorecardScreen(round: RoundScorecard, onScoreChange: (String, Int, In
 }
 
 @Composable
-private fun PlayerScorecard(player: RoundPlayer, isUser: Boolean, holes: List<Int>, pars: Map<Int, Int?>, onScoreChange: (Int, Int) -> Unit, onRemove: () -> Unit) {
+private fun PlayerScorecard(player: RoundPlayer, isUser: Boolean, holes: List<Int>, pars: Map<Int, Int?>, onScoreChange: (String, Int) -> Unit, onRemove: () -> Unit) {
     val total = player.scores.values.sum()
     val scoredWithPar = player.scores.filterKeys { pars[it] != null }
     val relative = if (scoredWithPar.isEmpty()) null else scoredWithPar.entries.sumOf { (hole, strokes) -> strokes - (pars[hole] ?: 0) }
