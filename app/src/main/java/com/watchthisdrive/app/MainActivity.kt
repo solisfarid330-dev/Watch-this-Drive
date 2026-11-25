@@ -31,6 +31,7 @@ import com.watchthisdrive.app.data.CourseDiscovery
 import com.watchthisdrive.app.data.ClubCarryDistances
 import com.watchthisdrive.app.data.CourseGeometry
 import com.watchthisdrive.app.data.CourseGeometryLoader
+import com.watchthisdrive.app.data.CourseFeatureInference
 import com.watchthisdrive.app.data.CourseMappingQuality
 import com.watchthisdrive.app.data.MissingCourseFeature
 import com.watchthisdrive.app.data.CourseReconstruction
@@ -838,12 +839,12 @@ private fun CourseDetailScreen(
                     .values.map { candidates ->
                         candidates.firstOrNull { it.hasUsableGeometry } ?: candidates.first()
                     }
-                val merged = CourseGeometry(
+                val merged = CourseFeatureInference.addInferredFeatures(CourseGeometry(
                     courseId = course.id,
                     courseName = course.name,
                     features = mergedFeatures,
                     incompleteRelations = (previous?.incompleteRelations.orEmpty() + recovered.incompleteRelations).distinct()
-                )
+                ))
                 val improved = CourseReconstructionEngine.reconstruct(merged)
                 val oldCount = reconstruction?.holes?.size ?: 0
                 geometry = merged
@@ -878,8 +879,9 @@ private fun CourseDetailScreen(
         CourseGeometryLoader.load(course) { result ->
             result.fold(
                 onSuccess = {
-                    geometry = it
-                    reconstruction = CourseReconstructionEngine.reconstruct(it)
+                    val enriched = CourseFeatureInference.addInferredFeatures(it)
+                    geometry = enriched
+                    reconstruction = CourseReconstructionEngine.reconstruct(enriched)
                     loading = false
                 },
                 onFailure = {
