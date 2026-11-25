@@ -12,6 +12,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -55,6 +58,7 @@ fun GolfMap(
     northUp: Boolean = false
 ) {
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
     val mapView = remember {
         MapLibre.getInstance(context)
         MapView(context).apply { onCreate(Bundle()) }
@@ -64,8 +68,22 @@ fun GolfMap(
     val latestOnMapTap by rememberUpdatedState(onMapTap)
     val styleUrl = if (key.isNotBlank()) "https://api.maptiler.com/maps/satellite/style.json?key=$key" else ""
 
-    DisposableEffect(mapView) {
-        mapView.onStart()
+    DisposableEffect(mapView, lifecycleOwner) {
+        var destroyed = false
+        val lifecycleObserver = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_START -> mapView.onStart()
+                Lifecycle.Event.ON_RESUME -> mapView.onResume()
+                Lifecycle.Event.ON_PAUSE -> mapView.onPause()
+                Lifecycle.Event.ON_STOP -> mapView.onStop()
+                Lifecycle.Event.ON_DESTROY -> {
+                    mapView.onDestroy()
+                    destroyed = true
+                }
+                else -> Unit
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(lifecycleObserver)
         mapView.getMapAsync { map ->
             map.setStyle(if (styleUrl.isNotBlank()) Style.Builder().fromUri(styleUrl) else Style.Builder().fromJson(EMPTY_STYLE)) {
                 map.uiSettings.isCompassEnabled = true
@@ -80,8 +98,13 @@ fun GolfMap(
             }
         }
         onDispose {
-            mapView.onStop()
-            mapView.onDestroy()
+            lifecycleOwner.lifecycle.removeObserver(lifecycleObserver)
+            if (!destroyed) {
+                val state = lifecycleOwner.lifecycle.currentState
+                if (state.isAtLeast(Lifecycle.State.RESUMED)) mapView.onPause()
+                if (state.isAtLeast(Lifecycle.State.STARTED)) mapView.onStop()
+                mapView.onDestroy()
+            }
         }
     }
 
