@@ -17,7 +17,7 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-OPEN_GOLF_API = "https://api.opengolfapi.org/v1"
+OPEN_GOLF_API = "https://api.opengolfapi.org/api/v1"
 NAIP_IMAGE_SERVER = (
     "https://imagery.geographic.texas.gov/server/rest/services/"
     "NAIP/NAIP22_NCCIR_60cm/ImageServer"
