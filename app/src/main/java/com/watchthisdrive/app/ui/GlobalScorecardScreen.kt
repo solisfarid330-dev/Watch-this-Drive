@@ -19,7 +19,7 @@ import com.watchthisdrive.app.data.RoundPlayer
 import com.watchthisdrive.app.data.RoundScorecard
 
 @Composable
-fun GlobalScorecardScreen(round: RoundScorecard, onScoreChange: (String, String, Int) -> Unit, onAddPlayer: (String) -> Unit, onRemovePlayer: (String) -> Unit, onFinishRound: () -> Unit) {
+fun GlobalScorecardScreen(round: RoundScorecard, onScoreChange: (String, String, Int) -> Unit, onAddPlayer: (String) -> Unit, onRemovePlayer: (String) -> Unit, onFinishRound: () -> Unit, readOnly: Boolean = false) {
     var newPlayerName by remember { mutableStateOf("") }
     var showFinishDialog by remember { mutableStateOf(false) }
     val holes = round.holePars.keys.sortedWith(compareBy<String> { it.toIntOrNull() ?: Int.MAX_VALUE }.thenBy { it })
@@ -28,13 +28,13 @@ fun GlobalScorecardScreen(round: RoundScorecard, onScoreChange: (String, String,
     Column(Modifier.fillMaxSize().background(Color(0xFF101713)).verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("GLOBAL SCORECARD", color = Color(0xFFB8F36B), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
         Text(round.courseName, color = Color.White, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-        Text("Scores entered here update the live game automatically.", color = Color(0xFFB6C1B9))
+        Text(if (readOnly) "Saved scorecard · read-only" else "Scores entered here update the live game automatically.", color = Color(0xFFB6C1B9))
         round.players.forEach { player ->
             PlayerScorecard(player, player.id == round.userPlayerId, holes, round.holePars,
                 { hole, strokes -> onScoreChange(player.id, hole, strokes) },
                 { onRemovePlayer(player.id) })
         }
-        Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF1B2921)), shape = RoundedCornerShape(16.dp)) {
+        if (!readOnly) Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF1B2921)), shape = RoundedCornerShape(16.dp)) {
             Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text("ADD PLAYER", color = Color(0xFFB8F36B), fontWeight = FontWeight.Bold)
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -61,13 +61,13 @@ fun GlobalScorecardScreen(round: RoundScorecard, onScoreChange: (String, String,
                 }
             }
         }
-        Button(onClick = { showFinishDialog = true }, modifier = Modifier.fillMaxWidth(),
+        if (!readOnly) Button(onClick = { showFinishDialog = true }, modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB8F36B), contentColor = Color(0xFF101713))) {
             Text(if (userComplete) "FINISH ROUND & SAVE" else "FINISH EARLY & SAVE", fontWeight = FontWeight.Bold)
         }
-        if (!userComplete) Text("$scoredHoleCount of ${holes.size} holes scored. You can finish now; unplayed holes will remain blank in your saved scorecard.", color = Color(0xFFB6C1B9), style = MaterialTheme.typography.bodySmall)
+        if (!readOnly && !userComplete) Text("$scoredHoleCount of ${holes.size} holes scored. You can finish now; unplayed holes will remain blank in your saved scorecard.", color = Color(0xFFB6C1B9), style = MaterialTheme.typography.bodySmall)
     }
-    if (showFinishDialog) AlertDialog(onDismissRequest = { showFinishDialog = false }, title = { Text(if (userComplete) "Save completed round?" else "Finish this round early?") },
+    if (!readOnly && showFinishDialog) AlertDialog(onDismissRequest = { showFinishDialog = false }, title = { Text(if (userComplete) "Save completed round?" else "Finish this round early?") },
         text = { Text(if (userComplete) "Your scorecard will be saved on this device and the active game will close." else "Your current scores will be saved on this device. Unplayed holes will remain blank, and the active game will close.") },
         confirmButton = { TextButton(onClick = { showFinishDialog = false; onFinishRound() }) { Text("SAVE ROUND", color = Color(0xFFB8F36B)) } },
         dismissButton = { TextButton(onClick = { showFinishDialog = false }) { Text("KEEP PLAYING") } })
