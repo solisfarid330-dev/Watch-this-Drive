@@ -271,7 +271,7 @@ private fun WatchThisDriveApp() {
                     containerColor = Color(0xFF18231C),
                     contentColor = Color.White
                 ) {
-                    val visibleTabs = if (activeRound) listOf(Tab.MAP, Tab.SCORE, Tab.CADDY) else Tab.values().toList()
+                    val visibleTabs = if (activeRound) listOf(Tab.HOME, Tab.MAP, Tab.SCORE, Tab.CADDY) else Tab.values().toList()
                     visibleTabs.forEach { tab ->
                         val icon = when (tab) {
                             Tab.HOME -> Icons.Filled.Home
@@ -394,7 +394,7 @@ private fun WatchThisDriveApp() {
                                         RoundScorecardStore.saveActive(context, updated)
                                     }
                                 } },
-                                onExitRound = { selected = Tab.SCORE }
+                                onExitRound = { selected = Tab.HOME }
                             )
                         } else if (activeRound && mapReconstruction == null) {
                             Column(

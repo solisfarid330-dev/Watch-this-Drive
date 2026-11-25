@@ -52,6 +52,7 @@ fun ActiveHoleScreen(
     val fused = remember { LocationServices.getFusedLocationProviderClient(context) }
     var player by remember { mutableStateOf<Location?>(null) }
     var gpsMessage by remember { mutableStateOf("Waiting for GPS") }
+    var refreshingGps by remember { mutableStateOf(false) }
     var target by remember { mutableStateOf<GeoPoint?>(null) }
     LaunchedEffect(hole.number) { target = null }
     var northUp by remember { mutableStateOf(false) }
@@ -67,7 +68,30 @@ fun ActiveHoleScreen(
         hasLocationPermission =
             result[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
             result[Manifest.permission.ACCESS_COARSE_LOCATION] == true
-        gpsMessage = if (hasLocationPermission) "GPS permission granted" else "Location permission denied"
+        if (hasLocationPermission) {
+            gpsMessage = "Getting a fresh GPS fix…"
+            refreshingGps = true
+            try {
+                fused.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
+                    .addOnSuccessListener { fresh ->
+                        refreshingGps = false
+                        if (fresh != null) {
+                            player = fresh
+                            gpsMessage = "GPS ±${fresh.accuracy.toInt()} m"
+                        } else gpsMessage = "No fresh fix yet — keep GPS enabled and try again"
+                    }
+                    .addOnFailureListener {
+                        refreshingGps = false
+                        gpsMessage = "Couldn't refresh GPS — try again"
+                    }
+            } catch (_: SecurityException) {
+                refreshingGps = false
+                gpsMessage = "Location permission needed"
+            }
+        } else {
+            refreshingGps = false
+            gpsMessage = "Location permission denied"
+        }
     }
     LaunchedEffect(Unit) {
         if (!hasLocationPermission) {
@@ -75,6 +99,35 @@ fun ActiveHoleScreen(
                 Manifest.permission.ACCESS_FINE_LOCATION,
                 Manifest.permission.ACCESS_COARSE_LOCATION
             ))
+        }
+    }
+
+    fun refreshGps() {
+        val fine = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        val coarse = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        if (!fine && !coarse) {
+            gpsMessage = "Requesting location permission…"
+            permissionLauncher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
+            return
+        }
+        refreshingGps = true
+        gpsMessage = "Getting a fresh GPS fix…"
+        try {
+            fused.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
+                .addOnSuccessListener { fresh ->
+                    refreshingGps = false
+                    if (fresh != null) {
+                        player = fresh
+                        gpsMessage = "GPS ±${fresh.accuracy.toInt()} m"
+                    } else gpsMessage = "No fresh fix yet — keep GPS enabled and try again"
+                }
+                .addOnFailureListener {
+                    refreshingGps = false
+                    gpsMessage = "Couldn't refresh GPS — try again"
+                }
+        } catch (_: SecurityException) {
+            refreshingGps = false
+            gpsMessage = "Location permission needed"
         }
     }
 
@@ -191,17 +244,26 @@ fun ActiveHoleScreen(
                 Icon(if (northUp) Icons.Filled.Explore else Icons.Filled.Navigation, contentDescription = "Toggle map orientation", tint = Color.White)
             }
         }
-        Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Surface(color = Color(0xE91A251E), shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
-                Row(Modifier.padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(horizontal = 8.dp, vertical = 7.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+            Surface(color = Color(0xE91A251E), shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth()) {
+                Row(Modifier.padding(horizontal = 11.dp, vertical = 7.dp), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text(if (target != null) "DISTANCE TO TARGET" else "DISTANCE TO PIN", color = Color(0xFFB6C1B9), style = MaterialTheme.typography.labelSmall)
-                        Text((yardsToTarget ?: yardsToPin)?.let { "$it yd" } ?: "Yardage unavailable", color = Color.White, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                        Text(displayedGpsMessage, color = Color(0xFFB8F36B), style = MaterialTheme.typography.labelSmall)
+                        Text((yardsToTarget ?: yardsToPin)?.let { "$it yd" } ?: "— yd", color = Color.White, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(displayedGpsMessage, color = Color(0xFFB8F36B), style = MaterialTheme.typography.labelSmall, maxLines = 1)
+                            Spacer(Modifier.width(4.dp))
+                            TextButton(onClick = { refreshGps() }, enabled = !refreshingGps, contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp)) {
+                                if (refreshingGps) CircularProgressIndicator(Modifier.size(13.dp), strokeWidth = 2.dp, color = Color(0xFFB8F36B))
+                                else Icon(Icons.Filled.Refresh, contentDescription = "Refresh GPS", tint = Color(0xFFB8F36B), modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(3.dp))
+                                Text("GPS", color = Color(0xFFB8F36B), style = MaterialTheme.typography.labelSmall)
+                            }
+                        }
                         if (hole.pinSource == com.watchthisdrive.app.data.PinSource.ESTIMATED_GREEN_CENTER) Text("Estimated green-center pin", color = Color(0xFFFFC857), style = MaterialTheme.typography.labelSmall)
                     }
                     Column(horizontalAlignment = Alignment.End) {
-                        Text("CADDY", color = Color(0xFFB6C1B9), style = MaterialTheme.typography.labelSmall)
+                        Text("CLUB", color = Color(0xFFB6C1B9), style = MaterialTheme.typography.labelSmall)
                         Text(
                             recommendedClub?.key ?: "Set carry distances",
                             color = Color.White,
@@ -230,7 +292,7 @@ fun ActiveHoleScreen(
             } else Text("Tap the map to measure to any target", color = Color.White, modifier = Modifier.align(Alignment.CenterHorizontally), style = MaterialTheme.typography.labelMedium)
             Surface(color = Color(0xF018231C), shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
                 Row(Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                    IconButton(onClick = onExitRound) { Icon(Icons.Filled.ArrowBack, contentDescription = "Exit round", tint = Color.White) }
+                    IconButton(onClick = onExitRound) { Icon(Icons.Filled.ArrowBack, contentDescription = "Leave game and return home", tint = Color.White) }
                     TextButton(onClick = onPreviousHole, enabled = holeIndex > 0) { Text("Previous", color = Color.White) }
                     Text("${holeIndex + 1} / $holeCount", color = Color(0xFFB8F36B), fontWeight = FontWeight.Bold)
                     TextButton(onClick = onNextHole, enabled = holeIndex < holeCount - 1) { Text("Next", color = Color.White) }
