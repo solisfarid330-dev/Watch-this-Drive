@@ -57,11 +57,30 @@ class CourseReconstructionEngineTest {
         )
         val result = CourseReconstructionEngine.reconstruct(geometry)
         assertEquals(18, result.holes.size)
-        assertTrue(result.holes.any { it.green != null })
-        result.holes.filter { it.green != null }.forEach { hole ->
+        assertEquals("All South Padre holes should resolve to their own mapped green", 18, result.holes.count { it.green != null })
+        assertEquals("South Padre has no mapped pins, so every resolved green should yield an estimated pin",
+            18, result.holes.count { it.pinSource == PinSource.ESTIMATED_GREEN_CENTER })
+        result.holes.forEach { hole ->
             assertNotNull("A mapped green should produce an estimated pin", hole.pin)
             assertEquals(PinSource.ESTIMATED_GREEN_CENTER, hole.pinSource)
         }
+    }
+
+    @Test fun reconstructsWestwoodHolesWithUniqueTeeGreenAndMappedPinAssociations() {
+        val stream = javaClass.classLoader!!.getResourceAsStream("fixtures/westwood-course-overpass.json")
+        val json = stream!!.bufferedReader().use { it.readText() }
+        val geometry = CourseGeometryLoader.parseGeometry(
+            json, GolfCourse(125353929L, "relation", "Westwood Country Club", 0.0, 0.0, 0f)
+        )
+        val result = CourseReconstructionEngine.reconstruct(geometry)
+        assertEquals(18, result.holes.size)
+        assertEquals(18, result.holes.count { it.tee != null })
+        assertEquals(18, result.holes.count { it.green != null })
+        assertEquals(18, result.mappedPinCount)
+        assertEquals(18, result.holes.mapNotNull { it.tee?.let { tee -> tee.elementType to tee.id } }.toSet().size)
+        assertEquals(18, result.holes.mapNotNull { it.green?.let { green -> green.elementType to green.id } }.toSet().size)
+        assertEquals(18, result.holes.mapNotNull { it.pinSource?.let { source -> source to it.number } }.size)
+        assertTrue(result.holes.all { it.teeToGreenOriented && it.pin != null })
     }
 
     @Test fun usesMappedPinsToOrientAndReconstructCoursesWithoutMappedGreens() {
