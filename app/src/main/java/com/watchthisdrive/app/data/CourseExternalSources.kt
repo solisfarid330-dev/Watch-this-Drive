@@ -2,7 +2,6 @@ package com.watchthisdrive.app.data
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.location.Location
 import android.os.Handler
 import android.os.Looper
 import org.json.JSONArray
@@ -133,8 +132,8 @@ object OpenGolfApiCourseLoader {
         return ExternalCourseMetadata(
             sourceId = sourceId,
             name = name,
-            city = detail.optString("city").ifBlank { fallback.optString("city") }.ifBlank { null },
-            state = detail.optString("state").ifBlank { fallback.optString("state") }.ifBlank { null },
+            city = detail.optString("city").ifBlank { fallback.optString("city") }.takeIf { it.isNotBlank() },
+            state = detail.optString("state").ifBlank { fallback.optString("state") }.takeIf { it.isNotBlank() },
             holeCount = detail.optIntOrNull("hole_count")
                 ?: detail.optIntOrNull("holes_count")
                 ?: fallbackHoleCount
@@ -192,9 +191,14 @@ object OpenGolfApiCourseLoader {
         value.lowercase().replace(Regex("[^a-z0-9]"), "")
 
     private fun distanceMeters(aLat: Double, aLon: Double, bLat: Double, bLon: Double): Double {
-        val result = FloatArray(1)
-        Location.distanceBetween(aLat, aLon, bLat, bLon, result)
-        return result[0].toDouble()
+        val earthRadius = 6_371_008.8
+        val lat1 = Math.toRadians(aLat)
+        val lat2 = Math.toRadians(bLat)
+        val deltaLat = lat2 - lat1
+        val deltaLon = Math.toRadians(bLon - aLon)
+        val h = sin(deltaLat / 2).pow(2) +
+            cos(lat1) * cos(lat2) * sin(deltaLon / 2).pow(2)
+        return 2.0 * earthRadius * asin(sqrt(h.coerceIn(0.0, 1.0)))
     }
 
     private fun firstInt(obj: JSONObject, vararg keys: String): Int? =
