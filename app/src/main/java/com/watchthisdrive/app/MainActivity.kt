@@ -1004,6 +1004,20 @@ private fun CourseDetailScreen(
                                 color = Color.White,
                                 style = MaterialTheme.typography.bodySmall
                             )
+                            report.expectedHoleCount?.let { expected ->
+                                Text(
+                                    "${report.reconstructedHoleCount}/$expected expected holes reconstructed",
+                                    color = if (report.reconstructedHoleCount >= expected) Color(0xFFB8F36B) else Color(0xFFFFC857),
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
+                            if (report.inferredHoleCount > 0) {
+                                Text(
+                                    "${report.inferredHoleCount} missing hole(s) reconstructed from numbered tee, green and fairway evidence (inferred)",
+                                    color = Color(0xFFFFC857),
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
                             if (report.inferredFairwayCount > 0) {
                                 Text(
                                     "${report.inferredFairwayCount} fairway corridors generated from hole lines (approximate, not source-mapped)",

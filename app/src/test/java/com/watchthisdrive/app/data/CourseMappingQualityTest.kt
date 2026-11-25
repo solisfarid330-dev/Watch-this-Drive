@@ -30,4 +30,16 @@ class CourseMappingQualityTest {
         val quality = CourseMappingQuality.assess(geometry, CourseReconstructionEngine.reconstruct(geometry))
         assertTrue(quality.missingNumberedHoles.isEmpty())
     }
+    @Test fun reportsInferredHoleCountAndExpectedNineHoleTarget() {
+        val inferred = hole("3").copy(
+            origin = CourseFeatureOrigin.INFERRED,
+            geometryStatus = "inferred_from_numbered_tee_green_and_fairway",
+            confidence = 0.65
+        )
+        val geometry = CourseGeometry(1, "Generic", listOf(hole("1"), hole("2"), hole("4"), hole("5"), hole("6"), hole("7"), hole("8"), hole("9"), inferred))
+        val quality = CourseMappingQuality.assess(geometry, CourseReconstructionEngine.reconstruct(geometry))
+        assertEquals(9, quality.expectedHoleCount)
+        assertEquals(1, quality.inferredHoleCount)
+    }
+
 }

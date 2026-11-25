@@ -15,6 +15,8 @@ data class CourseMappingQuality(
     val bunkerCount: Int,
     val waterCount: Int,
     val inferredFairwayCount: Int,
+    val inferredHoleCount: Int,
+    val expectedHoleCount: Int?,
     val missingNumberedHoles: List<Int>,
     val geometryIssues: Int,
     val holesWithoutGreen: Int
@@ -50,6 +52,8 @@ data class CourseMappingQuality(
                 bunkerCount = count("bunker"),
                 waterCount = count("water_hazard"),
                 inferredFairwayCount = usable.count { it.featureType == "fairway" && it.origin == CourseFeatureOrigin.INFERRED },
+                inferredHoleCount = usable.count { it.featureType == "hole" && it.origin == CourseFeatureOrigin.INFERRED },
+                expectedHoleCount = when { numbered.maxOrNull() == 9 -> 9; (numbered.maxOrNull() ?: 0) > 9 -> 18; else -> null },
                 missingNumberedHoles = missing,
                 geometryIssues = geometry.incompleteRelations.size,
                 holesWithoutGreen = reconstruction.holes.count { it.green == null }
