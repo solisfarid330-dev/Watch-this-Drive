@@ -334,6 +334,31 @@ validated segmentation/reconstruction stage, not be accepted as feature
 boundaries merely because a model returns a mask. The new intake script only
 retrieves and records imagery; it does not claim production segmentation.
 
-All three additions are research-stage inputs until matching, licensing,
-coverage, accuracy, and on-device cost are verified. They are generic and
-must never introduce course-name or course-ID production exceptions.
+## Android integration status
+
+The Android course-detail flow now queries the current OpenGolfAPI REST contract
+for the selected OSM course, accepts only an exact normalized course-name match
+within 5 km (or an explicit matching OSM ID), and displays the returned course
+record, scorecard, and tee summaries with ODbL attribution. Scorecard hole count
+can supply the expected 9/18-hole target, and per-hole par fills only missing par
+metadata on already-mapped OSM hole lines. Scorecard yardages remain validation
+evidence; they never create, move, or reshape geometry.
+
+The same flow requests a georeferenced aerial preview from the nationwide USGS
+NAIP ImageServer. This is a visual evidence layer only; no classifier output is
+promoted to course geometry. The Texas-only research imagery path remains useful
+for reproducible four-band experiments, while the app's nationwide preview uses
+the USGS/USDA public imagery service. Availability and image resolution vary by
+location and acquisition vintage.
+
+Ariad remains a reference-only audit input, not an automated Android feed. Its
+published atlas does not document a public machine API, and it identifies OSM
+and OpenGolfAPI among its data sources. Scraping undocumented endpoints or
+counting repeated OSM-derived geometry as independent evidence would make the
+pipeline less reliable, not more. Ariad is therefore used to flag coverage and
+scorecard discrepancies during research/manual review, with provenance retained.
+
+The production integrations are generic and must never introduce course-name
+or course-ID exceptions. Automated segmentation from NAIP and any Ariad model
+weights remain gated on independent accuracy validation, redistribution rights,
+and on-device performance.
