@@ -22,7 +22,8 @@ data class RoundScorecard(
     val courseElementType: String? = null,
     val courseLatitude: Double? = null,
     val courseLongitude: Double? = null,
-    val expectedHoleCount: Int? = null
+    val expectedHoleCount: Int? = null,
+    val scorecardOnly: Boolean = false
 ) {
     val user: RoundPlayer get() = players.first { it.id == userPlayerId }
     fun totalFor(player: RoundPlayer): Int = player.scores.values.sum()
@@ -64,6 +65,19 @@ object RoundScorecardStore {
         }.commit()
     }
 
+    data class SavedRound(val round: RoundScorecard, val completedAt: Long)
+
+    fun loadCompleted(context: Context): List<SavedRound> {
+        val raw = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(COMPLETED, "[]") ?: "[]"
+        return runCatching {
+            val history = JSONArray(raw)
+            (0 until history.length()).mapNotNull { index ->
+                val item = history.optJSONObject(index) ?: return@mapNotNull null
+                runCatching { SavedRound(decode(item), item.optLong("completedAt", item.optLong("startedAt"))) }.getOrNull()
+            }.sortedByDescending { it.completedAt }
+        }.getOrDefault(emptyList())
+    }
+
     fun saveCompleted(context: Context, round: RoundScorecard) {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val history = runCatching { JSONArray(prefs.getString(COMPLETED, "[]")) }
@@ -81,6 +95,7 @@ object RoundScorecardStore {
         put("courseLatitude", round.courseLatitude ?: JSONObject.NULL)
         put("courseLongitude", round.courseLongitude ?: JSONObject.NULL)
         put("expectedHoleCount", round.expectedHoleCount ?: JSONObject.NULL)
+        put("scorecardOnly", round.scorecardOnly)
         put("userPlayerId", round.userPlayerId)
         put("holePars", JSONObject().apply {
             round.holePars.forEach { (hole, par) -> put(hole.toString(), par ?: JSONObject.NULL) }
@@ -131,7 +146,8 @@ object RoundScorecardStore {
             courseElementType = json.optString("courseElementType").takeIf { it.isNotBlank() },
             courseLatitude = if (json.isNull("courseLatitude")) null else json.optDouble("courseLatitude"),
             courseLongitude = if (json.isNull("courseLongitude")) null else json.optDouble("courseLongitude"),
-            expectedHoleCount = if (json.isNull("expectedHoleCount")) null else json.optInt("expectedHoleCount")
+            expectedHoleCount = if (json.isNull("expectedHoleCount")) null else json.optInt("expectedHoleCount"),
+            scorecardOnly = json.optBoolean("scorecardOnly", false)
         )
     }
 }
