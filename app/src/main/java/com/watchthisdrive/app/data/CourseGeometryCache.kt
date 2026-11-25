@@ -10,7 +10,9 @@ import java.io.File
  * resumable even when the map provider is unavailable at the course.
  */
 object CourseGeometryCache {
-    private const val FILE_NAME = "active_course_geometry.json"
+    private const val ACTIVE_FILE_NAME = "active_course_geometry.json"
+    private const val COURSE_DIRECTORY = "mapped_courses"
+    private fun courseFile(context: Context, id: Long) = File(File(context.filesDir, COURSE_DIRECTORY), "course_$id.json")
 
     fun save(context: Context, geometry: CourseGeometry) {
         runCatching {
@@ -41,18 +43,23 @@ object CourseGeometryCache {
                     }
                 })
             }
-            val target = File(context.filesDir, FILE_NAME)
-            val temporary = File(context.filesDir, "$FILE_NAME.tmp")
+            val directory = File(context.filesDir, COURSE_DIRECTORY)
+            if (!directory.exists()) directory.mkdirs()
+            val target = courseFile(context, geometry.courseId)
+            val temporary = File(target.absoluteFile.parentFile, target.name + ".tmp")
             temporary.writeText(root.toString(), Charsets.UTF_8)
             if (!temporary.renameTo(target)) {
                 target.writeText(temporary.readText(Charsets.UTF_8), Charsets.UTF_8)
                 temporary.delete()
             }
+            File(context.filesDir, ACTIVE_FILE_NAME).writeText(root.toString(), Charsets.UTF_8)
         }
     }
 
     fun load(context: Context, expectedCourseId: Long): CourseGeometry? = runCatching {
-        val file = File(context.filesDir, FILE_NAME)
+        val libraryFile = courseFile(context, expectedCourseId)
+        val legacyFile = File(context.filesDir, ACTIVE_FILE_NAME)
+        val file = if (libraryFile.isFile) libraryFile else legacyFile
         if (!file.isFile) return null
         val root = JSONObject(file.readText(Charsets.UTF_8))
         if (root.optLong("courseId", Long.MIN_VALUE) != expectedCourseId) return null
@@ -92,7 +99,7 @@ object CourseGeometryCache {
     }.getOrNull()
 
     fun clear(context: Context) {
-        runCatching { File(context.filesDir, FILE_NAME).delete() }
+        runCatching { File(context.filesDir, ACTIVE_FILE_NAME).delete() }
     }
 
     private fun pointJson(point: GeoPoint) = JSONObject().put("lat", point.latitude).put("lon", point.longitude)
