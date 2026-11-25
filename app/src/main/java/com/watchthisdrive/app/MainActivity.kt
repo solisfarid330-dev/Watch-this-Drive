@@ -204,7 +204,7 @@ private fun WatchThisDriveApp() {
     }
 
     LaunchedEffect(activeRound) {
-        if (activeRound && mapReconstruction == null && roundScorecard != null) {
+        if (activeRound && mapReconstruction == null && roundScorecard != null && !roundScorecard!!.scorecardOnly) {
             restoreActiveCourse()
         }
     }
@@ -438,7 +438,7 @@ private fun WatchThisDriveApp() {
                     Tab.SCORE -> {
                         val round = roundScorecard
                         if (viewingSavedRound != null) {
-                            GlobalScorecardScreen(round = viewingSavedRound!!.round, onScoreChange = { _, _, _ -> }, onAddPlayer = {}, onRemovePlayer = {}, onFinishRound = {}, readOnly = true)
+                            GlobalScorecardScreen(round = viewingSavedRound!!.round, onScoreChange = { _, _, _ -> }, onAddPlayer = {}, onRemovePlayer = {}, onFinishRound = {}, readOnly = true, onBack = { viewingSavedRound = null })
                         } else if (activeRound && round != null) {
                             GlobalScorecardScreen(
                                 round = round,
@@ -465,7 +465,8 @@ private fun WatchThisDriveApp() {
                                     CourseGeometryCache.clear(context)
                                     roundScorecard = null
                                     activeRound = false
-                                    selected = Tab.MAP
+                                    viewingSavedRound = null
+                                    selected = Tab.HOME
                                 }
                             )
                         } else ScorecardHubScreen(savedRounds = savedRounds, onStartScorecardOnly = { count ->
@@ -508,6 +509,9 @@ private fun HomeScreen(hasActiveRound: Boolean, onResumeRound: () -> Unit, onFin
                     Icon(Icons.Filled.Search, null); Spacer(Modifier.width(8.dp)); Text("FIND NEARBY COURSES", fontWeight = FontWeight.Bold)
                 }
             }
+        }
+        OutlinedButton(onClick = onFindCourses, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFB8F36B))) {
+            Icon(Icons.Filled.Search, null); Spacer(Modifier.width(8.dp)); Text(if (hasActiveRound) "FIND ANOTHER COURSE" else "BROWSE COURSES")
         }
         if (!hasActiveRound) Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF18231C)), shape = RoundedCornerShape(16.dp)) {
             Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
