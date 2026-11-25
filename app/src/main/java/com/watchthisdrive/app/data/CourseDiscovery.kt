@@ -128,7 +128,6 @@ object CourseDiscovery {
         val query = """
             [out:json][timeout:25];
             (
-              node["leisure"="golf_course"](around:$SEARCH_RADIUS_METERS,$latitude,$longitude);
               way["leisure"="golf_course"](around:$SEARCH_RADIUS_METERS,$latitude,$longitude);
               relation["leisure"="golf_course"](around:$SEARCH_RADIUS_METERS,$latitude,$longitude);
             );
