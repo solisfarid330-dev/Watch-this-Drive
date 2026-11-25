@@ -138,9 +138,11 @@ object CourseGeometryLoader {
     }
 
     internal fun buildRecoveryQuery(course: GolfCourse, featureType: String? = null): String {
+        // Keep the selector free of its terminating semicolon because this
+        // statement redirects its result into the named .course set below.
         val element = when (course.elementType.lowercase()) {
-            "relation" -> "relation(${course.id});"
-            "way" -> "way(${course.id});"
+            "relation" -> "relation(${course.id})"
+            "way" -> "way(${course.id})"
             else -> throw Exception("This course is represented by an OSM node, which does not provide a course boundary.")
         }
         val normalizedType = featureType?.lowercase()?.takeIf {
