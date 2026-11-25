@@ -77,6 +77,7 @@ private fun WatchThisDriveApp() {
     var mapTarget by remember { mutableStateOf<Location?>(null) }
     var mapGeometry by remember { mutableStateOf<CourseGeometry?>(null) }
     var mapReconstruction by remember { mutableStateOf<CourseReconstruction?>(null) }
+    var mapRecoveryMessage by remember { mutableStateOf<String?>(null) }
     var roundScorecard by remember { mutableStateOf(RoundScorecardStore.loadActive(context)) }
     var activeRound by remember { mutableStateOf(roundScorecard != null) }
     var activeHoleIndex by remember { mutableIntStateOf((roundScorecard?.activeHoleNumber?.toIntOrNull() ?: 1) - 1) }
@@ -84,6 +85,47 @@ private fun WatchThisDriveApp() {
 
     val fused = remember { LocationServices.getFusedLocationProviderClient(context) }
     var clubCarries by remember { mutableStateOf(ClubCarryDistances.load(context)) }
+
+    fun restoreActiveCourse() {
+        val savedRound = roundScorecard ?: return
+        val savedId = savedRound.courseId ?: return
+        val savedType = savedRound.courseElementType ?: return
+        val latitude = savedRound.courseLatitude ?: return
+        val longitude = savedRound.courseLongitude ?: return
+        mapRecoveryMessage = "Restoring ${savedRound.courseName}…"
+        val course = GolfCourse(
+            id = savedId, elementType = savedType, name = savedRound.courseName,
+            latitude = latitude, longitude = longitude, distanceMeters = 0f,
+            expectedHoleCount = savedRound.expectedHoleCount
+        )
+        CourseGeometryLoader.load(course) { result ->
+            result.onSuccess { sourceGeometry ->
+                val geometry = sourceGeometry.copy(
+                    expectedHoleCount = savedRound.expectedHoleCount
+                        ?: sourceGeometry.expectedHoleCount
+                )
+                val reconstructed = CourseFeatureInference.addInferredFeatures(
+                    CourseHoleInference.addInferredHoles(geometry)
+                )
+                val rebuilt = CourseReconstructionEngine.reconstruct(reconstructed)
+                mapGeometry = reconstructed
+                mapReconstruction = rebuilt
+                mapTarget = Location("restored-course").apply {
+                    this.latitude = latitude
+                    this.longitude = longitude
+                }
+                activeHoleIndex = rebuilt.holes.indexOfFirst {
+                    it.number == savedRound.activeHoleNumber
+                }.takeIf { it >= 0 } ?: 0
+                mapRecoveryMessage = if (rebuilt.holes.isEmpty()) {
+                    "Course data loaded, but no playable holes could be reconstructed. Your round and scores are safe in Scorecard."
+                } else null
+                selected = Tab.MAP
+            }.onFailure { problem ->
+                mapRecoveryMessage = "Couldn't restore the course map: ${problem.message ?: "Please try again."} Your scores are still saved; retry when you have a connection."
+            }
+        }
+    }
 
     fun updateRoundScore(playerId: String, holeNumber: String, strokes: Int) {
         val current = roundScorecard ?: return
@@ -93,6 +135,12 @@ private fun WatchThisDriveApp() {
         })
         roundScorecard = updated
         RoundScorecardStore.saveActive(context, updated)
+    }
+
+    LaunchedEffect(activeRound, roundScorecard?.courseId, mapReconstruction) {
+        if (activeRound && mapReconstruction == null && roundScorecard?.courseId != null) {
+            restoreActiveCourse()
+        }
     }
 
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -209,7 +257,14 @@ private fun WatchThisDriveApp() {
                             activeHoleIndex = 0
                             val holes = loadedReconstruction?.holes.orEmpty()
                             if (holes.isNotEmpty()) {
-                                roundScorecard = RoundScorecard.new(selectedCourse!!.name, holes.associate { it.number to it.par })
+                                roundScorecard = RoundScorecard.new(
+                                    selectedCourse!!.name, holes.associate { it.number to it.par },
+                                    courseId = selectedCourse!!.id,
+                                    courseElementType = selectedCourse!!.elementType,
+                                    courseLatitude = selectedCourse!!.latitude,
+                                    courseLongitude = selectedCourse!!.longitude,
+                                    expectedHoleCount = loadedGeometry?.expectedHoleCount ?: selectedCourse!!.expectedHoleCount
+                                )
                                 RoundScorecardStore.saveActive(context, roundScorecard)
                             } else {
                                 roundScorecard = null
@@ -277,6 +332,29 @@ private fun WatchThisDriveApp() {
                                 } },
                                 onExitRound = { selected = Tab.SCORE }
                             )
+                        } else if (activeRound && mapReconstruction == null) {
+                            Column(
+                                Modifier.fillMaxSize().background(Color(0xFF101713)).padding(24.dp),
+                                verticalArrangement = Arrangement.Center,
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                CircularProgressIndicator(color = Color(0xFFB8F36B))
+                                Spacer(Modifier.height(16.dp))
+                                Text(
+                                    mapRecoveryMessage ?: "Restoring your active game and course map…",
+                                    color = Color.White,
+                                    style = MaterialTheme.typography.bodyLarge
+                                )
+                                if (mapRecoveryMessage?.startsWith("Couldn't restore") == true) {
+                                    Spacer(Modifier.height(12.dp))
+                                    Button(onClick = { restoreActiveCourse() }) {
+                                        Text("RETRY COURSE RESTORE")
+                                    }
+                                }
+                                TextButton(onClick = { selected = Tab.SCORE }) {
+                                    Text("OPEN SAVED SCORECARD", color = Color(0xFFB8F36B))
+                                }
+                            }
                         } else {
                             GolfMap(location = mapTarget ?: location, onLocate = { mapTarget = null; locate() }, courseGeometry = mapGeometry, reconstruction = mapReconstruction)
                         }
