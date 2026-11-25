@@ -93,8 +93,39 @@ class CourseExternalSourcesTest {
         assertTrue(url.startsWith("https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer/exportImage?"))
         assertTrue(url.contains("bboxSR=3857"))
         assertTrue(url.contains("imageSR=3857"))
-        assertTrue(url.contains("size=1200%2C1200"))
+        assertTrue(url.contains("size=1200,1200"))
         assertTrue(url.contains("format=jpgpng"))
         assertTrue(url.contains("f=image"))
     }
+    @Test
+    fun scorecardEnrichmentAddsParButNeverInventsHoleGeometry() {
+        val sourceHole = CourseFeature(
+            id = 5L,
+            elementType = "way",
+            featureType = "hole",
+            holeNumber = "1",
+            name = null,
+            points = listOf(GeoPoint(26.0, -97.0), GeoPoint(26.001, -97.001)),
+            geometryType = CourseGeometryType.LINE
+        )
+        val geometry = CourseGeometry(5L, "Test Golf Club", listOf(sourceHole))
+        val metadata = ExternalCourseMetadata(
+            sourceId = "api-1",
+            name = "Test Golf Club",
+            city = null,
+            state = null,
+            holeCount = 18,
+            totalPar = 72,
+            totalYardage = 6800,
+            holes = listOf(CourseScorecardHole(1, 4, 7, 385)),
+            tees = emptyList()
+        )
+
+        val enriched = enrichGeometryWithScorecard(geometry, metadata)
+        assertEquals(18, enriched.expectedHoleCount)
+        assertEquals(4, enriched.features.single().par)
+        assertEquals(1, enriched.features.size)
+        assertEquals(CourseFeatureOrigin.SOURCE, enriched.features.single().origin)
+    }
+
 }
