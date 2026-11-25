@@ -56,8 +56,8 @@ object CourseHoleInference {
             // Multiple tee boxes often share one hole number. Cluster nearby
             // markers, then choose only a clearly best length/fairway-supported
             // candidate rather than rejecting every multi-tee hole.
-            val candidates = clusterTees(matchingTees).mapNotNull { cluster ->
-                if (!plausibleLine(cluster.point, green)) return@mapNotNull null
+            val candidates = clusterTees(matchingTees).mapNotNull candidate@{ cluster ->
+                if (!plausibleLine(cluster.point, green)) return@candidate null
                 val support = fairwaySupport(cluster.point, green, fairways)
                 val score = abs(meters(cluster.point, green) - 250.0) * 0.05 +
                     (1.0 - support) * 80.0
