@@ -1,5 +1,8 @@
 package com.watchthisdrive.app.data
 
+import org.json.JSONObject
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -37,6 +40,12 @@ class CourseGeometryRecoveryQueryTest {
             "untrusted-category"
         )
         assertTrue(query.contains("""["golf"]"""))
+    }
+
+    @Test fun readsOnlySupportedNineOrEighteenHoleCourseMetadata() {
+        assertEquals(9, CourseDiscovery.parseExpectedHoleCount(JSONObject("""{"holes":"9"}""")))
+        assertEquals(18, CourseDiscovery.parseExpectedHoleCount(JSONObject("""{"golf:holes":"18"}""")))
+        assertNull(CourseDiscovery.parseExpectedHoleCount(JSONObject("""{"holes":"27"}""")))
     }
 
 }
