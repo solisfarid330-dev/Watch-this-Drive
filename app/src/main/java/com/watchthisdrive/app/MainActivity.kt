@@ -969,6 +969,7 @@ private fun CourseDetailScreen(
 
                     else -> {
                         val features = geometry?.features.orEmpty()
+                        val sourceFeatures = features.filter { it.origin == com.watchthisdrive.app.data.CourseFeatureOrigin.SOURCE }
                         val currentGeometry = geometry
                         val currentReconstruction = reconstruction
                         val quality = if (currentGeometry != null && currentReconstruction != null) {
@@ -1047,7 +1048,7 @@ private fun CourseDetailScreen(
                         }
 
                         Text(
-                            "${features.size} mapped features found",
+                            "${sourceFeatures.size} source-mapped features found",
                             color = Color(0xFFB8F36B),
                             fontWeight = FontWeight.Bold
                         )
@@ -1062,7 +1063,7 @@ private fun CourseDetailScreen(
                         )
 
                         featureTypes.forEach { (label, type) ->
-                            val count = features.count { it.featureType == type }
+                            val count = sourceFeatures.count { it.featureType == type }
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween
@@ -1072,14 +1073,14 @@ private fun CourseDetailScreen(
                             }
                         }
 
-                        val polygonCount = features.count {
+                        val polygonCount = sourceFeatures.count {
                             it.geometryType == com.watchthisdrive.app.data.CourseGeometryType.POLYGON ||
                                 it.geometryType == com.watchthisdrive.app.data.CourseGeometryType.MULTI_POLYGON
                         }
-                        val lineCount = features.count {
+                        val lineCount = sourceFeatures.count {
                             it.geometryType == com.watchthisdrive.app.data.CourseGeometryType.LINE
                         }
-                        val pointCount = features.count {
+                        val pointCount = sourceFeatures.count {
                             it.geometryType == com.watchthisdrive.app.data.CourseGeometryType.POINT
                         }
                         Divider(color = Color(0xFF344238))
