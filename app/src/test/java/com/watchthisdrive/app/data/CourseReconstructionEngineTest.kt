@@ -43,7 +43,7 @@ class CourseReconstructionEngineTest {
         )
         val green = polygon(2, "green", ring)
         val hole = CourseFeature(1, "way", "hole", "1", null,
-            listOf(GeoPoint(-0.001, 0.002), GeoPoint(0.0042, 0.002)), CourseGeometryType.LINE)
+            listOf(GeoPoint(-0.001, 0.002), GeoPoint(0.002, 0.0012)), CourseGeometryType.LINE)
         val result = CourseReconstructionEngine.reconstruct(CourseGeometry(10, "Test", listOf(hole, green)))
         val pin = result.holes.single().pin!!
         assertTrue(pin.latitude >= 0.0 && pin.latitude <= 0.004)
