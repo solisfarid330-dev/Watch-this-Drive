@@ -59,3 +59,8 @@ The course detail screen now includes a source-data coverage summary, an **Impro
 - A broader query can only recover information that exists in the queried OSM data. It cannot fill genuinely unmapped fairways/greens or replace satellite-image recognition.
 
 These controls are an initial recovery framework, not a claim that imagery recognition or full automatic repair is complete.
+
+
+## Local data and settings
+
+The Settings screen provides expandable sections for club carry distances, location permissions, and on-device data. Saved course-map inventory is read from the app's private `filesDir/mapped_courses/` cache. Completed scorecards remain in app-private local storage; Android's Files app does not normally expose these private files. Clearing app storage or uninstalling the app removes this local data; there is no cloud sync.
