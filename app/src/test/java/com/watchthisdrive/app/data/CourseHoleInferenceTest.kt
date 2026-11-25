@@ -131,4 +131,24 @@ class CourseHoleInferenceTest {
         assertEquals("inferred_from_numbered_tee_green_without_fairway", inferred.geometryStatus)
     }
 
+    @Test
+    fun acceptsMultipleNearbyNumberedTeeBoxesForTheSameHole() {
+        val secondTee = tee().copy(id = 107, points = listOf(GeoPoint(0.0001, 0.0101)))
+        val input = CourseGeometry(1, "Generic", holes() + listOf(tee(), secondTee, green()))
+        val inferred = CourseHoleInference.addInferredHoles(input).features.single {
+            it.origin == CourseFeatureOrigin.INFERRED && it.featureType == "hole"
+        }
+        assertEquals("6", inferred.holeNumber)
+    }
+
+    @Test
+    fun preservesOneSupportedHoleWhenTheOtherMissingHoleCannotBeInferred() {
+        val mapped = holes().filterNot { it.holeNumber == "7" }
+        val input = CourseGeometry(1, "Generic", mapped + listOf(tee(), green()))
+        val inferred = CourseHoleInference.addInferredHoles(input).features.filter {
+            it.origin == CourseFeatureOrigin.INFERRED && it.featureType == "hole"
+        }
+        assertEquals(listOf("6"), inferred.mapNotNull { it.holeNumber })
+    }
+
 }

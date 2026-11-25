@@ -51,23 +51,37 @@ object CourseHoleInference {
         val explicit = missing.mapNotNull { number ->
             val matchingTees = tees.filter { it.holeNumber?.toIntOrNull() == number }
             val matchingGreens = greens.filter { it.holeNumber?.toIntOrNull() == number }
-            if (matchingTees.size != 1 || matchingGreens.size != 1) return@mapNotNull null
-            val tee = representativePoint(matchingTees.single()) ?: return@mapNotNull null
+            if (matchingTees.isEmpty() || matchingGreens.size != 1) return@mapNotNull null
             val green = representativePoint(matchingGreens.single()) ?: return@mapNotNull null
-            // Matching numbered tee and green markers are direct evidence.
-            // A fairway mapped for another hole must not veto this connection.
-            if (!plausibleLine(tee, green)) return@mapNotNull null
-            val hasFairwayEvidence = fairwaySupport(tee, green, fairways) >= MIN_FAIRWAY_SUPPORT
+            // Multiple tee boxes often share one hole number. Cluster nearby
+            // markers, then choose only a clearly best length/fairway-supported
+            // candidate rather than rejecting every multi-tee hole.
+            val candidates = clusterTees(matchingTees).mapNotNull { cluster ->
+                if (!plausibleLine(cluster.point, green)) return@mapNotNull null
+                val support = fairwaySupport(cluster.point, green, fairways)
+                val score = abs(meters(cluster.point, green) - 250.0) * 0.05 +
+                    (1.0 - support) * 80.0
+                Triple(cluster.point, support, score)
+            }.sortedBy { it.third }
+            val best = candidates.firstOrNull() ?: return@mapNotNull null
+            if (candidates.getOrNull(1)?.third?.minus(best.third)?.let { it < PAIR_AMBIGUITY_MARGIN } == true) {
+                return@mapNotNull null
+            }
+            val hasFairwayEvidence = best.second >= MIN_FAIRWAY_SUPPORT
             inferredFeature(
-                number, tee, green,
+                number, best.first, green,
                 if (hasFairwayEvidence) 0.65 else 0.45,
                 if (hasFairwayEvidence) "inferred_from_numbered_tee_green_and_fairway"
                 else "inferred_from_numbered_tee_green_without_fairway"
             )
         }
-        val inferred = if (explicit.size == missing.size) explicit else {
-            inferFromUnnumberedMarkers(missing, mappedHoles, tees, greens, fairways)
-        }
+        // Keep every individually supported numbered recovery even if another
+        // missing hole lacks enough evidence for reconstruction.
+        val inferredNumbers = explicit.mapNotNull { it.holeNumber?.toIntOrNull() }.toSet()
+        val remaining = missing.filterNot(inferredNumbers::contains)
+        val unnumbered = if (remaining.isEmpty()) emptyList() else
+            inferFromUnnumberedMarkers(remaining, mappedHoles, tees, greens, fairways)
+        val inferred = explicit + unnumbered
         if (inferred.isEmpty()) return course
         val retained = course.features.filterNot { it.origin == CourseFeatureOrigin.INFERRED && it.featureType == "hole" }
         return course.copy(features = retained + inferred)
