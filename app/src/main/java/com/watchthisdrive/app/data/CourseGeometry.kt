@@ -103,7 +103,7 @@ object CourseGeometryLoader {
                 // spending the full timeout on each host. Accept the first response
                 // containing actual features; an empty HTTP 200 must not mask useful
                 // data from another mirror.
-                val serverBudgetMs = if (query.contains("[timeout:60]")) 65_000 else 20_000
+                val serverBudgetMs = when {\n                    query.contains("[timeout:60]") -> 65_000\n                    query.contains("[timeout:25]") -> 30_000\n                    else -> 20_000\n                }
                 val executor = Executors.newFixedThreadPool(OVERPASS_SERVERS.size)
                 val completion = ExecutorCompletionService<Pair<String, CourseGeometry>>(executor)
                 try {
@@ -149,7 +149,11 @@ object CourseGeometryLoader {
             it in setOf("hole", "tee", "green", "fairway", "bunker", "water_hazard")
         }
         val relationMembers = if (course.elementType.equals("relation", ignoreCase = true)) "way(r.course);" else ""
-        val featureSelector = when (normalizedType) {
+        // The course area is often incomplete or excludes separately mapped
+        // hole features. Search a generic radius around the OSM course center as
+        // a second source, rather than calling an area-only repeat a "wider" scan.
+        // Keep both selectors in one union so the parser can deduplicate by OSM ID.
+        val areaFeatureSelector = when (normalizedType) {
             "hole" -> """
                 nwr(area.courseArea)["golf"="hole"];
                 nwr(area.courseArea)["golf:hole"];
@@ -160,12 +164,24 @@ object CourseGeometryLoader {
             """.trimIndent()
             else -> """nwr(area.courseArea)["golf"="$normalizedType"];"""
         }
+        val nearbyFeatureSelector = when (normalizedType) {
+            "hole" -> """
+                nwr(around:2000,${course.latitude},${course.longitude})["golf"="hole"];
+                nwr(around:2000,${course.latitude},${course.longitude})["golf:hole"];
+            """.trimIndent()
+            null -> """
+                nwr(around:2000,${course.latitude},${course.longitude})["golf"];
+                nwr(around:2000,${course.latitude},${course.longitude})["golf:hole"];
+            """.trimIndent()
+            else -> """nwr(around:2000,${course.latitude},${course.longitude})["golf"="$normalizedType"];"""
+        }
         return """
-            [out:json][timeout:12];
+            [out:json][timeout:25];
             $element -> .course;
             .course map_to_area -> .courseArea;
             (
-              $featureSelector
+              $areaFeatureSelector
+              $nearbyFeatureSelector
               $relationMembers
             );
             out body geom;
