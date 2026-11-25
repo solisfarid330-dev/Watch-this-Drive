@@ -13,6 +13,8 @@ data class GeoPoint(val latitude: Double, val longitude: Double)
 
 enum class CourseGeometryType { POINT, LINE, POLYGON, MULTI_POLYGON, UNKNOWN }
 
+enum class CourseFeatureOrigin { SOURCE, INFERRED }
+
 data class CourseFeature(
     val id: Long,
     val elementType: String,
@@ -28,7 +30,9 @@ data class CourseFeature(
     // Each polygon has its own rings. Used for OSM multipolygon relations.
     val polygons: List<List<List<GeoPoint>>> = emptyList(),
     val geometryStatus: String = "unverified",
-    val par: Int? = null
+    val par: Int? = null,
+    val origin: CourseFeatureOrigin = CourseFeatureOrigin.SOURCE,
+    val confidence: Double? = null
 ) {
     val hasUsableGeometry: Boolean
         get() = !geometryStatus.startsWith("invalid_or_incomplete") && when (geometryType) {
