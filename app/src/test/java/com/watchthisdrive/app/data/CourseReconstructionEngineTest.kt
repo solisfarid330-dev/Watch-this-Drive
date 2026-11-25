@@ -112,6 +112,33 @@ class CourseReconstructionEngineTest {
         assertEquals(fairway.id, result.holes.single().fairways.single().id)
     }
 
+    @Test fun corridorAmbiguityWarnsOnlyTheCompetingHoles() {
+        val firstHole = CourseFeature(
+            1, "way", "hole", "1", null,
+            listOf(GeoPoint(0.0, 0.0), GeoPoint(0.0, 0.004)), CourseGeometryType.LINE
+        )
+        val secondHole = CourseFeature(
+            2, "way", "hole", "2", null,
+            listOf(GeoPoint(0.0001, 0.0), GeoPoint(0.0001, 0.004)), CourseGeometryType.LINE
+        )
+        val distantHole = CourseFeature(
+            3, "way", "hole", "3", null,
+            listOf(GeoPoint(0.002, 0.0), GeoPoint(0.002, 0.004)), CourseGeometryType.LINE
+        )
+        val fairway = polygon(4, "fairway", listOf(
+            GeoPoint(0.00003, 0.001), GeoPoint(0.00003, 0.003),
+            GeoPoint(0.00007, 0.003), GeoPoint(0.00007, 0.001),
+            GeoPoint(0.00003, 0.001)
+        ))
+        val result = CourseReconstructionEngine.reconstruct(
+            CourseGeometry(10, "Test", listOf(firstHole, secondHole, distantHole, fairway))
+        )
+        assertTrue(result.holes.all { it.fairways.isEmpty() })
+        assertTrue(result.holes[0].associationWarnings.any { it.contains("fairway feature association ambiguous") })
+        assertTrue(result.holes[1].associationWarnings.any { it.contains("fairway feature association ambiguous") })
+        assertTrue(result.holes[2].associationWarnings.none { it.contains("fairway feature association ambiguous") })
+    }
+
     @Test fun leavesGreenSharedByEquidistantHolesAmbiguous() {
         val green = polygon(20, "green", listOf(
             GeoPoint(0.001, 0.001), GeoPoint(0.001, 0.003),
