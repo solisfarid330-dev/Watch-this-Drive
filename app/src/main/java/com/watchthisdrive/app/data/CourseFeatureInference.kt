@@ -13,21 +13,125 @@ object CourseFeatureInference {
     private const val HALF_WIDTH_M = 18.0
     private const val MIN_LINE_LENGTH_M = 45.0
     private const val SOURCE_COVERAGE_DISTANCE_M = 28.0
+    private const val MARKER_ENDPOINT_LIMIT_M = 30.0
+    private const val MARKER_DIRECTION_MARGIN_M = 10.0
 
     fun addInferredFeatures(course: CourseGeometry): CourseGeometry {
         val source = course.features.filter { it.origin == CourseFeatureOrigin.SOURCE && it.hasUsableGeometry }
         val holes = source.filter {
             it.featureType == "hole" && it.geometryType == CourseGeometryType.LINE && it.points.size >= 2
         }
-        val inferred = holes.mapNotNull { hole ->
+        val inferredFairways = holes.mapNotNull { hole ->
             if (source.any { it.featureType == "fairway" && isNearLine(it, hole.points, SOURCE_COVERAGE_DISTANCE_M) }) {
                 return@mapNotNull null
             }
             buildFairway(hole)
         }
-        val retained = course.features.filterNot { it.origin == CourseFeatureOrigin.INFERRED && it.featureType == "fairway" }
-        return course.copy(features = retained + inferred)
+        val inferredMarkers = inferMissingEndpointMarkers(source, holes)
+        val retained = course.features.filterNot {
+            it.origin == CourseFeatureOrigin.INFERRED && it.featureType in setOf("fairway", "tee", "green")
+        }
+        return course.copy(features = retained + inferredFairways + inferredMarkers)
     }
+
+
+    /**
+     * A numbered hole line plus one unambiguous numbered endpoint marker can
+     * support a low-confidence marker at the opposite endpoint. Never invent
+     * both ends, and never overwrite or duplicate an existing source marker.
+     */
+    private fun inferMissingEndpointMarkers(
+        source: List<CourseFeature>,
+        holes: List<CourseFeature>
+    ): List<CourseFeature> {
+        val sourceTees = source.filter { it.featureType == "tee" }
+        val sourceGreens = source.filter { it.featureType == "green" }
+        val result = mutableListOf<CourseFeature>()
+        val uniqueHoles = holes.filter { !it.holeNumber.isNullOrBlank() }
+            .groupBy { it.holeNumber }.values.filter { it.size == 1 }.map { it.single() }
+
+        uniqueHoles.forEach { hole ->
+            val number = hole.holeNumber ?: return@forEach
+            val line = simplifyConsecutiveDuplicates(hole.points)
+            if (line.size < 2) return@forEach
+            val start = line.first()
+            val end = line.last()
+            val numberedTees = sourceTees.filter { it.holeNumber == number }
+            val numberedGreens = sourceGreens.filter { it.holeNumber == number }
+
+            if (numberedTees.size == 1 && numberedGreens.isEmpty()) {
+                val teePoint = markerPoint(numberedTees.single()) ?: return@forEach
+                val startDistance = distanceMeters(teePoint, start)
+                val endDistance = distanceMeters(teePoint, end)
+                val target = when {
+                    startDistance <= MARKER_ENDPOINT_LIMIT_M &&
+                        endDistance - startDistance >= MARKER_DIRECTION_MARGIN_M -> end
+                    endDistance <= MARKER_ENDPOINT_LIMIT_M &&
+                        startDistance - endDistance >= MARKER_DIRECTION_MARGIN_M -> start
+                    else -> null
+                } ?: return@forEach
+                if (sourceGreens.none { markerPoint(it)?.let { p -> distanceMeters(p, target) <= MARKER_ENDPOINT_LIMIT_M } == true }) {
+                    result.add(inferredEndpointMarker(hole, "green", target, 1))
+                }
+            } else if (numberedGreens.size == 1 && numberedTees.isEmpty()) {
+                val greenPoint = markerPoint(numberedGreens.single()) ?: return@forEach
+                val startDistance = distanceMeters(greenPoint, start)
+                val endDistance = distanceMeters(greenPoint, end)
+                val target = when {
+                    startDistance <= MARKER_ENDPOINT_LIMIT_M &&
+                        endDistance - startDistance >= MARKER_DIRECTION_MARGIN_M -> end
+                    endDistance <= MARKER_ENDPOINT_LIMIT_M &&
+                        startDistance - endDistance >= MARKER_DIRECTION_MARGIN_M -> start
+                    else -> null
+                } ?: return@forEach
+                if (sourceTees.none { markerPoint(it)?.let { p -> distanceMeters(p, target) <= MARKER_ENDPOINT_LIMIT_M } == true }) {
+                    result.add(inferredEndpointMarker(hole, "tee", target, 2))
+                }
+            }
+        }
+        return result
+    }
+
+    private fun markerPoint(feature: CourseFeature): GeoPoint? = when (feature.geometryType) {
+        CourseGeometryType.POINT -> feature.points.singleOrNull()
+        CourseGeometryType.POLYGON -> ringCenter(feature.rings.firstOrNull())
+        CourseGeometryType.MULTI_POLYGON -> ringCenter(
+            feature.polygons.maxByOrNull { it.firstOrNull()?.size ?: 0 }?.firstOrNull()
+        )
+        else -> null
+    }
+
+    private fun ringCenter(ring: List<GeoPoint>?): GeoPoint? {
+        val points = ring.orEmpty().let { if (it.size > 1 && it.first() == it.last()) it.dropLast(1) else it }
+        if (points.isEmpty()) return null
+        return GeoPoint(points.map { it.latitude }.average(), points.map { it.longitude }.average())
+    }
+
+    private fun distanceMeters(a: GeoPoint, b: GeoPoint): Double {
+        val latitude = Math.toRadians((a.latitude + b.latitude) / 2.0)
+        return hypot(
+            (b.longitude - a.longitude) * 111320.0 * cos(latitude),
+            (b.latitude - a.latitude) * 110574.0
+        )
+    }
+
+    private fun inferredEndpointMarker(
+        hole: CourseFeature,
+        type: String,
+        point: GeoPoint,
+        suffix: Long
+    ) = CourseFeature(
+        id = -((hole.id % 1_000_000_000L).let { if (it < 0) -it else it } * 2L + suffix),
+        elementType = "generated-marker",
+        featureType = type,
+        holeNumber = hole.holeNumber,
+        name = null,
+        points = listOf(point),
+        geometryType = CourseGeometryType.POINT,
+        geometryStatus = "inferred_${type}_from_numbered_hole_endpoint",
+        origin = CourseFeatureOrigin.INFERRED,
+        confidence = 0.35
+    )
 
     private fun buildFairway(hole: CourseFeature): CourseFeature? {
         val line = simplifyConsecutiveDuplicates(hole.points)
