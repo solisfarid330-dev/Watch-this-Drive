@@ -66,7 +66,11 @@ data class CourseGeometry(
 
 object CourseGeometryLoader {
     private val OVERPASS_SERVERS = listOf(
+        // Regional North American instance first for courses in the Americas.
         "https://ovp.dresel.systems/api-na/interpreter",
+        // Independent global fallback; this instance has handled requests when
+        // the more commonly used public mirrors were timing out.
+        "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
         "https://overpass.private.coffee/api/interpreter",
         "https://overpass-api.de/api/interpreter"
     )
@@ -94,7 +98,7 @@ object CourseGeometryLoader {
             val result = runCatching {
                 // Give each mirror a bounded opportunity. A stalled first mirror must
                 // not consume the entire recovery window and prevent fallback servers.
-                val perServerBudgetMs = 18_000
+                val perServerBudgetMs = 20_000
                 var lastError: Exception? = null
                 for (server in OVERPASS_SERVERS) {
                     try {
@@ -134,7 +138,7 @@ object CourseGeometryLoader {
             else -> """nwr(area.courseArea)["golf"="$normalizedType"];"""
         }
         return """
-            [out:json][timeout:25];
+            [out:json][timeout:12];
             $element -> .course;
             .course map_to_area -> .courseArea;
             (
@@ -173,9 +177,12 @@ object CourseGeometryLoader {
         val connection = URL(server).openConnection() as HttpURLConnection
         try {
             connection.requestMethod = "POST"
-            val connectBudgetMs = minOf(6000, (timeoutMs / 3).coerceAtLeast(1000))
-            connection.connectTimeout = connectBudgetMs
-            connection.readTimeout = (timeoutMs - connectBudgetMs).coerceAtLeast(1000)
+            // The server-side Overpass query limit is 12 seconds. Keep the
+            // client read timeout longer than that limit so a valid response can
+            // arrive; the previous 12-second read timeout cut off requests while
+            // the server was still permitted to work for 25 seconds.
+            connection.connectTimeout = minOf(5000, (timeoutMs / 4).coerceAtLeast(1000))
+            connection.readTimeout = timeoutMs
             connection.doOutput = true
             connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
             connection.setRequestProperty("Accept", "application/json")
@@ -183,7 +190,14 @@ object CourseGeometryLoader {
             val body = "data=" + URLEncoder.encode(query, "UTF-8")
             connection.outputStream.use { it.write(body.toByteArray(Charsets.UTF_8)) }
             val code = connection.responseCode
-            if (code !in 200..299) throw Exception("Geometry server returned HTTP $code")
+            if (code !in 200..299) {
+                val detail = connection.errorStream?.bufferedReader()?.use { it.readText() }
+                    ?.take(500).orEmpty()
+                throw Exception(
+                    "Geometry server returned HTTP $code" +
+                        if (detail.isNotBlank()) ": $detail" else ""
+                )
+            }
             val response = connection.inputStream.bufferedReader().use { it.readText() }
             return parseGeometry(response, course)
         } finally { connection.disconnect() }
