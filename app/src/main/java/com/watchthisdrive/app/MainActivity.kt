@@ -1062,7 +1062,7 @@ private fun CourseDetailScreen(
                             }
                             if (report.inferredHoleCount > 0) {
                                 Text(
-                                    "${report.inferredHoleCount} missing hole(s) reconstructed from numbered tee, green and fairway evidence (inferred)",
+                                    "${report.inferredHoleCount} missing hole(s) reconstructed from available tee, green and course-layout evidence (inferred; not source-mapped)",
                                     color = Color(0xFFFFC857),
                                     style = MaterialTheme.typography.bodySmall
                                 )
