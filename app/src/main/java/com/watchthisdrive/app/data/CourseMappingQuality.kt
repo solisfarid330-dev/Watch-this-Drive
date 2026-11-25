@@ -14,6 +14,7 @@ data class CourseMappingQuality(
     val fairwayCount: Int,
     val bunkerCount: Int,
     val waterCount: Int,
+    val inferredFairwayCount: Int,
     val missingNumberedHoles: List<Int>,
     val geometryIssues: Int,
     val holesWithoutGreen: Int
@@ -30,14 +31,15 @@ data class CourseMappingQuality(
             reconstruction: CourseReconstruction
         ): CourseMappingQuality {
             val usable = geometry.features.filter { it.hasUsableGeometry }
-            val centerlines = usable.filter { it.featureType == "hole" }
+            val sourceUsable = usable.filter { it.origin == CourseFeatureOrigin.SOURCE }
+            val centerlines = sourceUsable.filter { it.featureType == "hole" }
             val numbered = centerlines.mapNotNull { it.holeNumber?.toIntOrNull() }
                 .filter { it in 1..72 }.toSet()
             // Only report gaps when source numbering itself establishes the range.
             val missing = if (numbered.size >= 2 && numbered.maxOrNull()!! >= 9) {
                 (1..numbered.maxOrNull()!!).filterNot(numbered::contains)
             } else emptyList()
-            fun count(type: String) = usable.count { it.featureType == type }
+            fun count(type: String) = sourceUsable.count { it.featureType == type }
             return CourseMappingQuality(
                 retrievedFeatureCount = geometry.features.size,
                 holeCenterlineCount = centerlines.size,
@@ -47,6 +49,7 @@ data class CourseMappingQuality(
                 fairwayCount = count("fairway"),
                 bunkerCount = count("bunker"),
                 waterCount = count("water_hazard"),
+                inferredFairwayCount = usable.count { it.featureType == "fairway" && it.origin == CourseFeatureOrigin.INFERRED },
                 missingNumberedHoles = missing,
                 geometryIssues = geometry.incompleteRelations.size,
                 holesWithoutGreen = reconstruction.holes.count { it.green == null }
