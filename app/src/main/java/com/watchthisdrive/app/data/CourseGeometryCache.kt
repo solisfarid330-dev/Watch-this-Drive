@@ -9,6 +9,14 @@ import java.io.File
  * Small local snapshot of the selected course geometry. An active round must be
  * resumable even when the map provider is unavailable at the course.
  */
+data class CourseCacheSummary(
+    val courseId: Long,
+    val courseName: String,
+    val featureCount: Int,
+    val fileSizeBytes: Long,
+    val lastModified: Long
+)
+
 object CourseGeometryCache {
     private const val ACTIVE_FILE_NAME = "active_course_geometry.json"
     private const val COURSE_DIRECTORY = "mapped_courses"
@@ -97,6 +105,25 @@ object CourseGeometryCache {
             expectedHoleCount = if (root.isNull("expectedHoleCount")) null else root.optInt("expectedHoleCount")
         )
     }.getOrNull()
+
+    fun list(context: Context): List<CourseCacheSummary> = runCatching {
+        val directory = File(context.filesDir, COURSE_DIRECTORY)
+        directory.listFiles { file -> file.isFile && file.name.startsWith("course_") && file.extension == "json" }
+            .orEmpty()
+            .mapNotNull { file ->
+                runCatching {
+                    val root = JSONObject(file.readText(Charsets.UTF_8))
+                    CourseCacheSummary(
+                        courseId = root.getLong("courseId"),
+                        courseName = root.optString("courseName", "Saved course"),
+                        featureCount = root.optJSONArray("features")?.length() ?: 0,
+                        fileSizeBytes = file.length(),
+                        lastModified = file.lastModified()
+                    )
+                }.getOrNull()
+            }
+            .sortedBy { it.courseName.lowercase() }
+    }.getOrDefault(emptyList())
 
     fun clear(context: Context) {
         runCatching { File(context.filesDir, ACTIVE_FILE_NAME).delete() }
