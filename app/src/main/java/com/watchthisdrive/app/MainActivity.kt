@@ -830,7 +830,16 @@ private fun CourseDetailScreen(
     fun improveMapping(featureType: String? = null) {
         if (recoveryLoading) return
         recoveryLoading = true
-        recoveryMessage = "Searching for additional mapped golf features…"
+        // Run local reconstruction first. It must remain useful even when every
+        // Overpass mirror is unavailable.
+        geometry?.let { current ->
+            val locallyEnriched = CourseFeatureInference.addInferredFeatures(
+                CourseHoleInference.addInferredHoles(current)
+            )
+            geometry = locallyEnriched
+            reconstruction = CourseReconstructionEngine.reconstruct(locallyEnriched)
+        }
+        recoveryMessage = "Checking local reconstruction and searching for additional mapped features…"
         CourseGeometryLoader.loadRecovery(course, featureType) { result ->
             result.onSuccess { recovered ->
                 val previous = geometry
@@ -857,7 +866,12 @@ private fun CourseDetailScreen(
                 }
             }
             result.onFailure { problem ->
-                recoveryMessage = "Could not complete the improvement search: ${problem.message ?: "Please try again."}"
+                recoveryMessage = if (geometry != null) {
+                    "The map search was unavailable. Existing course data was kept and local reconstruction was still applied. " +
+                        (problem.message ?: "Please try again later.")
+                } else {
+                    "Could not complete the improvement search: ${problem.message ?: "Please try again."}"
+                }
             }
             recoveryLoading = false
         }

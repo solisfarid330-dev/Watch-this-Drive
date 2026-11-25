@@ -117,7 +117,7 @@ object CourseGeometryLoader {
             "way" -> "way(${course.id});"
             else -> throw Exception("This course is represented by an OSM node, which does not provide a course boundary.")
         }
-        val relationMembers = if (course.elementType.equals("relation", ignoreCase = true)) "way(r.course);" else ""
+        val relationMembers = if (normalizedType == null && course.elementType.equals("relation", ignoreCase = true)) "way(r.course);" else ""
         val normalizedType = featureType?.lowercase()?.takeIf {
             it in setOf("hole", "tee", "green", "fairway", "bunker", "water_hazard")
         }
@@ -172,8 +172,9 @@ object CourseGeometryLoader {
         val connection = URL(server).openConnection() as HttpURLConnection
         try {
             connection.requestMethod = "POST"
-            connection.connectTimeout = minOf(10000, timeoutMs.coerceAtLeast(1000))
-            connection.readTimeout = timeoutMs.coerceAtLeast(1000)
+            val connectBudgetMs = minOf(6000, (timeoutMs / 3).coerceAtLeast(1000))
+            connection.connectTimeout = connectBudgetMs
+            connection.readTimeout = (timeoutMs - connectBudgetMs).coerceAtLeast(1000)
             connection.doOutput = true
             connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
             connection.setRequestProperty("Accept", "application/json")
