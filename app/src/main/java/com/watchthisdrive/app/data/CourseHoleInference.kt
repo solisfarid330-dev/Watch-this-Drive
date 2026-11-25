@@ -86,11 +86,11 @@ object CourseHoleInference {
 
         val candidates = mutableListOf<Candidate>()
         availableTees.forEach { tee ->
-            availableGreens.forEach { (greenFeature, greenPoint) ->
+            availableGreens.forEach greenLoop@{ (greenFeature, greenPoint) ->
                 val length = meters(tee.point, greenPoint)
-                if (length !in MIN_HOLE_LENGTH_M..MAX_HOLE_LENGTH_M) return@forEach
+                if (length !in MIN_HOLE_LENGTH_M..MAX_HOLE_LENGTH_M) return@greenLoop
                 val support = fairwaySupport(tee.point, greenPoint, fairways)
-                if (support < MIN_FAIRWAY_SUPPORT) return@forEach
+                if (support < MIN_FAIRWAY_SUPPORT) return@greenLoop
                 val score = length + (1.0 - support) * 250.0
                 candidates.add(Candidate(tee, greenFeature, greenPoint, score))
             }

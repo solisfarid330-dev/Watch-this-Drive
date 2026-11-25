@@ -32,4 +32,19 @@ class CourseHoleInferenceTest {
         val input=CourseGeometry(1,"Generic",holes()+listOf(tee(),green()))
         assertFalse(CourseHoleInference.addInferredHoles(input).features.any{it.origin==CourseFeatureOrigin.INFERRED&&it.featureType=="hole"})
     }
+    @Test fun reconstructsMissingUnnumberedHolesFromSouthPadreMapEvidence() {
+        val stream = javaClass.classLoader!!.getResourceAsStream("fixtures/south-padre-course-overpass.json")
+        val json = stream!!.bufferedReader().use { it.readText() }
+        val parsed = CourseGeometryLoader.parseGeometry(
+            json, GolfCourse(19071561L, "relation", "Validation course", 0.0, 0.0, 0f)
+        )
+        val withTwoMissing = parsed.copy(features = parsed.features.filterNot {
+            it.featureType == "hole" && it.holeNumber in setOf("6", "7")
+        })
+        val result = CourseHoleInference.addInferredHoles(withTwoMissing)
+        val inferred = result.features.filter { it.featureType == "hole" && it.origin == CourseFeatureOrigin.INFERRED }
+        assertEquals(2, inferred.size)
+        assertEquals(setOf("6", "7"), inferred.mapNotNull { it.holeNumber }.toSet())
+    }
+
 }
