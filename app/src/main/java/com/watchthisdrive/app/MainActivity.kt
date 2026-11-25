@@ -53,6 +53,7 @@ import com.watchthisdrive.app.ui.CourseGeometryPreview
 import com.watchthisdrive.app.ui.GolfMap
 import com.watchthisdrive.app.ui.ActiveHoleScreen
 import com.watchthisdrive.app.ui.CaddySetupScreen
+import com.watchthisdrive.app.ui.ScorecardHubScreen
 import com.watchthisdrive.app.ui.GlobalScorecardScreen
 import com.watchthisdrive.app.ui.GolfTheme
 import java.util.Locale
@@ -65,7 +66,7 @@ class MainActivity : ComponentActivity() {
 }
 
 private enum class Tab(val label: String) {
-    HOME("Home"), MAP("Course"), SCORE("Scorecard"), CADDY("Caddy")
+    HOME("Home"), MAP("Course"), SCORE("Scorecard"), CADDY("Settings")
 }
 
 @Composable
@@ -80,6 +81,8 @@ private fun WatchThisDriveApp() {
     var mapReconstruction by remember { mutableStateOf<CourseReconstruction?>(null) }
     var mapRecoveryMessage by remember { mutableStateOf<String?>(null) }
     var roundScorecard by remember { mutableStateOf(RoundScorecardStore.loadActive(context)) }
+    var savedRounds by remember { mutableStateOf(RoundScorecardStore.loadCompleted(context)) }
+    var viewingSavedRound by remember { mutableStateOf<RoundScorecardStore.SavedRound?>(null) }
     var activeRound by remember { mutableStateOf(roundScorecard != null) }
     var activeHoleIndex by remember { mutableIntStateOf((roundScorecard?.activeHoleNumber?.toIntOrNull() ?: 1) - 1) }
     var locationMessage by remember { mutableStateOf("Location not checked yet") }
@@ -277,7 +280,7 @@ private fun WatchThisDriveApp() {
                             Tab.HOME -> Icons.Filled.Home
                             Tab.MAP -> Icons.Filled.Map
                             Tab.SCORE -> Icons.Filled.Scoreboard
-                            Tab.CADDY -> Icons.Filled.SportsGolf
+                            Tab.CADDY -> Icons.Filled.Settings
                         }
 
                         NavigationBarItem(
@@ -349,18 +352,26 @@ private fun WatchThisDriveApp() {
             } else {
                 when (selected) {
                     Tab.HOME -> HomeScreen(
-                        locationMessage,
-                        location,
-                        onLocate = { locate() },
-                        onFindCourses = {
-                            showNearbyCourses = true
-                            if (location == null) locate()
-                        }
+                        hasActiveRound = activeRound,
+                        onResumeRound = {
+                            viewingSavedRound = null
+                            if (roundScorecard?.scorecardOnly == true) selected = Tab.SCORE
+                            else { selected = Tab.MAP; if (mapReconstruction == null) restoreActiveCourse() }
+                        },
+                        onFindCourses = { showNearbyCourses = true; if (location == null) locate() }
                     )
 
                     Tab.MAP -> {
                         val holes = mapReconstruction?.holes.orEmpty()
-                        if (activeRound && holes.isNotEmpty()) {
+                        if (activeRound && roundScorecard?.scorecardOnly == true) {
+                            Column(Modifier.fillMaxSize().background(Color(0xFF101713)).padding(24.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(Icons.Filled.Scoreboard, null, tint = Color(0xFFB8F36B), modifier = Modifier.size(48.dp))
+                                Spacer(Modifier.height(12.dp))
+                                Text("Scorecard-only game", color = Color.White, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                                Text("This round does not use a course map or GPS. Open the Scorecard tab to enter scores.", color = Color(0xFFB6C1B9))
+                                Button(onClick = { selected = Tab.SCORE }, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB8F36B), contentColor = Color(0xFF101713))) { Text("OPEN SCORECARD") }
+                            }
+                        } else if (activeRound && holes.isNotEmpty()) {
                             val safeIndex = activeHoleIndex.coerceIn(0, holes.lastIndex)
                             val hole = holes[safeIndex]
                             ActiveHoleScreen(
@@ -426,7 +437,9 @@ private fun WatchThisDriveApp() {
 
                     Tab.SCORE -> {
                         val round = roundScorecard
-                        if (activeRound && round != null) {
+                        if (viewingSavedRound != null) {
+                            GlobalScorecardScreen(round = viewingSavedRound!!.round, onScoreChange = { _, _, _ -> }, onAddPlayer = {}, onRemovePlayer = {}, onFinishRound = {}, readOnly = true)
+                        } else if (activeRound && round != null) {
                             GlobalScorecardScreen(
                                 round = round,
                                 onScoreChange = { playerId, holeNumber, strokes -> updateRoundScore(playerId, holeNumber, strokes) },
@@ -448,13 +461,22 @@ private fun WatchThisDriveApp() {
                                 },
                                 onFinishRound = {
                                     roundScorecard?.let { RoundScorecardStore.saveCompleted(context, it) }
+                                    savedRounds = RoundScorecardStore.loadCompleted(context)
                                     CourseGeometryCache.clear(context)
                                     roundScorecard = null
                                     activeRound = false
                                     selected = Tab.MAP
                                 }
                             )
-                        } else PlaceholderScreen("Scorecard", "Start a game to keep score for every hole and player.", Icons.Filled.Scoreboard)
+                        } else ScorecardHubScreen(savedRounds = savedRounds, onStartScorecardOnly = { count ->
+                            val pars = (1..count).associate { it.toString() to 4 }
+                            val newRound = RoundScorecard.new("Scorecard-only round", pars).copy(scorecardOnly = true)
+                            roundScorecard = newRound
+                            RoundScorecardStore.saveActive(context, newRound)
+                            activeRound = true
+                            activeHoleIndex = 0
+                            viewingSavedRound = null
+                        }, onOpenSavedRound = { viewingSavedRound = it })
                     }
 
                     Tab.CADDY -> CaddySetupScreen(
@@ -469,135 +491,29 @@ private fun WatchThisDriveApp() {
 }
 
 @Composable
-private fun HomeScreen(
-    message: String,
-    location: Location?,
-    onLocate: () -> Unit,
-    onFindCourses: () -> Unit
-) {
-    Column(
-        Modifier.fillMaxSize().padding(22.dp),
-        verticalArrangement = Arrangement.spacedBy(18.dp)
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text(
-                    "WATCH THIS DRIVE",
-                    color = Color(0xFFB8F36B),
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    "Your golf companion.",
-                    color = Color.White,
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-            Icon(
-                Icons.Filled.SportsGolf,
-                null,
-                tint = Color(0xFFB8F36B),
-                modifier = Modifier.size(42.dp)
-            )
+private fun HomeScreen(hasActiveRound: Boolean, onResumeRound: () -> Unit, onFindCourses: () -> Unit) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(22.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text("WATCH THIS DRIVE", color = Color(0xFFB8F36B), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold)
+            Text("Golf companion", color = Color(0xFFB6C1B9), style = MaterialTheme.typography.titleSmall)
         }
-
-        Card(
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF1D2A22)),
-            shape = RoundedCornerShape(22.dp)
-        ) {
-            Column(
-                Modifier.padding(18.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Text(
-                    "READY FOR THE COURSE?",
-                    color = Color(0xFFB8F36B),
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    "Find a golf course near you.",
-                    color = Color.White,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Text(
-                    "We'll search nearby mapped golf courses using your current location.",
-                    color = Color(0xFFB6C1B9),
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                Button(
-                    onClick = onFindCourses,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFFB8F36B),
-                        contentColor = Color(0xFF101713)
-                    ),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Icon(Icons.Filled.Search, null)
-                    Spacer(Modifier.width(8.dp))
-                    Text("FIND NEARBY COURSES", fontWeight = FontWeight.Bold)
+        Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF1D2A22)), shape = RoundedCornerShape(22.dp)) {
+            Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(if (hasActiveRound) "YOUR ROUND IS READY" else "READY FOR THE COURSE?", color = Color(0xFFB8F36B), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                Text(if (hasActiveRound) "Pick up where you left off." else "Find a golf course near you.", color = Color.White, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+                Text(if (hasActiveRound) "Your scores and course are saved on this device." else "Find a mapped course and start a GPS-enabled round.", color = Color(0xFFB6C1B9), style = MaterialTheme.typography.bodyMedium)
+                if (hasActiveRound) Button(onClick = onResumeRound, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB8F36B), contentColor = Color(0xFF101713))) {
+                    Icon(Icons.Filled.PlayArrow, null); Spacer(Modifier.width(8.dp)); Text("RESUME ACTIVE GAME", fontWeight = FontWeight.Bold)
+                } else Button(onClick = onFindCourses, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB8F36B), contentColor = Color(0xFF101713))) {
+                    Icon(Icons.Filled.Search, null); Spacer(Modifier.width(8.dp)); Text("FIND NEARBY COURSES", fontWeight = FontWeight.Bold)
                 }
             }
         }
-
-        Card(
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF18231C)),
-            shape = RoundedCornerShape(18.dp)
-        ) {
-            Column(
-                Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Filled.MyLocation,
-                        null,
-                        tint = Color(0xFFB8F36B)
-                    )
-                    Spacer(Modifier.width(9.dp))
-                    Text("GPS STATUS", color = Color.White, fontWeight = FontWeight.Bold)
-                }
-                Text(message, color = Color(0xFFB6C1B9))
-
-                if (location != null) {
-                    Text(
-                        "${"%.5f".format(Locale.US, location.latitude)}, ${
-                            "%.5f".format(Locale.US, location.longitude)
-                        }",
-                        color = Color.White,
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-
-                OutlinedButton(
-                    onClick = onLocate,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = Color(0xFFB8F36B)
-                    )
-                ) {
-                    Text("CHECK MY LOCATION")
-                }
+        if (!hasActiveRound) Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF18231C)), shape = RoundedCornerShape(16.dp)) {
+            Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Filled.Scoreboard, null, tint = Color(0xFFB8F36B)); Spacer(Modifier.width(12.dp))
+                Column { Text("Scorecard-only games", color = Color.White, fontWeight = FontWeight.SemiBold); Text("Start a scorecard without GPS or course mapping from the Scorecard tab.", color = Color(0xFFB6C1B9), style = MaterialTheme.typography.bodySmall) }
             }
-        }
-
-        Text(
-            "YOUR ROUND, YOUR GAME",
-            color = Color(0xFFB8F36B),
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.Bold
-        )
-
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            FeatureTile("GPS distances", Icons.Filled.NearMe, Modifier.weight(1f))
-            FeatureTile("Smart caddy", Icons.Filled.AutoAwesome, Modifier.weight(1f))
-        }
-
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            FeatureTile("Scorekeeping", Icons.Filled.Scoreboard, Modifier.weight(1f))
-            FeatureTile("Round stats", Icons.Filled.QueryStats, Modifier.weight(1f))
         }
     }
 }
