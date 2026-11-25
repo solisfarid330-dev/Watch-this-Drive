@@ -40,25 +40,54 @@ object CourseReconstructionEngine {
             val line: List<GeoPoint>,
             val tee: CourseFeature?,
             val green: CourseFeature?,
-            val actualPin: CourseFeature?,
             val pin: GeoPoint?,
             val pinSource: PinSource?,
             val teeToGreenOriented: Boolean,
             val warnings: MutableList<String> = mutableListOf()
         )
 
+        // A tee marker should belong to one hole endpoint only. Greedily assign
+        // the closest endpoint globally so adjacent holes cannot silently reuse it.
+        data class TeeMatch(
+            val holeIndex: Int,
+            val isStart: Boolean,
+            val feature: CourseFeature,
+            val distance: Double
+        )
+        val teeFeatures = features.filter { it.featureType == "tee" }
+        val teeMatches = mutableListOf<TeeMatch>()
+        holeFeatures.forEachIndexed { index, hole ->
+            listOf(true to hole.points.first(), false to hole.points.last()).forEach { (isStart, point) ->
+                teeFeatures.forEach { tee ->
+                    val distance = featureDistance(point, tee)
+                    if (distance.isFinite() && distance <= MARKER_ENDPOINT_LIMIT_M) {
+                        teeMatches.add(TeeMatch(index, isStart, tee, distance))
+                    }
+                }
+            }
+        }
+        val teeAssociations = mutableMapOf<Pair<Int, Boolean>, Pair<CourseFeature, Double>>()
+        val usedTeeMarkers = mutableSetOf<Pair<String, Long>>()
+        teeMatches.sortedWith(compareBy<TeeMatch> { it.distance }.thenBy { it.holeIndex }).forEach { match ->
+            val slot = match.holeIndex to match.isStart
+            val markerKey = match.feature.elementType to match.feature.id
+            if (slot !in teeAssociations && usedTeeMarkers.add(markerKey)) {
+                teeAssociations[slot] = match.feature to match.distance
+            }
+        }
+
+        val greens = features.filter { it.featureType == "green" }
+        val pins = features.filter { it.featureType == "pin" }
         val drafts = holeFeatures.mapIndexed { index, hole ->
             var line = hole.points
+            var lineReversed = false
             var teeToGreenOriented = false
             val start = line.first()
             val end = line.last()
-            val tees = features.filter { it.featureType == "tee" }
-            val greens = features.filter { it.featureType == "green" }
-            val startTee = nearestFeature(start, tees)?.takeIf { it.second <= MARKER_ENDPOINT_LIMIT_M }
-            val endTee = nearestFeature(end, tees)?.takeIf { it.second <= MARKER_ENDPOINT_LIMIT_M }
+            val startTee = teeAssociations[index to true]
+            val endTee = teeAssociations[index to false]
             val startGreen = nearestFeature(start, greens)?.takeIf { it.second <= MARKER_ENDPOINT_LIMIT_M }
             val endGreen = nearestFeature(end, greens)?.takeIf { it.second <= MARKER_ENDPOINT_LIMIT_M }
-            val pins = features.filter { it.featureType == "pin" }
             val startPin = nearestFeature(start, pins)?.takeIf { it.second <= MARKER_ENDPOINT_LIMIT_M }
             val endPin = nearestFeature(end, pins)?.takeIf { it.second <= MARKER_ENDPOINT_LIMIT_M }
 
@@ -69,41 +98,48 @@ object CourseReconstructionEngine {
             val reverse = if (reverseParts.size == 2) reverseParts.sum() else Double.POSITIVE_INFINITY
             if (reverse.isFinite() && !forward.isFinite()) {
                 line = line.asReversed()
+                lineReversed = true
                 teeToGreenOriented = true
             } else if (forward.isFinite() && !reverse.isFinite()) {
                 // Tee-at-start plus green-at-end is sufficient forward evidence.
                 teeToGreenOriented = true
             } else if (forward.isFinite() && reverse.isFinite() && abs(forward - reverse) >= 3.0) {
-                if (reverse < forward) line = line.asReversed()
+                if (reverse < forward) {
+                    line = line.asReversed()
+                    lineReversed = true
+                }
                 teeToGreenOriented = true
             } else if (!forward.isFinite() && !reverse.isFinite()) {
                 // Single-end evidence can orient a line; conflicting or tied evidence cannot.
                 when {
                     startPin != null && endPin == null -> {
                         line = line.asReversed()
+                        lineReversed = true
                         teeToGreenOriented = true
                     }
                     endPin != null && startPin == null -> teeToGreenOriented = true
                     startGreen != null && endGreen == null -> {
                         line = line.asReversed()
+                        lineReversed = true
                         teeToGreenOriented = true
                     }
                     endGreen != null && startGreen == null -> teeToGreenOriented = true
                     startTee != null && endTee == null -> teeToGreenOriented = true
                     endTee != null && startTee == null -> {
                         line = line.asReversed()
+                        lineReversed = true
                         teeToGreenOriented = true
                     }
                 }
             }
 
+            val tee = (if (lineReversed) endTee else startTee)?.first
             val teeEndpoint = line.first()
             val greenEndpoint = line.last()
-            val tee = nearestFeature(teeEndpoint, tees)?.takeIf { it.second <= MARKER_ENDPOINT_LIMIT_M }?.first
             val green = nearestFeature(greenEndpoint, greens)?.takeIf { it.second <= MARKER_ENDPOINT_LIMIT_M }?.first
                 ?: nearestFeature(teeEndpoint, greens)?.takeIf { it.second <= MARKER_ENDPOINT_LIMIT_M }?.first
 
-            val mappedPin = nearestFeature(greenEndpoint, features.filter { it.featureType == "pin" })
+            val mappedPin = nearestFeature(greenEndpoint, pins)
                 ?.takeIf { it.second <= MARKER_ENDPOINT_LIMIT_M }?.first
             val pin = mappedPin?.let { representativePoint(it) }
                 ?: green?.let { polygonCenter(it) }
@@ -112,7 +148,7 @@ object CourseReconstructionEngine {
                 green != null && pin != null -> PinSource.ESTIMATED_GREEN_CENTER
                 else -> null
             }
-            Draft(hole, line, tee, green, mappedPin, pin, pinSource, teeToGreenOriented).also { draft ->
+            Draft(hole, line, tee, green, pin, pinSource, teeToGreenOriented).also { draft ->
                 if (tee == null) draft.warnings.add("No confident tee association")
                 if (green == null) draft.warnings.add("No confident green association")
                 if (pin == null) draft.warnings.add("No pin position available")
@@ -121,7 +157,7 @@ object CourseReconstructionEngine {
 
         val corridorTypes = setOf("fairway", "bunker", "water_hazard")
         val assigned = drafts.map { mutableMapOf<String, MutableList<CourseFeature>>() }
-        val unassigned = mutableSetOf<Long>()
+        val unassigned = mutableSetOf<Pair<String, Long>>()
         features.filter { it.featureType in corridorTypes }.forEach { candidate ->
             val distances = drafts.mapIndexed { index, draft -> index to featureToLineDistance(candidate, draft.line) }
                 .filter { it.second.isFinite() && it.second <= CORRIDOR_LIMIT_M }
@@ -130,7 +166,7 @@ object CourseReconstructionEngine {
             val best = distances[0]
             val second = distances.getOrNull(1)
             if (second != null && second.second - best.second < UNIQUE_MARGIN_M) {
-                unassigned.add(candidate.id)
+                unassigned.add(candidate.elementType to candidate.id)
             } else {
                 assigned[best.first].getOrPut(candidate.featureType) { mutableListOf() }.add(candidate)
             }
