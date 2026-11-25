@@ -18,7 +18,7 @@ import com.watchthisdrive.app.data.ClubCarryDistances
 @Composable
 fun CaddySetupScreen(context: Context, carryDistances: Map<String, Int>, onChange: (Map<String, Int>) -> Unit) {
     Column(Modifier.fillMaxSize().padding(20.dp)) {
-        Text("YOUR CADDY", color = Color(0xFFB8F36B), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+        Text("SETTINGS", color = Color(0xFFB8F36B), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
         Text("Club carry distances", color = Color.White, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
         Text("Starter carry estimates are prefilled. Adjust each club to your own distance through the air to first landing; do not include bounce or roll.", color = Color(0xFFB6C1B9), style = MaterialTheme.typography.bodyMedium)
         Spacer(Modifier.height(16.dp))
