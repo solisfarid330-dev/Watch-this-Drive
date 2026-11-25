@@ -76,6 +76,23 @@ class CourseReconstructionEngineTest {
         assertTrue(result.holes.all { it.pin != null && it.pinSource == PinSource.MAPPED })
     }
 
+    @Test fun assignsCorridorPolygonWhenItCrossesBetweenCenterlineVertices() {
+        val hole = CourseFeature(
+            1, "way", "hole", "1", null,
+            listOf(GeoPoint(0.0, 0.0), GeoPoint(0.0, 0.004)), CourseGeometryType.LINE
+        )
+        val fairway = polygon(2, "fairway", listOf(
+            GeoPoint(-0.001, 0.0015), GeoPoint(-0.001, 0.0025),
+            GeoPoint(0.001, 0.0025), GeoPoint(0.001, 0.0015),
+            GeoPoint(-0.001, 0.0015)
+        ))
+        val result = CourseReconstructionEngine.reconstruct(
+            CourseGeometry(10, "Test", listOf(hole, fairway))
+        )
+        assertEquals(1, result.holes.single().fairways.size)
+        assertEquals(fairway.id, result.holes.single().fairways.single().id)
+    }
+
     @Test fun doesNotReuseOneTeeMarkerAcrossNearbyHoles() {
         val tee = CourseFeature(
             5, "node", "tee", "1", null,
