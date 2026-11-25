@@ -19,7 +19,7 @@ import com.watchthisdrive.app.data.RoundPlayer
 import com.watchthisdrive.app.data.RoundScorecard
 
 @Composable
-fun GlobalScorecardScreen(round: RoundScorecard, onScoreChange: (String, String, Int) -> Unit, onAddPlayer: (String) -> Unit, onRemovePlayer: (String) -> Unit, onFinishRound: () -> Unit, readOnly: Boolean = false) {
+fun GlobalScorecardScreen(round: RoundScorecard, onScoreChange: (String, String, Int) -> Unit, onAddPlayer: (String) -> Unit, onRemovePlayer: (String) -> Unit, onFinishRound: () -> Unit, readOnly: Boolean = false, onBack: () -> Unit = {}) {
     var newPlayerName by remember { mutableStateOf("") }
     var showFinishDialog by remember { mutableStateOf(false) }
     val holes = round.holePars.keys.sortedWith(compareBy<String> { it.toIntOrNull() ?: Int.MAX_VALUE }.thenBy { it })
@@ -28,6 +28,7 @@ fun GlobalScorecardScreen(round: RoundScorecard, onScoreChange: (String, String,
     Column(Modifier.fillMaxSize().background(Color(0xFF101713)).verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("GLOBAL SCORECARD", color = Color(0xFFB8F36B), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
         Text(round.courseName, color = Color.White, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        if (readOnly) TextButton(onClick = onBack) { Text("BACK TO SAVED GAMES", color = Color(0xFFB8F36B)) }
         Text(if (readOnly) "Saved scorecard · read-only" else "Scores entered here update the live game automatically.", color = Color(0xFFB6C1B9))
         round.players.forEach { player ->
             PlayerScorecard(player, player.id == round.userPlayerId, holes, round.holePars,
