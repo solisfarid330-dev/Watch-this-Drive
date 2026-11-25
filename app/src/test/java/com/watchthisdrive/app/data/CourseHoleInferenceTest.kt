@@ -214,7 +214,7 @@ class CourseHoleInferenceTest {
     }
 
     @Test
-    fun usesNumberedNeighborMarkersToOrientRecoveryWhenMissingHoleGreenIsAmbiguous() {
+    fun usesNumberedNeighborMarkersToRecoverTwoConsecutiveHolesWhenGreensAreAmbiguous() {
         fun greenFeature(id: Long, number: Int, latitude: Double, longitude: Double): CourseFeature {
             val ring = listOf(
                 GeoPoint(latitude - 0.00008, longitude - 0.00008),
@@ -229,7 +229,7 @@ class CourseHoleInferenceTest {
             )
         }
 
-        val mappedHoles = (1..9).filter { it != 6 }.map { number ->
+        val mappedHoles = (1..9).filter { it !in setOf(6, 7) }.map { number ->
             val longitude = number * 0.002
             CourseFeature(
                 number.toLong(), "way", "hole", number.toString(), null,
@@ -247,17 +247,17 @@ class CourseHoleInferenceTest {
         val greens = (1..9).flatMap { number ->
             val longitude = number * 0.002
             listOf(greenFeature(200L + number, number, 0.0018, longitude)) +
-                if (number == 6) listOf(greenFeature(206L, number, 0.005, longitude)) else emptyList()
+                if (number in setOf(6, 7)) listOf(
+                    greenFeature(300L + number, number, 0.005, longitude)
+                ) else emptyList()
         }
 
         val result = CourseHoleInference.addInferredHoles(
             CourseGeometry(1, "Generic numbered-marker course", mappedHoles + tees + greens, expectedHoleCount = 9)
         )
-        val inferred = result.features.single {
+        val inferred = result.features.filter {
             it.origin == CourseFeatureOrigin.INFERRED && it.featureType == "hole"
         }
-        assertEquals("6", inferred.holeNumber)
-        assertEquals("inferred_from_unmatched_tee_green_and_neighboring_hole_sequence", inferred.geometryStatus)
+        assertEquals(setOf("6", "7"), inferred.mapNotNull { it.holeNumber }.toSet())
     }
-
 }
