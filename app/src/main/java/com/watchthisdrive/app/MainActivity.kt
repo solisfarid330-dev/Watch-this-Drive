@@ -70,7 +70,7 @@ private enum class Tab(val label: String) {
 @Composable
 private fun WatchThisDriveApp() {
     val context = androidx.compose.ui.platform.LocalContext.current
-    var selected by remember { mutableStateOf(Tab.HOME) }
+    var selected by remember { mutableStateOf(if (RoundScorecardStore.loadActive(context) != null) Tab.SCORE else Tab.HOME) }
     var showNearbyCourses by remember { mutableStateOf(false) }
     var selectedCourse by remember { mutableStateOf<GolfCourse?>(null) }
     var location by remember { mutableStateOf<Location?>(null) }
@@ -79,7 +79,7 @@ private fun WatchThisDriveApp() {
     var mapReconstruction by remember { mutableStateOf<CourseReconstruction?>(null) }
     var roundScorecard by remember { mutableStateOf(RoundScorecardStore.loadActive(context)) }
     var activeRound by remember { mutableStateOf(roundScorecard != null) }
-    var activeHoleIndex by remember { mutableIntStateOf(0) }
+    var activeHoleIndex by remember { mutableIntStateOf((roundScorecard?.activeHoleNumber ?: 1) - 1) }
     var locationMessage by remember { mutableStateOf("Location not checked yet") }
 
     val fused = remember { LocationServices.getFusedLocationProviderClient(context) }
@@ -204,7 +204,6 @@ private fun WatchThisDriveApp() {
                                 latitude = selectedCourse!!.latitude
                                 longitude = selectedCourse!!.longitude
                             }
-                            selectedCourse = null
                             showNearbyCourses = false
                             activeRound = loadedReconstruction?.holes?.isNotEmpty() == true
                             activeHoleIndex = 0
@@ -216,6 +215,7 @@ private fun WatchThisDriveApp() {
                                 roundScorecard = null
                                 RoundScorecardStore.saveActive(context, null)
                             }
+                            selectedCourse = null
                             selected = Tab.MAP
                         }
                     )
@@ -259,8 +259,22 @@ private fun WatchThisDriveApp() {
                                 geometry = mapGeometry,
                                 reconstruction = mapReconstruction,
                                 onStrokesChange = { value -> roundScorecard?.let { updateRoundScore(it.userPlayerId, hole.number, value) } },
-                                onPreviousHole = { if (safeIndex > 0) activeHoleIndex = safeIndex - 1 },
-                                onNextHole = { if (safeIndex < holes.lastIndex) activeHoleIndex = safeIndex + 1 },
+                                onPreviousHole = { if (safeIndex > 0) {
+                                    activeHoleIndex = safeIndex - 1
+                                    roundScorecard?.let { current ->
+                                        val updated = current.copy(activeHoleNumber = holes[safeIndex - 1].number)
+                                        roundScorecard = updated
+                                        RoundScorecardStore.saveActive(context, updated)
+                                    }
+                                } },
+                                onNextHole = { if (safeIndex < holes.lastIndex) {
+                                    activeHoleIndex = safeIndex + 1
+                                    roundScorecard?.let { current ->
+                                        val updated = current.copy(activeHoleNumber = holes[safeIndex + 1].number)
+                                        roundScorecard = updated
+                                        RoundScorecardStore.saveActive(context, updated)
+                                    }
+                                } },
                                 onExitRound = { selected = Tab.SCORE }
                             )
                         } else {
