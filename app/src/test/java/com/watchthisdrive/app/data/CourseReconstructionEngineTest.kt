@@ -93,6 +93,29 @@ class CourseReconstructionEngineTest {
         assertEquals(fairway.id, result.holes.single().fairways.single().id)
     }
 
+    @Test fun leavesGreenSharedByEquidistantHolesAmbiguous() {
+        val green = polygon(20, "green", listOf(
+            GeoPoint(0.001, 0.001), GeoPoint(0.001, 0.003),
+            GeoPoint(0.002, 0.003), GeoPoint(0.002, 0.001),
+            GeoPoint(0.001, 0.001)
+        ))
+        val firstHole = CourseFeature(
+            1, "way", "hole", "1", null,
+            listOf(GeoPoint(0.0, 0.002), GeoPoint(0.0015, 0.002)), CourseGeometryType.LINE
+        )
+        val secondHole = CourseFeature(
+            2, "way", "hole", "2", null,
+            listOf(GeoPoint(0.0, 0.0021), GeoPoint(0.0016, 0.0021)), CourseGeometryType.LINE
+        )
+        val result = CourseReconstructionEngine.reconstruct(
+            CourseGeometry(10, "Test", listOf(firstHole, secondHole, green))
+        )
+        assertTrue(result.holes.all { it.green == null })
+        assertTrue(result.holes.all { hole ->
+            hole.associationWarnings.any { it.contains("Green association ambiguous") }
+        })
+    }
+
     @Test fun doesNotReuseOneTeeMarkerAcrossNearbyHoles() {
         val tee = CourseFeature(
             5, "node", "tee", "1", null,
