@@ -274,7 +274,7 @@ private fun WatchThisDriveApp() {
                     containerColor = Color(0xFF18231C),
                     contentColor = Color.White
                 ) {
-                    val visibleTabs = if (activeRound) listOf(Tab.HOME, Tab.MAP, Tab.SCORE, Tab.CADDY) else Tab.values().toList()
+                    val visibleTabs = if (activeRound) listOf(Tab.HOME, Tab.MAP, Tab.SCORE, Tab.CADDY) else listOf(Tab.HOME, Tab.SCORE, Tab.CADDY)
                     visibleTabs.forEach { tab ->
                         val icon = when (tab) {
                             Tab.HOME -> Icons.Filled.Home
@@ -510,8 +510,8 @@ private fun HomeScreen(hasActiveRound: Boolean, onResumeRound: () -> Unit, onFin
                 }
             }
         }
-        OutlinedButton(onClick = onFindCourses, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFB8F36B))) {
-            Icon(Icons.Filled.Search, null); Spacer(Modifier.width(8.dp)); Text(if (hasActiveRound) "FIND ANOTHER COURSE" else "BROWSE COURSES")
+        if (!hasActiveRound) OutlinedButton(onClick = onFindCourses, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFB8F36B))) {
+            Icon(Icons.Filled.Search, null); Spacer(Modifier.width(8.dp)); Text("BROWSE COURSES")
         }
         if (!hasActiveRound) Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF18231C)), shape = RoundedCornerShape(16.dp)) {
             Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
