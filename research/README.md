@@ -299,8 +299,7 @@ python3 research/multi_source_course_audit.py \
   --naip --out output/howling-trails
 ```
 
-The coordinates above are optional example reference coordinates only; omit them
-to let the selected OpenGolfAPI record supply the imagery center. The script
+Optional reference coordinates can be supplied when an independent OSM match is already known; otherwise the selected OpenGolfAPI record supplies the imagery center. The script
 searches OpenGolfAPI, retrieves the selected course record plus its hole and tee
 endpoints, and preserves each response separately in
 `opengolfapi-audit.json`. With `--naip`, it requests a four-band Texas NAIP
