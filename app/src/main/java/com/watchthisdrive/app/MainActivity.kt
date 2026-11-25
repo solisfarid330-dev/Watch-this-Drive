@@ -827,11 +827,11 @@ private fun CourseDetailScreen(
         )
     }
 
-    fun improveMapping() {
+    fun improveMapping(featureType: String? = null) {
         if (recoveryLoading) return
         recoveryLoading = true
         recoveryMessage = "Searching for additional mapped golf features…"
-        CourseGeometryLoader.loadRecovery(course) { result ->
+        CourseGeometryLoader.loadRecovery(course, featureType) { result ->
             result.onSuccess { recovered ->
                 val previous = geometry
                 val mergedFeatures = (previous?.features.orEmpty() + recovered.features)
@@ -872,7 +872,7 @@ private fun CourseDetailScreen(
             .apply()
         recoveryMessage = "${feature.label} marked as missing. Checking for additional mapped data now…"
         showMissingFeatureDialog = false
-        improveMapping()
+        improveMapping(feature.osmTag)
     }
 
     LaunchedEffect(course.id) {

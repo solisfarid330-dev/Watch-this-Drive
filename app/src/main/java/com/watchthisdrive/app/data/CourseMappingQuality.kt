@@ -58,11 +58,11 @@ data class CourseMappingQuality(
     }
 }
 
-enum class MissingCourseFeature(val label: String) {
-    HOLE("Hole"),
-    FAIRWAY("Fairway"),
-    GREEN("Green"),
-    TEE("Tee"),
-    BUNKER("Bunker"),
-    WATER("Water hazard")
+enum class MissingCourseFeature(val label: String, val osmTag: String) {
+    HOLE("Hole", "hole"),
+    FAIRWAY("Fairway", "fairway"),
+    GREEN("Green", "green"),
+    TEE("Tee", "tee"),
+    BUNKER("Bunker", "bunker"),
+    WATER("Water hazard", "water_hazard")
 }
