@@ -1070,6 +1070,7 @@ private fun CourseDetailScreen(
             val enriched = CourseFeatureInference.addInferredFeatures(CourseHoleInference.addInferredHoles(updated))
             geometry = enriched
             reconstruction = CourseReconstructionEngine.reconstruct(enriched)
+            CourseGeometryCache.save(appContext, enriched)
             recoveryMessage = "Rechecked the course against the ${selectedExpectedHoleCount?.let { "$it-hole" } ?: "automatic"} hole target."
         }
     }
@@ -1113,6 +1114,7 @@ private fun CourseDetailScreen(
                 val oldCount = reconstruction?.holes?.size ?: 0
                 geometry = merged
                 reconstruction = improved
+                CourseGeometryCache.save(appContext, merged)
                 recoveryMessage = buildString {
                     append("Wider search returned ${recovered.features.size} mapped features; ")
                     append("$newSourceFeatureCount were new. ")
@@ -1147,58 +1149,38 @@ private fun CourseDetailScreen(
     }
 
     LaunchedEffect(course.id) {
-        OpenGolfApiCourseLoader.load(course) { result ->
-            result.onSuccess { metadata ->
-                externalMetadata = metadata
-                externalMetadataMessage = if (metadata == null) {
-                    "No sufficiently close OpenGolfAPI match. OSM geometry remains unchanged."
-                } else {
-                    "Matched by exact course name and geographic proximity."
-                }
-                val externalHoleCount = metadata?.holeCount?.takeIf { it == 9 || it == 18 }
-                if (selectedExpectedHoleCount == null && externalHoleCount != null) {
-                    selectedExpectedHoleCount = externalHoleCount
-                }
-                metadata?.let { matchedMetadata ->
-                    geometry?.let { current ->
-                        val enriched = enrichGeometryWithScorecard(current, matchedMetadata, selectedExpectedHoleCount)
-                        val inferred = CourseFeatureInference.addInferredFeatures(
-                            CourseHoleInference.addInferredHoles(enriched)
-                        )
-                        geometry = inferred
-                        reconstruction = CourseReconstructionEngine.reconstruct(inferred)
-                    }
-                }
-            }.onFailure {
-                externalMetadataMessage = "OpenGolfAPI unavailable; continuing with OSM data."
-            }
-        }
-        NaipImageryLoader.load(course) { result ->
-            result.onSuccess {
-                naipBitmap = it
-                naipMessage = "USGS / USDA NAIP · public-domain aerial reference"
-            }.onFailure {
-                naipMessage = "Aerial imagery unavailable at this location."
-            }
-        }
-    }
-
-    LaunchedEffect(course.id) {
-        CourseGeometryLoader.load(course) { result ->
-            result.fold(
-                onSuccess = {
-                    val withScorecard = externalMetadata?.let { metadata -> enrichGeometryWithScorecard(it, metadata, selectedExpectedHoleCount) }
-                        ?: it.copy(expectedHoleCount = selectedExpectedHoleCount ?: it.expectedHoleCount)
-                    val enriched = CourseFeatureInference.addInferredFeatures(CourseHoleInference.addInferredHoles(withScorecard))
-                    geometry = enriched
-                    reconstruction = CourseReconstructionEngine.reconstruct(enriched)
-                    loading = false
-                },
-                onFailure = {
-                    error = it.message ?: "Unable to load course geometry."
-                    loading = false
-                }
+        val cachedGeometry = CourseGeometryCache.load(appContext, course.id)
+        if (cachedGeometry != null) {
+            val withExpectedCount = cachedGeometry.copy(
+                expectedHoleCount = selectedExpectedHoleCount ?: cachedGeometry.expectedHoleCount
             )
+            val enriched = CourseFeatureInference.addInferredFeatures(
+                CourseHoleInference.addInferredHoles(withExpectedCount)
+            )
+            geometry = enriched
+            reconstruction = CourseReconstructionEngine.reconstruct(enriched)
+            loading = false
+        } else {
+            CourseGeometryLoader.load(course) { result ->
+                result.fold(
+                    onSuccess = { loaded ->
+                        val withScorecard = externalMetadata?.let { metadata ->
+                            enrichGeometryWithScorecard(loaded, metadata, selectedExpectedHoleCount)
+                        } ?: loaded.copy(expectedHoleCount = selectedExpectedHoleCount ?: loaded.expectedHoleCount)
+                        val enriched = CourseFeatureInference.addInferredFeatures(
+                            CourseHoleInference.addInferredHoles(withScorecard)
+                        )
+                        geometry = enriched
+                        reconstruction = CourseReconstructionEngine.reconstruct(enriched)
+                        CourseGeometryCache.save(appContext, enriched)
+                        loading = false
+                    },
+                    onFailure = {
+                        error = it.message ?: "Unable to load course geometry."
+                        loading = false
+                    }
+                )
+            }
         }
     }
 
