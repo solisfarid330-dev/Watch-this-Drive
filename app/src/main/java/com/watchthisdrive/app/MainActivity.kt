@@ -989,6 +989,13 @@ private fun CourseDetailScreen(
                                 color = Color.White,
                                 style = MaterialTheme.typography.bodySmall
                             )
+                            if (report.inferredFairwayCount > 0) {
+                                Text(
+                                    "${report.inferredFairwayCount} fairway corridors generated from hole lines (approximate, not source-mapped)",
+                                    color = Color(0xFFFFC857),
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
                             if (report.missingNumberedHoles.isNotEmpty()) {
                                 Text(
                                     "Numbered hole gaps in source data: ${report.missingNumberedHoles.joinToString()}",
