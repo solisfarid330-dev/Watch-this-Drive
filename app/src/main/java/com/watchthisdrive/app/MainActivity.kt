@@ -814,18 +814,17 @@ private fun CourseDetailScreen(
     var error by remember(course.id) {
         mutableStateOf<String?>(null)
     }
+    val appContext = androidx.compose.ui.platform.LocalContext.current
     var recoveryLoading by remember(course.id) { mutableStateOf(false) }
     var recoveryMessage by remember(course.id) { mutableStateOf<String?>(null) }
     var showMissingFeatureDialog by remember(course.id) { mutableStateOf(false) }
     var reportedFeatures by remember(course.id) {
         mutableStateOf(
-            androidx.compose.ui.platform.LocalContext.current
-                .getSharedPreferences("course_mapping_reports", android.content.Context.MODE_PRIVATE)
+            appContext.getSharedPreferences("course_mapping_reports", android.content.Context.MODE_PRIVATE)
                 .getStringSet("course_${course.elementType}_${course.id}", emptySet())
                 .orEmpty()
         )
     }
-    val appContext = androidx.compose.ui.platform.LocalContext.current
 
     fun improveMapping() {
         if (recoveryLoading) return
