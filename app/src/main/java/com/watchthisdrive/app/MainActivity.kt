@@ -32,6 +32,7 @@ import com.watchthisdrive.app.data.ClubCarryDistances
 import com.watchthisdrive.app.data.CourseGeometry
 import com.watchthisdrive.app.data.CourseGeometryLoader
 import com.watchthisdrive.app.data.CourseFeatureInference
+import com.watchthisdrive.app.data.CourseHoleInference
 import com.watchthisdrive.app.data.CourseMappingQuality
 import com.watchthisdrive.app.data.MissingCourseFeature
 import com.watchthisdrive.app.data.CourseReconstruction
