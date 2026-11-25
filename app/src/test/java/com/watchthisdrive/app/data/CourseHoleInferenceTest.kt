@@ -185,7 +185,8 @@ class CourseHoleInferenceTest {
             it.origin == CourseFeatureOrigin.INFERRED && it.featureType == "hole"
         }
         assertEquals("6", inferred.holeNumber)
-        assertEquals("inferred_from_numbered_tee_green_and_fairway", inferred.geometryStatus)
+        assertEquals("inferred_from_unmatched_tee_green_fairway_and_hole_sequence", inferred.geometryStatus)
+        assertEquals(0.50, inferred.confidence!!, 0.0)
     }
 
     @Test
