@@ -28,9 +28,14 @@ class CourseHoleInferenceTest {
         assertFalse(CourseHoleInference.addInferredHoles(input).features.any{it.origin==CourseFeatureOrigin.INFERRED&&it.featureType=="hole"})
     }
 
-    @Test fun doesNotInferWithoutMappedFairwayEvidence() {
+    @Test fun infersFromExplicitNumberedTeeAndGreenEvenWhenFairwayIsMissing() {
         val input=CourseGeometry(1,"Generic",holes()+listOf(tee(),green()))
-        assertFalse(CourseHoleInference.addInferredHoles(input).features.any{it.origin==CourseFeatureOrigin.INFERRED&&it.featureType=="hole"})
+        val inferred=CourseHoleInference.addInferredHoles(input).features.single {
+            it.origin==CourseFeatureOrigin.INFERRED && it.featureType=="hole"
+        }
+        assertEquals("6", inferred.holeNumber)
+        assertEquals(0.45, inferred.confidence!!, 0.0)
+        assertEquals("inferred_from_numbered_tee_green_without_fairway", inferred.geometryStatus)
     }
     @Test fun reconstructsMissingUnnumberedHolesFromSouthPadreMapEvidence() {
         val stream = javaClass.classLoader!!.getResourceAsStream("fixtures/south-padre-course-overpass.json")

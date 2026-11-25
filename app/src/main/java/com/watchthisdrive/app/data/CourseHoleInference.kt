@@ -40,7 +40,7 @@ object CourseHoleInference {
         val tees = usable.filter { it.origin == CourseFeatureOrigin.SOURCE && it.featureType == "tee" }
         val greens = usable.filter { it.origin == CourseFeatureOrigin.SOURCE && it.featureType == "green" }
         val fairways = usable.filter { it.origin == CourseFeatureOrigin.SOURCE && it.featureType == "fairway" }
-        if (tees.isEmpty() || greens.isEmpty() || fairways.isEmpty()) return course
+        if (tees.isEmpty() || greens.isEmpty()) return course
 
         val explicit = missing.mapNotNull { number ->
             val matchingTees = tees.filter { it.holeNumber?.toIntOrNull() == number }
@@ -49,7 +49,13 @@ object CourseHoleInference {
             val tee = representativePoint(matchingTees.single()) ?: return@mapNotNull null
             val green = representativePoint(matchingGreens.single()) ?: return@mapNotNull null
             if (!plausibleLine(tee, green, fairways)) return@mapNotNull null
-            inferredFeature(number, tee, green, 0.65, "inferred_from_numbered_tee_green_and_fairway")
+            val hasFairwayEvidence = fairways.isNotEmpty()
+            inferredFeature(
+                number, tee, green,
+                if (hasFairwayEvidence) 0.65 else 0.45,
+                if (hasFairwayEvidence) "inferred_from_numbered_tee_green_and_fairway"
+                else "inferred_from_numbered_tee_green_without_fairway"
+            )
         }
         val inferred = if (explicit.size == missing.size) explicit else {
             inferFromUnnumberedMarkers(missing, mappedHoles, tees, greens, fairways)
@@ -179,7 +185,7 @@ object CourseHoleInference {
 
     private fun plausibleLine(tee: GeoPoint, green: GeoPoint, fairways: List<CourseFeature>): Boolean =
         meters(tee, green) in MIN_HOLE_LENGTH_M..MAX_HOLE_LENGTH_M &&
-            fairwaySupport(tee, green, fairways) >= MIN_FAIRWAY_SUPPORT
+            (fairways.isEmpty() || fairwaySupport(tee, green, fairways) >= MIN_FAIRWAY_SUPPORT)
 
     private fun fairwaySupport(tee: GeoPoint, green: GeoPoint, fairways: List<CourseFeature>): Double {
         val samples = (0..20).map { step ->
