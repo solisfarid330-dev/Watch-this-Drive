@@ -252,8 +252,8 @@ private fun WatchThisDriveApp() {
                                 strokes = roundScorecard?.user?.scores?.get(hole.number) ?: 0,
                                 overallStrokes = roundScorecard?.user?.scores?.values?.sum() ?: 0,
                                 overallRelativeToPar = roundScorecard?.let { round ->
-                                    val scoredHoles = round.user.scores.keys
-                                    if (scoredHoles.any { round.holePars[it] != null }) round.user.scores.entries.sumOf { (number, value) -> value - (round.holePars[number] ?: 0) } else null
+                                    val scoredWithPar = round.user.scores.filterKeys { round.holePars[it] != null }
+                                    if (scoredWithPar.isNotEmpty()) scoredWithPar.entries.sumOf { (number, value) -> value - (round.holePars[number] ?: 0) } else null
                                 },
                                 carryDistances = clubCarries,
                                 geometry = mapGeometry,
