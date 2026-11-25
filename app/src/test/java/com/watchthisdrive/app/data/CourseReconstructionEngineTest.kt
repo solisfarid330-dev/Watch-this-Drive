@@ -14,7 +14,7 @@ class CourseReconstructionEngineTest {
             GeoPoint(0.003, 0.001), GeoPoint(0.001, 0.001)
         ))
         val hole = CourseFeature(1, "way", "hole", "1", null,
-            listOf(GeoPoint(0.0, 0.002), GeoPoint(0.004, 0.002)), CourseGeometryType.LINE)
+            listOf(GeoPoint(0.0, 0.002), GeoPoint(0.0032, 0.002)), CourseGeometryType.LINE)
         val result = CourseReconstructionEngine.reconstruct(CourseGeometry(10, "Test", listOf(hole, green)))
         val reconstructed = result.holes.single()
         assertEquals(PinSource.ESTIMATED_GREEN_CENTER, reconstructed.pinSource)
@@ -30,7 +30,7 @@ class CourseReconstructionEngineTest {
         ))
         val pin = CourseFeature(3, "node", "pin", "1", null, listOf(GeoPoint(0.0025, 0.0025)), CourseGeometryType.POINT)
         val hole = CourseFeature(1, "way", "hole", "1", null,
-            listOf(GeoPoint(0.0, 0.002), GeoPoint(0.004, 0.002)), CourseGeometryType.LINE)
+            listOf(GeoPoint(0.0, 0.002), GeoPoint(0.0025, 0.0025)), CourseGeometryType.LINE)
         val result = CourseReconstructionEngine.reconstruct(CourseGeometry(10, "Test", listOf(hole, green, pin)))
         assertEquals(PinSource.MAPPED, result.holes.single().pinSource)
         assertEquals(pin.points.single(), result.holes.single().pin)
@@ -43,7 +43,7 @@ class CourseReconstructionEngineTest {
         )
         val green = polygon(2, "green", ring)
         val hole = CourseFeature(1, "way", "hole", "1", null,
-            listOf(GeoPoint(-0.001, 0.002), GeoPoint(0.005, 0.002)), CourseGeometryType.LINE)
+            listOf(GeoPoint(-0.001, 0.002), GeoPoint(0.0042, 0.002)), CourseGeometryType.LINE)
         val result = CourseReconstructionEngine.reconstruct(CourseGeometry(10, "Test", listOf(hole, green)))
         val pin = result.holes.single().pin!!
         assertTrue(pin.latitude >= 0.0 && pin.latitude <= 0.004)
