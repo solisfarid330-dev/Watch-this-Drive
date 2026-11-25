@@ -140,8 +140,8 @@ def naip_export_url(latitude, longitude, radius_m=1200, image_size=2048):
     lat_rad = math.radians(latitude)
     x = 6378137.0 * math.radians(longitude)
     y = 6378137.0 * math.log(math.tan(math.pi / 4 + lat_rad / 2))
-    half_width = radius_m / max(math.cos(lat_rad), 0.2)
-    bbox = f"{x-half_width},{y-radius_m},{x+half_width},{y+radius_m}"
+    projected_radius = radius_m / max(math.cos(lat_rad), 0.2)
+    bbox = f"{x-projected_radius},{y-projected_radius},{x+projected_radius},{y+projected_radius}"
     params = {
         "bbox": bbox,
         "bboxSR": "3857",
