@@ -213,4 +213,51 @@ class CourseHoleInferenceTest {
         assertEquals("inferred_from_numbered_tee_green_and_fairway", inferred.geometryStatus)
     }
 
+    @Test
+    fun usesNumberedNeighborMarkersToOrientRecoveryWhenMissingHoleGreenIsAmbiguous() {
+        fun greenFeature(id: Long, number: Int, latitude: Double, longitude: Double): CourseFeature {
+            val ring = listOf(
+                GeoPoint(latitude - 0.00008, longitude - 0.00008),
+                GeoPoint(latitude - 0.00008, longitude + 0.00008),
+                GeoPoint(latitude + 0.00008, longitude + 0.00008),
+                GeoPoint(latitude + 0.00008, longitude - 0.00008),
+                GeoPoint(latitude - 0.00008, longitude - 0.00008)
+            )
+            return CourseFeature(
+                id, "way", "green", number.toString(), null, ring,
+                CourseGeometryType.POLYGON, listOf(ring)
+            )
+        }
+
+        val mappedHoles = (1..9).filter { it != 6 }.map { number ->
+            val longitude = number * 0.002
+            CourseFeature(
+                number.toLong(), "way", "hole", number.toString(), null,
+                listOf(GeoPoint(0.0, longitude), GeoPoint(0.0018, longitude)),
+                CourseGeometryType.LINE
+            )
+        }
+        val tees = (1..9).map { number ->
+            CourseFeature(
+                100L + number, "node", "tee", number.toString(), null,
+                listOf(GeoPoint(0.0, number * 0.002)),
+                CourseGeometryType.POINT
+            )
+        }
+        val greens = (1..9).flatMap { number ->
+            val longitude = number * 0.002
+            listOf(greenFeature(200L + number, number, 0.0018, longitude)) +
+                if (number == 6) listOf(greenFeature(206L, number, 0.005, longitude)) else emptyList()
+        }
+
+        val result = CourseHoleInference.addInferredHoles(
+            CourseGeometry(1, "Generic numbered-marker course", mappedHoles + tees + greens, expectedHoleCount = 9)
+        )
+        val inferred = result.features.single {
+            it.origin == CourseFeatureOrigin.INFERRED && it.featureType == "hole"
+        }
+        assertEquals("6", inferred.holeNumber)
+        assertEquals("inferred_from_unmatched_tee_green_and_neighboring_hole_sequence", inferred.geometryStatus)
+    }
+
 }
