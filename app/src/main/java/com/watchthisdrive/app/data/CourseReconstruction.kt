@@ -28,6 +28,7 @@ object CourseReconstructionEngine {
     private const val TEE_GREEN_ENDPOINT_LIMIT_M = 30.0
     private const val PIN_ENDPOINT_LIMIT_M = 20.0
     private const val DIRECTION_MARGIN_M = 10.0
+    private const val MARKER_UNIQUENESS_MARGIN_M = 5.0
     private const val CORRIDOR_LIMIT_M = 55.0
     private const val UNIQUE_MARGIN_M = 8.0
 
@@ -41,10 +42,13 @@ object CourseReconstructionEngine {
             val feature: CourseFeature,
             val line: List<GeoPoint>,
             val tee: CourseFeature?,
-            val green: CourseFeature?,
-            val pin: GeoPoint?,
-            val pinSource: PinSource?,
+            val greenCandidate: Pair<CourseFeature, Double>?,
+            val pinCandidate: Pair<CourseFeature, Double>?,
             val teeToGreenOriented: Boolean,
+            var green: CourseFeature? = null,
+            var mappedPin: CourseFeature? = null,
+            var pin: GeoPoint? = null,
+            var pinSource: PinSource? = null,
             val warnings: MutableList<String> = mutableListOf()
         )
 
@@ -110,8 +114,6 @@ object CourseReconstructionEngine {
                 val reverseUsingForwardMarkers =
                     featureDistance(end, startTee!!.first) + featureDistance(start, endGreen!!.first)
                 if (reverseUsingForwardMarkers - forward >= DIRECTION_MARGIN_M) {
-                    // Tee-at-start plus green-at-end is sufficient only when the
-                    // same markers are materially farther from the reverse endpoints.
                     teeToGreenOriented = true
                 }
             } else if (forward.isFinite() && reverse.isFinite() && abs(forward - reverse) >= DIRECTION_MARGIN_M) {
@@ -156,23 +158,71 @@ object CourseReconstructionEngine {
             val tee = (if (lineReversed) endTee else startTee)?.first
             val teeEndpoint = line.first()
             val greenEndpoint = line.last()
-            val green = nearestFeature(greenEndpoint, greens)?.takeIf { it.second <= TEE_GREEN_ENDPOINT_LIMIT_M }?.first
-                ?: nearestFeature(teeEndpoint, greens)?.takeIf { it.second <= TEE_GREEN_ENDPOINT_LIMIT_M }?.first
+            val greenCandidate = if (teeToGreenOriented) {
+                nearestFeature(greenEndpoint, greens)?.takeIf {
+                    it.second <= TEE_GREEN_ENDPOINT_LIMIT_M &&
+                        featureDistance(teeEndpoint, it.first) - it.second >= DIRECTION_MARGIN_M
+                }
+            } else null
+            val pinCandidate = if (teeToGreenOriented) {
+                nearestFeature(greenEndpoint, pins)?.takeIf {
+                    it.second <= PIN_ENDPOINT_LIMIT_M &&
+                        featureDistance(teeEndpoint, it.first) - it.second >= DIRECTION_MARGIN_M
+                }
+            } else null
 
-            val mappedPin = nearestFeature(greenEndpoint, pins)
-                ?.takeIf { it.second <= PIN_ENDPOINT_LIMIT_M }?.first
-            val pin = mappedPin?.let { representativePoint(it) }
-                ?: green?.let { polygonCenter(it) }
-            val pinSource = when {
-                mappedPin != null && pin != null -> PinSource.MAPPED
-                green != null && pin != null -> PinSource.ESTIMATED_GREEN_CENTER
+            Draft(hole, line, tee, greenCandidate, pinCandidate, teeToGreenOriented).also { draft ->
+                if (tee == null) draft.warnings.add("No confident tee association")
+            }
+        }
+
+        // A feature that is equally close to neighboring hole ends stays ambiguous.
+        // This deliberately avoids claiming a shared green or pin for multiple holes.
+        data class MarkerOwner(val draft: Draft, val feature: CourseFeature, val distance: Double)
+        fun applyUniqueMarkerAssignments(
+            candidate: (Draft) -> Pair<CourseFeature, Double>?,
+            assign: (Draft, CourseFeature) -> Unit,
+            label: String
+        ) {
+            val grouped = mutableMapOf<Pair<String, Long>, MutableList<MarkerOwner>>()
+            drafts.forEach { draft ->
+                candidate(draft)?.let { (feature, distance) ->
+                    val key = feature.elementType to feature.id
+                    grouped.getOrPut(key) { mutableListOf() }.add(MarkerOwner(draft, feature, distance))
+                }
+            }
+            grouped.values.forEach { owners ->
+                val sorted = owners.sortedBy { it.distance }
+                if (sorted.size == 1) {
+                    assign(sorted.first().draft, sorted.first().feature)
+                } else {
+                    val margin = sorted[1].distance - sorted[0].distance
+                    if (margin >= MARKER_UNIQUENESS_MARGIN_M) {
+                        assign(sorted.first().draft, sorted.first().feature)
+                        sorted.drop(1).forEach {
+                            it.draft.warnings.add("$label candidate is closer to another hole")
+                        }
+                    } else {
+                        sorted.forEach {
+                            it.draft.warnings.add("$label association ambiguous across nearby holes")
+                        }
+                    }
+                }
+            }
+        }
+
+        applyUniqueMarkerAssignments({ it.greenCandidate }, { draft, feature -> draft.green = feature }, "Green")
+        applyUniqueMarkerAssignments({ it.pinCandidate }, { draft, feature -> draft.mappedPin = feature }, "Pin")
+        drafts.forEach { draft ->
+            draft.pin = draft.mappedPin?.let { representativePoint(it) }
+                ?: draft.green?.let { polygonCenter(it) }
+            draft.pinSource = when {
+                draft.mappedPin != null && draft.pin != null -> PinSource.MAPPED
+                draft.green != null && draft.pin != null -> PinSource.ESTIMATED_GREEN_CENTER
                 else -> null
             }
-            Draft(hole, line, tee, green, pin, pinSource, teeToGreenOriented).also { draft ->
-                if (tee == null) draft.warnings.add("No confident tee association")
-                if (green == null) draft.warnings.add("No confident green association")
-                if (pin == null) draft.warnings.add("No pin position available")
-            }
+            if (draft.green == null) draft.warnings.add("No confident green association")
+            if (draft.pin == null) draft.warnings.add("No pin position available")
         }
 
         val corridorTypes = setOf("fairway", "bunker", "water_hazard")
