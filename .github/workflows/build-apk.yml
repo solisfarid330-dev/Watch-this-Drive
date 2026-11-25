@@ -10,9 +10,14 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 35
     steps:
       - name: Check out source
         uses: actions/checkout@v4
@@ -33,12 +38,12 @@ jobs:
         continue-on-error: true
         env:
           MAPTILER_API_KEY: ${{ secrets.MAPTILER_API_KEY }}
-        run: gradle --no-daemon testDebugUnitTest
+        run: ./gradlew --no-daemon testDebugUnitTest
 
       - name: Build debug APK
         env:
           MAPTILER_API_KEY: ${{ secrets.MAPTILER_API_KEY }}
-        run: gradle --no-daemon assembleDebug
+        run: ./gradlew --no-daemon assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
