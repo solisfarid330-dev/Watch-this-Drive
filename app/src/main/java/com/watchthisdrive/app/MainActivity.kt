@@ -34,6 +34,7 @@ import com.watchthisdrive.app.data.CourseDiscovery
 import com.watchthisdrive.app.data.OpenGolfApiCourseLoader
 import com.watchthisdrive.app.data.ExternalCourseMetadata
 import com.watchthisdrive.app.data.NaipImageryLoader
+import com.watchthisdrive.app.data.enrichGeometryWithScorecard
 import com.watchthisdrive.app.data.ClubCarryDistances
 import com.watchthisdrive.app.data.CourseGeometry
 import com.watchthisdrive.app.data.CourseGeometryLoader
@@ -948,7 +949,7 @@ private fun CourseDetailScreen(
                 if (selectedExpectedHoleCount == null && externalHoleCount != null) {
                     selectedExpectedHoleCount = externalHoleCount
                     geometry?.let { current ->
-                        val enriched = current.copy(expectedHoleCount = externalHoleCount)
+                        val enriched = enrichGeometryWithScorecard(current, metadata, selectedExpectedHoleCount)
                         val inferred = CourseFeatureInference.addInferredFeatures(
                             CourseHoleInference.addInferredHoles(enriched)
                         )
@@ -974,8 +975,9 @@ private fun CourseDetailScreen(
         CourseGeometryLoader.load(course) { result ->
             result.fold(
                 onSuccess = {
-                    val withExpectedCount = it.copy(expectedHoleCount = selectedExpectedHoleCount ?: it.expectedHoleCount)
-                    val enriched = CourseFeatureInference.addInferredFeatures(CourseHoleInference.addInferredHoles(withExpectedCount))
+                    val withScorecard = externalMetadata?.let { metadata -> enrichGeometryWithScorecard(it, metadata, selectedExpectedHoleCount) }
+                        ?: it.copy(expectedHoleCount = selectedExpectedHoleCount ?: it.expectedHoleCount)
+                    val enriched = CourseFeatureInference.addInferredFeatures(CourseHoleInference.addInferredHoles(withScorecard))
                     geometry = enriched
                     reconstruction = CourseReconstructionEngine.reconstruct(enriched)
                     loading = false
