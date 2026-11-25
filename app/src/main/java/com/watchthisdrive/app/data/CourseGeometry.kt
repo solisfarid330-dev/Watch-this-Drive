@@ -7,6 +7,9 @@ import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLEncoder
+import java.util.concurrent.Callable
+import java.util.concurrent.ExecutorCompletionService
+import java.util.concurrent.Executors
 import kotlin.concurrent.thread
 
 data class GeoPoint(val latitude: Double, val longitude: Double)
@@ -96,21 +99,39 @@ object CourseGeometryLoader {
     ) {
         thread(name = "course-geometry-load") {
             val result = runCatching {
-                // Give each mirror a bounded opportunity. A stalled first mirror must
-                // not consume the entire recovery window and prevent fallback servers.
-                val perServerBudgetMs = 20_000
-                var lastError: Exception? = null
-                for (server in OVERPASS_SERVERS) {
-                    try {
-                        return@runCatching fetchGeometry(server, query, course, perServerBudgetMs)
-                    } catch (e: Exception) {
-                        lastError = e
+                // Mirrors are independent services. Race them instead of serially
+                // spending the full timeout on each host. Accept the first response
+                // containing actual features; an empty HTTP 200 must not mask useful
+                // data from another mirror.
+                val serverBudgetMs = if (query.contains("[timeout:60]")) 65_000 else 20_000
+                val executor = Executors.newFixedThreadPool(OVERPASS_SERVERS.size)
+                val completion = ExecutorCompletionService<Pair<String, CourseGeometry>>(executor)
+                try {
+                    OVERPASS_SERVERS.forEach { server ->
+                        completion.submit(Callable {
+                            server to fetchGeometry(server, query, course, serverBudgetMs)
+                        })
                     }
+                    val failures = mutableListOf<String>()
+                    var emptyResult: CourseGeometry? = null
+                    repeat(OVERPASS_SERVERS.size) {
+                        try {
+                            val (server, geometry) = completion.take().get()
+                            if (geometry.features.isNotEmpty()) return@runCatching geometry
+                            if (emptyResult == null) emptyResult = geometry
+                            failures.add("$server returned no golf features")
+                        } catch (e: Exception) {
+                            val cause = e.cause ?: e
+                            failures.add("${cause.javaClass.simpleName}: ${cause.message ?: "request failed"}")
+                        }
+                    }
+                    emptyResult ?: throw Exception(
+                        "Course mapping search could not reach a responsive map server. " +
+                            failures.joinToString(" | ")
+                    )
+                } finally {
+                    executor.shutdownNow()
                 }
-                throw Exception(
-                    "Course mapping search could not reach a responsive map server. " +
-                        (lastError?.message ?: "Please try again later.")
-                )
             }
             Handler(Looper.getMainLooper()).post { onResult(result) }
         }
@@ -177,10 +198,9 @@ object CourseGeometryLoader {
         val connection = URL(server).openConnection() as HttpURLConnection
         try {
             connection.requestMethod = "POST"
-            // The server-side Overpass query limit is 12 seconds. Keep the
-            // client read timeout longer than that limit so a valid response can
-            // arrive; the previous 12-second read timeout cut off requests while
-            // the server was still permitted to work for 25 seconds.
+            // Keep the client read timeout longer than the query's Overpass
+            // timeout. The standard course query allows 60 seconds; recovery scans
+            // allow 12 seconds and use the shorter per-mirror budget above.
             connection.connectTimeout = minOf(5000, (timeoutMs / 4).coerceAtLeast(1000))
             connection.readTimeout = timeoutMs
             connection.doOutput = true
