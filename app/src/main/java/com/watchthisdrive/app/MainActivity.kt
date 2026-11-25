@@ -89,13 +89,9 @@ private fun WatchThisDriveApp() {
 
     fun restoreActiveCourse() {
         val savedRound = roundScorecard ?: return
-        val savedId = savedRound.courseId ?: return
-        val savedType = savedRound.courseElementType ?: return
-        val latitude = savedRound.courseLatitude ?: return
-        val longitude = savedRound.courseLongitude ?: return
         mapRecoveryMessage = "Restoring ${savedRound.courseName}…"
 
-        fun applyRestoredGeometry(sourceGeometry: CourseGeometry) {
+        fun applyRestoredGeometry(sourceGeometry: CourseGeometry, latitude: Double, longitude: Double) {
             val expectedCount = savedRound.expectedHoleCount
                 ?: savedRound.holePars.size.takeIf { it == 9 || it == 18 }
                 ?: sourceGeometry.expectedHoleCount
@@ -126,24 +122,70 @@ private fun WatchThisDriveApp() {
             selected = Tab.MAP
         }
 
-        val cached = CourseGeometryCache.load(context, savedId)
-        if (cached != null) {
-            applyRestoredGeometry(cached)
+        fun loadCourse(course: GolfCourse) {
+            val updatedRound = savedRound.copy(
+                courseId = course.id, courseElementType = course.elementType,
+                courseLatitude = course.latitude, courseLongitude = course.longitude,
+                expectedHoleCount = savedRound.expectedHoleCount ?: course.expectedHoleCount
+            )
+            roundScorecard = updatedRound
+            RoundScorecardStore.saveActive(context, updatedRound)
+            CourseGeometryLoader.load(course) { result ->
+                result.onSuccess { sourceGeometry ->
+                    CourseGeometryCache.save(context, sourceGeometry)
+                    applyRestoredGeometry(sourceGeometry, course.latitude, course.longitude)
+                }.onFailure { problem ->
+                    mapRecoveryMessage = "Couldn't restore the course map: ${problem.message ?: "Please try again."} Your scores are still saved; retry when you have a connection."
+                }
+            }
+        }
+
+        val savedId = savedRound.courseId
+        val savedType = savedRound.courseElementType
+        val latitude = savedRound.courseLatitude
+        val longitude = savedRound.courseLongitude
+        if (savedId != null && savedType != null && latitude != null && longitude != null) {
+            val cached = CourseGeometryCache.load(context, savedId)
+            if (cached != null) {
+                applyRestoredGeometry(cached, latitude, longitude)
+                return
+            }
+            mapRecoveryMessage = "No local map snapshot found. Re-downloading course geometry…"
+            loadCourse(GolfCourse(
+                id = savedId, elementType = savedType, name = savedRound.courseName,
+                latitude = latitude, longitude = longitude, distanceMeters = 0f,
+                expectedHoleCount = savedRound.expectedHoleCount
+            ))
             return
         }
 
-        mapRecoveryMessage = "No local map snapshot found. Re-downloading course geometry…"
-        val course = GolfCourse(
-            id = savedId, elementType = savedType, name = savedRound.courseName,
-            latitude = latitude, longitude = longitude, distanceMeters = 0f,
-            expectedHoleCount = savedRound.expectedHoleCount
-        )
-        CourseGeometryLoader.load(course) { result ->
-            result.onSuccess { sourceGeometry ->
-                CourseGeometryCache.save(context, sourceGeometry)
-                applyRestoredGeometry(sourceGeometry)
+        // Backward compatibility: rounds created before course identity was
+        // persisted only have the course name. Resolve it once and upgrade them.
+        mapRecoveryMessage = "Finding the saved course from its name…"
+        CourseDiscovery.searchByText(savedRound.courseName) { result ->
+            result.onSuccess { matches ->
+                val normalizedName = savedRound.courseName.lowercase(Locale.ROOT)
+                    .replace(Regex("[^a-z0-9]"), "")
+                val match = matches.firstOrNull {
+                    it.name.lowercase(Locale.ROOT).replace(Regex("[^a-z0-9]"), "") == normalizedName
+                } ?: matches.minByOrNull { it.distanceMeters }
+                if (match != null) {
+                    val cached = CourseGeometryCache.load(context, match.id)
+                    if (cached != null) {
+                        val upgraded = savedRound.copy(
+                            courseId = match.id, courseElementType = match.elementType,
+                            courseLatitude = match.latitude, courseLongitude = match.longitude,
+                            expectedHoleCount = savedRound.expectedHoleCount ?: match.expectedHoleCount
+                        )
+                        roundScorecard = upgraded
+                        RoundScorecardStore.saveActive(context, upgraded)
+                        applyRestoredGeometry(cached, match.latitude, match.longitude)
+                    } else loadCourse(match)
+                } else {
+                    mapRecoveryMessage = "Couldn't restore the course map: the saved course name couldn't be matched. Your scores remain safe in Scorecard."
+                }
             }.onFailure { problem ->
-                mapRecoveryMessage = "Couldn't restore the course map: ${problem.message ?: "Please try again."} Your scores are still saved; retry when you have a connection."
+                mapRecoveryMessage = "Couldn't restore the course map: ${problem.message ?: "Course search failed."} Your scores remain safe in Scorecard."
             }
         }
     }
@@ -158,8 +200,8 @@ private fun WatchThisDriveApp() {
         RoundScorecardStore.saveActive(context, updated)
     }
 
-    LaunchedEffect(activeRound, roundScorecard?.courseId, mapReconstruction) {
-        if (activeRound && mapReconstruction == null && roundScorecard?.courseId != null) {
+    LaunchedEffect(activeRound) {
+        if (activeRound && mapReconstruction == null && roundScorecard != null) {
             restoreActiveCourse()
         }
     }
