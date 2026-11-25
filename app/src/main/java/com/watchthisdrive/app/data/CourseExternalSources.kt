@@ -9,6 +9,7 @@ import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLEncoder
+import java.util.Locale
 import kotlin.concurrent.thread
 import kotlin.math.*
 
@@ -188,7 +189,7 @@ object OpenGolfApiCourseLoader {
     }
 
     private fun normalizeName(value: String): String =
-        value.lowercase().replace(Regex("[^a-z0-9]"), "")
+        value.lowercase(Locale.ROOT).replace(Regex("[^a-z0-9]"), "")
 
     private fun distanceMeters(aLat: Double, aLon: Double, bLat: Double, bLon: Double): Double {
         val earthRadius = 6_371_008.8
