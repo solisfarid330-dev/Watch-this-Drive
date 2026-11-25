@@ -73,7 +73,7 @@ fun GlobalScorecardScreen(round: RoundScorecard, onScoreChange: (String, String,
 }
 
 @Composable
-private fun PlayerScorecard(player: RoundPlayer, isUser: Boolean, holes: List<Int>, pars: Map<Int, Int?>, onScoreChange: (String, Int) -> Unit, onRemove: () -> Unit) {
+private fun PlayerScorecard(player: RoundPlayer, isUser: Boolean, holes: List<String>, pars: Map<String, Int?>, onScoreChange: (String, Int) -> Unit, onRemove: () -> Unit) {
     val total = player.scores.values.sum()
     val scoredWithPar = player.scores.filterKeys { pars[it] != null }
     val relative = if (scoredWithPar.isEmpty()) null else scoredWithPar.entries.sumOf { (hole, strokes) -> strokes - (pars[hole] ?: 0) }
