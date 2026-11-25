@@ -40,6 +40,7 @@ import com.watchthisdrive.app.data.RoundPlayer
 import com.watchthisdrive.app.data.RoundScorecard
 import com.watchthisdrive.app.data.RoundScorecardStore
 import com.watchthisdrive.app.data.CourseGeometry
+import com.watchthisdrive.app.data.CourseGeometryCache
 import com.watchthisdrive.app.data.CourseGeometryLoader
 import com.watchthisdrive.app.data.CourseFeatureInference
 import com.watchthisdrive.app.data.CourseHoleInference
@@ -93,6 +94,45 @@ private fun WatchThisDriveApp() {
         val latitude = savedRound.courseLatitude ?: return
         val longitude = savedRound.courseLongitude ?: return
         mapRecoveryMessage = "Restoring ${savedRound.courseName}…"
+
+        fun applyRestoredGeometry(sourceGeometry: CourseGeometry) {
+            val expectedCount = savedRound.expectedHoleCount
+                ?: savedRound.holePars.size.takeIf { it == 9 || it == 18 }
+                ?: sourceGeometry.expectedHoleCount
+            val withRoundPars = sourceGeometry.copy(
+                expectedHoleCount = expectedCount,
+                features = sourceGeometry.features.map { feature ->
+                    val savedPar = feature.holeNumber?.let { savedRound.holePars[it] }
+                    if (feature.featureType == "hole" && savedPar != null) feature.copy(par = savedPar)
+                    else feature
+                }
+            )
+            val reconstructed = CourseFeatureInference.addInferredFeatures(
+                CourseHoleInference.addInferredHoles(withRoundPars)
+            )
+            val rebuilt = CourseReconstructionEngine.reconstruct(reconstructed)
+            mapGeometry = reconstructed
+            mapReconstruction = rebuilt
+            mapTarget = Location("restored-course").apply {
+                this.latitude = latitude
+                this.longitude = longitude
+            }
+            activeHoleIndex = rebuilt.holes.indexOfFirst {
+                it.number == savedRound.activeHoleNumber
+            }.takeIf { it >= 0 } ?: 0
+            mapRecoveryMessage = if (rebuilt.holes.isEmpty()) {
+                "Course data loaded, but no playable holes could be reconstructed. Your round and scores are safe in Scorecard."
+            } else null
+            selected = Tab.MAP
+        }
+
+        val cached = CourseGeometryCache.load(context, savedId)
+        if (cached != null) {
+            applyRestoredGeometry(cached)
+            return
+        }
+
+        mapRecoveryMessage = "No local map snapshot found. Re-downloading course geometry…"
         val course = GolfCourse(
             id = savedId, elementType = savedType, name = savedRound.courseName,
             latitude = latitude, longitude = longitude, distanceMeters = 0f,
@@ -100,27 +140,8 @@ private fun WatchThisDriveApp() {
         )
         CourseGeometryLoader.load(course) { result ->
             result.onSuccess { sourceGeometry ->
-                val geometry = sourceGeometry.copy(
-                    expectedHoleCount = savedRound.expectedHoleCount
-                        ?: sourceGeometry.expectedHoleCount
-                )
-                val reconstructed = CourseFeatureInference.addInferredFeatures(
-                    CourseHoleInference.addInferredHoles(geometry)
-                )
-                val rebuilt = CourseReconstructionEngine.reconstruct(reconstructed)
-                mapGeometry = reconstructed
-                mapReconstruction = rebuilt
-                mapTarget = Location("restored-course").apply {
-                    this.latitude = latitude
-                    this.longitude = longitude
-                }
-                activeHoleIndex = rebuilt.holes.indexOfFirst {
-                    it.number == savedRound.activeHoleNumber
-                }.takeIf { it >= 0 } ?: 0
-                mapRecoveryMessage = if (rebuilt.holes.isEmpty()) {
-                    "Course data loaded, but no playable holes could be reconstructed. Your round and scores are safe in Scorecard."
-                } else null
-                selected = Tab.MAP
+                CourseGeometryCache.save(context, sourceGeometry)
+                applyRestoredGeometry(sourceGeometry)
             }.onFailure { problem ->
                 mapRecoveryMessage = "Couldn't restore the course map: ${problem.message ?: "Please try again."} Your scores are still saved; retry when you have a connection."
             }
@@ -247,6 +268,7 @@ private fun WatchThisDriveApp() {
                         onBack = { selectedCourse = null },
                         onViewOnMap = { loadedGeometry, loadedReconstruction ->
                             mapGeometry = loadedGeometry
+                            loadedGeometry?.let { CourseGeometryCache.save(context, it) }
                             mapReconstruction = loadedReconstruction
                             mapTarget = Location("selected-course").apply {
                                 latitude = selectedCourse!!.latitude
@@ -384,6 +406,7 @@ private fun WatchThisDriveApp() {
                                 },
                                 onFinishRound = {
                                     roundScorecard?.let { RoundScorecardStore.saveCompleted(context, it) }
+                                    CourseGeometryCache.clear(context)
                                     roundScorecard = null
                                     activeRound = false
                                     selected = Tab.MAP
