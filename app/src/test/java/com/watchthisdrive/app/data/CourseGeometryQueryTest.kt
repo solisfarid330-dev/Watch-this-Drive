@@ -16,6 +16,9 @@ class CourseGeometryQueryTest {
         assertTrue(query.contains("relation(19071561) -> .course;"))
         assertTrue(query.contains(".course map_to_area -> .courseArea;"))
         assertTrue(query.contains("way(r.course);"))
+        assertTrue(query.contains("nwr(around:2000,0.0,0.0)[\\"golf\\"];"))
+        assertTrue(query.contains("nwr(around:2000,0.0,0.0)[\\"golf:hole\\"];"))
+        assertTrue(query.contains("[out:json][timeout:25];"))
         assertFalse(query.contains("; -> .course;"))
     }
 
