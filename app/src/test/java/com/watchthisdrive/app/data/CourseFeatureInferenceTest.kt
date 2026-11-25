@@ -71,4 +71,17 @@ class CourseFeatureInferenceTest {
 
         assertEquals(1, twice.features.count { it.origin == CourseFeatureOrigin.INFERRED })
     }
+    @Test
+    fun preservesInferredHoleCenterlinesWhenAddingFairwayCorridors() {
+        val inferredHole = hole().copy(
+            origin = CourseFeatureOrigin.INFERRED,
+            geometryStatus = "inferred_from_numbered_tee_green_and_fairway",
+            confidence = 0.65
+        )
+        val result = CourseFeatureInference.addInferredFeatures(
+            CourseGeometry(7L, "Test course", listOf(inferredHole))
+        )
+        assertTrue(result.features.any { it.featureType == "hole" && it.origin == CourseFeatureOrigin.INFERRED })
+    }
+
 }
