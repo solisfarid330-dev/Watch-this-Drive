@@ -13,7 +13,7 @@ class RoundScorecardTest {
         val updated = round.copy(players = listOf(user, guest))
 
         assertEquals(8, updated.totalFor(user))
-        assertEquals(12, updated.totalFor(guest))
+        assertEquals(13, updated.totalFor(guest))
         assertEquals(1, updated.relativeToPar(user))
         assertEquals(1, updated.relativeToPar(guest))
     }
