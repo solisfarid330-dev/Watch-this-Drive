@@ -53,4 +53,16 @@ class CourseMappingQualityTest {
         assertEquals(listOf(9), quality.missingNumberedHoles)
     }
 
+    @Test fun reportsTheEntireExpectedRangeWhenMetadataExistsButNoHoleNumbersAreMapped() {
+        val geometry = CourseGeometry(
+            1, "Nine-hole course",
+            features = emptyList(),
+            expectedHoleCount = 9
+        )
+        val quality = CourseMappingQuality.assess(geometry, CourseReconstructionEngine.reconstruct(geometry))
+        assertEquals(9, quality.expectedHoleCount)
+        assertEquals((1..9).toList(), quality.missingNumberedHoles)
+        assertEquals((1..9).toList(), quality.unresolvedNumberedHoles)
+    }
+
 }

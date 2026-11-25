@@ -45,7 +45,7 @@ data class CourseMappingQuality(
                     numbered.maxOrNull() == 9 -> 9
                     else -> null
                 }
-            val missing = if (numbered.size >= 2 && expected != null) {
+            val missing = if (expected != null && (numbered.isNotEmpty() || geometry.expectedHoleCount != null)) {
                 (1..expected).filterNot(numbered::contains)
             } else emptyList()
             val inferredHoleNumbers = usable.filter { it.origin == CourseFeatureOrigin.INFERRED && it.featureType == "hole" }
