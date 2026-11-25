@@ -287,3 +287,54 @@ domain shift and investigate more reliable cues or an abstaining hybrid. Any
 solution must be evaluated against independent reference boundaries, including
 a course with no mapped fairway/rough seeds. The on-device implementation
 constraint remains unchanged; scikit-learn is research-only.
+
+## Additional public data sources: OpenGolfAPI and Ariad
+
+The research branch now has a generic multi-source intake script:
+
+```bash
+python3 research/multi_source_course_audit.py \
+  --course "Howling Trails Golf Course" --state TX \
+  --latitude 26.215 --longitude -98.18 \
+  --naip --out output/howling-trails
+```
+
+The coordinates above are optional example reference coordinates only; omit them
+to let the selected OpenGolfAPI record supply the imagery center. The script
+searches OpenGolfAPI, retrieves the selected course record plus its hole and tee
+endpoints, and preserves each response separately in
+`opengolfapi-audit.json`. With `--naip`, it requests a four-band Texas NAIP
+2022 image from the published 60 cm ImageServer and records the exact imagery
+request and attribution. The script does not turn scorecard values into
+coordinates or promote image pixels into accepted geometry.
+
+OpenGolfAPI is a useful independent *course-record and scorecard intake* path.
+Its published data is ODbL-1.0 and requires the attribution
+`© OpenStreetMap contributors (ODbL 1.0) via OpenGolfAPI`; derivative database
+obligations must be reviewed before shipping a combined database. OpenGolfAPI
+course coordinates and hole/tee metadata should be matched against OSM using
+course name plus geographic proximity, not by assuming external IDs equal OSM
+IDs. Its published geometry ultimately includes OSM-derived data, so it is not
+automatically an independent source of surveyed hole geometry.
+
+Ariad's public course atlas is a useful second *coverage and scorecard
+cross-check*: it publishes tee-specific scorecards and maps, and explicitly
+shows that map coverage may be partial. Ariad says its map data includes
+OpenStreetMap and its directory includes OpenGolfAPI; its maps are
+interpretations of published geometry, not surveys. Therefore Ariad should
+not be counted as independent geometry where it repeats OSM/OpenGolfAPI.
+Use Ariad pages to identify missing coverage or scorecard discrepancies, and
+retain the page/source attribution with any manually reviewed result. No
+undocumented Ariad endpoint or model weights are assumed by the app.
+
+NAIP is the independent *imagery evidence* source. The Texas 2022 service
+provides 60 cm, four-band RGB+infrared imagery. Existing research has already
+shown that spectral and texture-only classifiers can overgeneralize turf and
+fail to transfer between courses. NAIP pixels must therefore feed a
+validated segmentation/reconstruction stage, not be accepted as feature
+boundaries merely because a model returns a mask. The new intake script only
+retrieves and records imagery; it does not claim production segmentation.
+
+All three additions are research-stage inputs until matching, licensing,
+coverage, accuracy, and on-device cost are verified. They are generic and
+must never introduce course-name or course-ID production exceptions.
