@@ -96,8 +96,16 @@ object CourseHoleInference {
     ): List<CourseFeature> {
         // The sequence is only inferable as a run bounded by known holes.
         if (missing.size !in 1..2 || missing.zipWithNext().any { (a, b) -> b != a + 1 }) return emptyList()
-        val tees = allTees.filter { it.holeNumber.isNullOrBlank() }
-        val greens = allGreens.filter { it.holeNumber.isNullOrBlank() }
+        // A marker can be numbered even when the matching centerline is absent.
+        // Keep markers for the missing numbers in this fallback, especially when
+        // direct numbered pairing was ambiguous (for example, multiple green areas).
+        val missingNumbers = missing.toSet()
+        val tees = allTees.filter {
+            it.holeNumber.isNullOrBlank() || it.holeNumber?.toIntOrNull() in missingNumbers
+        }
+        val greens = allGreens.filter {
+            it.holeNumber.isNullOrBlank() || it.holeNumber?.toIntOrNull() in missingNumbers
+        }
         val clusters = clusterTees(tees)
         if (clusters.isEmpty()) return emptyList()
         val greenPoints = greens.mapNotNull { feature -> representativePoint(feature)?.let { feature to it } }
@@ -216,19 +224,22 @@ object CourseHoleInference {
                 tee.longitude + (green.longitude - tee.longitude) * t
             )
         }
-        return fairways.maxOfOrNull { feature ->
-            val polygons = when (feature.geometryType) {
-                CourseGeometryType.POLYGON -> listOf(feature.rings)
-                CourseGeometryType.MULTI_POLYGON -> feature.polygons
-                else -> emptyList()
-            }
-            if (polygons.isEmpty()) 0.0 else samples.count { point ->
+        // A mapped fairway may be split into several OSM ways/areas. Measure
+        // support against their union, not the best single feature, or fragmented
+        // fairways are incorrectly treated as weak evidence.
+        return samples.count { point ->
+            fairways.any { feature ->
+                val polygons = when (feature.geometryType) {
+                    CourseGeometryType.POLYGON -> listOf(feature.rings)
+                    CourseGeometryType.MULTI_POLYGON -> feature.polygons
+                    else -> emptyList()
+                }
                 polygons.any { polygon ->
                     val outer = polygon.firstOrNull().orEmpty()
                     pointInPolygon(point, outer) || distanceToLine(point, outer) <= 35.0
                 }
-            } / samples.size.toDouble()
-        } ?: 0.0
+            }
+        } / samples.size.toDouble()
     }
 
     private fun inferredFeature(number: Int, tee: GeoPoint, green: GeoPoint, confidence: Double, status: String) =
