@@ -21,7 +21,7 @@ class RoundScorecardTest {
     @Test
     fun relativeScoreUsesOnlyHolesWithKnownPar() {
         val round = RoundScorecard.new("Test Course", mapOf("1" to 4, "2" to null, "3" to 5))
-        val player = round.user.copy(scores = mapOf(1 to 5, 2 to 7, 3 to 4))
+        val player = round.user.copy(scores = mapOf("1" to 5, "2" to 7, "3" to 4))
 
         assertEquals(0, round.relativeToPar(player))
     }
