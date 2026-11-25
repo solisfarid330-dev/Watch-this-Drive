@@ -172,7 +172,14 @@ class CourseHoleInferenceTest {
             listOf(GeoPoint(0.0, 0.009), GeoPoint(0.0005, 0.011)),
             CourseGeometryType.LINE
         )
-        val mapped = holes().filterNot { it.holeNumber == "5" || it.holeNumber == "6" } + previousHole
+        val ambiguousNextHole = CourseFeature(
+            7L, "way", "hole", "7", null,
+            listOf(GeoPoint(0.003, 0.010), GeoPoint(0.003, 0.010)),
+            CourseGeometryType.LINE
+        )
+        val mapped = holes().filterNot {
+            it.holeNumber == "5" || it.holeNumber == "6" || it.holeNumber == "7"
+        } + previousHole + ambiguousNextHole
         val input = CourseGeometry(1, "Generic", mapped + listOf(tee(), primaryGreen, alternateGreen, fairway()))
         val inferred = CourseHoleInference.addInferredHoles(input).features.single {
             it.origin == CourseFeatureOrigin.INFERRED && it.featureType == "hole"
