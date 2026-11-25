@@ -55,7 +55,7 @@ fun GlobalScorecardScreen(round: RoundScorecard, onScoreChange: (String, Int, In
                     val relative = if (player.scores.keys.any { round.holePars[it] != null }) total - par else null
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(player.name, color = Color.White)
-                        Text("$total strokes · \${relative?.let { scoreLabel(it) } ?: "—"}", color = if (player.id == round.userPlayerId) Color(0xFFB8F36B) else Color.White, fontWeight = FontWeight.SemiBold)
+                        Text("$total strokes · ${relative?.let { scoreLabel(it) } ?: "—"}", color = if (player.id == round.userPlayerId) Color(0xFFB8F36B) else Color.White, fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
@@ -82,7 +82,7 @@ private fun PlayerScorecard(player: RoundPlayer, isUser: Boolean, holes: List<In
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text(player.name + if (isUser) " (YOU)" else "", color = Color.White, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
-                    Text("$total strokes · \${relative?.let { scoreLabel(it) } ?: "—"}", color = Color(0xFFB8F36B), style = MaterialTheme.typography.labelMedium)
+                    Text("$total strokes · ${relative?.let { scoreLabel(it) } ?: "—"}", color = Color(0xFFB8F36B), style = MaterialTheme.typography.labelMedium)
                 }
                 if (!isUser) TextButton(onClick = onRemove) { Text("Remove", color = Color(0xFFFFB4AB)) }
             }
@@ -91,7 +91,7 @@ private fun PlayerScorecard(player: RoundPlayer, isUser: Boolean, holes: List<In
                 Row(Modifier.fillMaxWidth().background(Color(0xFF111A15), RoundedCornerShape(10.dp)).padding(horizontal = 10.dp, vertical = 5.dp), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text("Hole $hole", color = Color.White, fontWeight = FontWeight.SemiBold)
-                        Text("Par \${pars[hole] ?: "—"}", color = Color(0xFFB6C1B9), style = MaterialTheme.typography.labelSmall)
+                        Text("Par ${pars[hole] ?: "—"}", color = Color(0xFFB6C1B9), style = MaterialTheme.typography.labelSmall)
                     }
                     IconButton(onClick = { onScoreChange(hole, (strokes - 1).coerceAtLeast(0)) }, enabled = strokes > 0) { Icon(Icons.Filled.Remove, contentDescription = "Remove stroke", tint = Color.White) }
                     Text(if (strokes == 0) "—" else strokes.toString(), color = Color.White, fontWeight = FontWeight.Bold)
