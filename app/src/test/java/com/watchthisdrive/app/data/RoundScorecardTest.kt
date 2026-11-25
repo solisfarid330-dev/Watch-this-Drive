@@ -19,6 +19,19 @@ class RoundScorecardTest {
     }
 
     @Test
+    fun scorecardOnlyRoundCanTrackNineOrEighteenHolesWithoutCourseGeometry() {
+        val nineHoleRound = RoundScorecard.new("Scorecard-only round", (1..9).associate { it.toString() to 4 })
+            .copy(scorecardOnly = true)
+        val eighteenHoleRound = RoundScorecard.new("Scorecard-only round", (1..18).associate { it.toString() to 4 })
+            .copy(scorecardOnly = true)
+
+        assertEquals(true, nineHoleRound.scorecardOnly)
+        assertEquals(9, nineHoleRound.holePars.size)
+        assertEquals(18, eighteenHoleRound.holePars.size)
+        assertEquals(0, nineHoleRound.user.scores.size)
+    }
+
+    @Test
     fun relativeScoreUsesOnlyHolesWithKnownPar() {
         val round = RoundScorecard.new("Test Course", mapOf("1" to 4, "2" to null, "3" to 5))
         val player = round.user.copy(scores = mapOf("1" to 5, "2" to 7, "3" to 4))
