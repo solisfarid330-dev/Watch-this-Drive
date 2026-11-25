@@ -99,12 +99,21 @@ object CourseReconstructionEngine {
             val forward = if (forwardParts.size == 2) forwardParts.sum() else Double.POSITIVE_INFINITY
             val reverse = if (reverseParts.size == 2) reverseParts.sum() else Double.POSITIVE_INFINITY
             if (reverse.isFinite() && !forward.isFinite()) {
-                line = line.asReversed()
-                lineReversed = true
-                teeToGreenOriented = true
+                val forwardUsingReverseMarkers =
+                    featureDistance(start, endTee!!.first) + featureDistance(end, startGreen!!.first)
+                if (forwardUsingReverseMarkers - reverse >= DIRECTION_MARGIN_M) {
+                    line = line.asReversed()
+                    lineReversed = true
+                    teeToGreenOriented = true
+                }
             } else if (forward.isFinite() && !reverse.isFinite()) {
-                // Tee-at-start plus green-at-end is sufficient forward evidence.
-                teeToGreenOriented = true
+                val reverseUsingForwardMarkers =
+                    featureDistance(end, startTee!!.first) + featureDistance(start, endGreen!!.first)
+                if (reverseUsingForwardMarkers - forward >= DIRECTION_MARGIN_M) {
+                    // Tee-at-start plus green-at-end is sufficient only when the
+                    // same markers are materially farther from the reverse endpoints.
+                    teeToGreenOriented = true
+                }
             } else if (forward.isFinite() && reverse.isFinite() && abs(forward - reverse) >= DIRECTION_MARGIN_M) {
                 if (reverse < forward) {
                     line = line.asReversed()
@@ -112,22 +121,31 @@ object CourseReconstructionEngine {
                 }
                 teeToGreenOriented = true
             } else if (!forward.isFinite() && !reverse.isFinite()) {
-                // Single-end evidence can orient a line; conflicting or tied evidence cannot.
+                // Single-end evidence must be clearly closer to one endpoint.
                 when {
-                    startPin != null && endPin == null -> {
+                    startPin != null && endPin == null &&
+                        featureDistance(end, startPin.first) - startPin.second >= DIRECTION_MARGIN_M -> {
                         line = line.asReversed()
                         lineReversed = true
                         teeToGreenOriented = true
                     }
-                    endPin != null && startPin == null -> teeToGreenOriented = true
-                    startGreen != null && endGreen == null -> {
+                    endPin != null && startPin == null &&
+                        featureDistance(start, endPin.first) - endPin.second >= DIRECTION_MARGIN_M ->
+                        teeToGreenOriented = true
+                    startGreen != null && endGreen == null &&
+                        featureDistance(end, startGreen.first) - startGreen.second >= DIRECTION_MARGIN_M -> {
                         line = line.asReversed()
                         lineReversed = true
                         teeToGreenOriented = true
                     }
-                    endGreen != null && startGreen == null -> teeToGreenOriented = true
-                    startTee != null && endTee == null -> teeToGreenOriented = true
-                    endTee != null && startTee == null -> {
+                    endGreen != null && startGreen == null &&
+                        featureDistance(start, endGreen.first) - endGreen.second >= DIRECTION_MARGIN_M ->
+                        teeToGreenOriented = true
+                    startTee != null && endTee == null &&
+                        featureDistance(end, startTee.first) - startTee.second >= DIRECTION_MARGIN_M ->
+                        teeToGreenOriented = true
+                    endTee != null && startTee == null &&
+                        featureDistance(start, endTee.first) - endTee.second >= DIRECTION_MARGIN_M -> {
                         line = line.asReversed()
                         lineReversed = true
                         teeToGreenOriented = true
