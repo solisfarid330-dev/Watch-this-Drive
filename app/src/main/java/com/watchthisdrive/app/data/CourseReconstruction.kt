@@ -142,7 +142,7 @@ object CourseReconstructionEngine {
                 ?: nearestFeature(teeEndpoint, greens)?.takeIf { it.second <= TEE_GREEN_ENDPOINT_LIMIT_M }?.first
 
             val mappedPin = nearestFeature(greenEndpoint, pins)
-                ?.takeIf { it.second <= TEE_GREEN_ENDPOINT_LIMIT_M }?.first
+                ?.takeIf { it.second <= PIN_ENDPOINT_LIMIT_M }?.first
             val pin = mappedPin?.let { representativePoint(it) }
                 ?: green?.let { polygonCenter(it) }
             val pinSource = when {
