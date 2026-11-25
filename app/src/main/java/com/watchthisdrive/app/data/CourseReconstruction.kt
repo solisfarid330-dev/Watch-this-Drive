@@ -213,13 +213,100 @@ object CourseReconstructionEngine {
 
     private fun featureToLineDistance(feature: CourseFeature, line: List<GeoPoint>): Double {
         if (line.size < 2) return Double.POSITIVE_INFINITY
-        val samples = featureCoordinates(feature)
-        if (samples.isEmpty()) return Double.POSITIVE_INFINITY
-        // For polygons, test centerline vertices and segments against their boundaries.
+        return when (feature.geometryType) {
+            CourseGeometryType.POINT ->
+                feature.points.firstOrNull()?.let { lineDistance(it, line) } ?: Double.POSITIVE_INFINITY
+            CourseGeometryType.LINE -> {
+                if (feature.points.size < 2) Double.POSITIVE_INFINITY
+                else lineToLineDistance(feature.points, line)
+            }
+            CourseGeometryType.POLYGON -> polygonToLineDistance(feature.rings, line)
+            CourseGeometryType.MULTI_POLYGON ->
+                feature.polygons.minOfOrNull { polygonToLineDistance(it, line) } ?: Double.POSITIVE_INFINITY
+            CourseGeometryType.UNKNOWN -> Double.POSITIVE_INFINITY
+        }
+    }
+
+    private fun polygonToLineDistance(rings: List<List<GeoPoint>>, line: List<GeoPoint>): Double {
+        if (rings.isEmpty()) return Double.POSITIVE_INFINITY
+        if (line.any { pointInPolygon(it, rings) }) return 0.0
         var best = Double.POSITIVE_INFINITY
-        line.forEach { p -> best = min(best, featureDistance(p, feature)) }
-        samples.forEach { p -> best = min(best, lineDistance(p, line)) }
+        for ((a, b) in line.zipWithNext()) {
+            for (ring in rings) {
+                for ((c, d) in ring.zipWithNext()) {
+                    best = min(best, segmentSegmentMeters(a, b, c, d))
+                    if (best == 0.0) return 0.0
+                }
+            }
+        }
         return best
+    }
+
+    private fun lineToLineDistance(first: List<GeoPoint>, second: List<GeoPoint>): Double {
+        var best = Double.POSITIVE_INFINITY
+        for ((a, b) in first.zipWithNext()) {
+            for ((c, d) in second.zipWithNext()) {
+                best = min(best, segmentSegmentMeters(a, b, c, d))
+                if (best == 0.0) return 0.0
+            }
+        }
+        return best
+    }
+
+    // Segment-to-segment distance is required here: checking only vertices misses
+    // a fairway or hazard polygon crossed between sparse hole-centerline vertices.
+    private fun segmentSegmentMeters(a: GeoPoint, b: GeoPoint, c: GeoPoint, d: GeoPoint): Double {
+        val latitude0 = Math.toRadians((a.latitude + b.latitude + c.latitude + d.latitude) / 4.0)
+        fun project(point: GeoPoint): Pair<Double, Double> = Pair(
+            Math.toRadians(point.longitude) * 6371008.8 * cos(latitude0),
+            Math.toRadians(point.latitude) * 6371008.8
+        )
+        val pa = project(a)
+        val pb = project(b)
+        val pc = project(c)
+        val pd = project(d)
+
+        fun cross(p: Pair<Double, Double>, q: Pair<Double, Double>, r: Pair<Double, Double>): Double =
+            (q.first - p.first) * (r.second - p.second) -
+                (q.second - p.second) * (r.first - p.first)
+
+        fun onSegment(p: Pair<Double, Double>, q: Pair<Double, Double>, r: Pair<Double, Double>): Boolean =
+            abs(cross(p, q, r)) <= 1e-7 &&
+                r.first >= min(p.first, q.first) - 1e-7 &&
+                r.first <= max(p.first, q.first) + 1e-7 &&
+                r.second >= min(p.second, q.second) - 1e-7 &&
+                r.second <= max(p.second, q.second) + 1e-7
+
+        val o1 = cross(pa, pb, pc)
+        val o2 = cross(pa, pb, pd)
+        val o3 = cross(pc, pd, pa)
+        val o4 = cross(pc, pd, pb)
+        val properIntersection =
+            ((o1 > 1e-7 && o2 < -1e-7) || (o1 < -1e-7 && o2 > 1e-7)) &&
+                ((o3 > 1e-7 && o4 < -1e-7) || (o3 < -1e-7 && o4 > 1e-7))
+        if (properIntersection || onSegment(pa, pb, pc) || onSegment(pa, pb, pd) ||
+            onSegment(pc, pd, pa) || onSegment(pc, pd, pb)) return 0.0
+
+        fun pointSegmentDistance(
+            point: Pair<Double, Double>,
+            start: Pair<Double, Double>,
+            end: Pair<Double, Double>
+        ): Double {
+            val dx = end.first - start.first
+            val dy = end.second - start.second
+            val denominator = dx * dx + dy * dy
+            val t = if (denominator == 0.0) 0.0 else
+                (((point.first - start.first) * dx + (point.second - start.second) * dy) / denominator)
+                    .coerceIn(0.0, 1.0)
+            return hypot(point.first - start.first - t * dx, point.second - start.second - t * dy)
+        }
+
+        return minOf(
+            pointSegmentDistance(pa, pc, pd),
+            pointSegmentDistance(pb, pc, pd),
+            pointSegmentDistance(pc, pa, pb),
+            pointSegmentDistance(pd, pa, pb)
+        )
     }
 
     private fun featureCoordinates(feature: CourseFeature): List<GeoPoint> = when (feature.geometryType) {
