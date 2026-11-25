@@ -79,13 +79,13 @@ private fun WatchThisDriveApp() {
     var mapReconstruction by remember { mutableStateOf<CourseReconstruction?>(null) }
     var roundScorecard by remember { mutableStateOf(RoundScorecardStore.loadActive(context)) }
     var activeRound by remember { mutableStateOf(roundScorecard != null) }
-    var activeHoleIndex by remember { mutableIntStateOf((roundScorecard?.activeHoleNumber ?: 1) - 1) }
+    var activeHoleIndex by remember { mutableIntStateOf((roundScorecard?.activeHoleNumber?.toIntOrNull() ?: 1) - 1) }
     var locationMessage by remember { mutableStateOf("Location not checked yet") }
 
     val fused = remember { LocationServices.getFusedLocationProviderClient(context) }
     var clubCarries by remember { mutableStateOf(ClubCarryDistances.load(context)) }
 
-    fun updateRoundScore(playerId: String, holeNumber: Int, strokes: Int) {
+    fun updateRoundScore(playerId: String, holeNumber: String, strokes: Int) {
         val current = roundScorecard ?: return
         val updated = current.copy(players = current.players.map { player ->
             if (player.id != playerId) player else player.copy(scores =
