@@ -1032,6 +1032,13 @@ private fun CourseDetailScreen(
                                     style = MaterialTheme.typography.bodySmall
                                 )
                             }
+                            if (report.unresolvedNumberedHoles.isNotEmpty()) {
+                                Text(
+                                    "Still unresolved after reconstruction: ${report.unresolvedNumberedHoles.joinToString()}",
+                                    color = Color(0xFFFF8A80),
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
                             if (report.holesWithoutGreen > 0) {
                                 Text(
                                     "${report.holesWithoutGreen} reconstructed holes have no confidently matched green.",

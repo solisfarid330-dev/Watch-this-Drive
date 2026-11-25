@@ -40,6 +40,7 @@ class CourseMappingQualityTest {
         val quality = CourseMappingQuality.assess(geometry, CourseReconstructionEngine.reconstruct(geometry))
         assertEquals(9, quality.expectedHoleCount)
         assertEquals(1, quality.inferredHoleCount)
+        assertTrue(quality.unresolvedNumberedHoles.isEmpty())
     }
 
 }

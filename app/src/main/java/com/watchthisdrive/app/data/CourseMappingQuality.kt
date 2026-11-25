@@ -18,11 +18,12 @@ data class CourseMappingQuality(
     val inferredHoleCount: Int,
     val expectedHoleCount: Int?,
     val missingNumberedHoles: List<Int>,
+    val unresolvedNumberedHoles: List<Int>,
     val geometryIssues: Int,
     val holesWithoutGreen: Int
 ) {
     val needsAttention: Boolean
-        get() = missingNumberedHoles.isNotEmpty() ||
+        get() = unresolvedNumberedHoles.isNotEmpty() ||
             holesWithoutGreen > 0 || geometryIssues > 0 ||
             holeCenterlineCount == 0 || greenCount == 0 ||
             fairwayCount == 0
@@ -41,6 +42,9 @@ data class CourseMappingQuality(
             val missing = if (numbered.size >= 2 && numbered.maxOrNull()!! >= 9) {
                 (1..numbered.maxOrNull()!!).filterNot(numbered::contains)
             } else emptyList()
+            val inferredHoleNumbers = usable.filter { it.origin == CourseFeatureOrigin.INFERRED && it.featureType == "hole" }
+                .mapNotNull { it.holeNumber?.toIntOrNull() }.toSet()
+            val unresolved = missing.filterNot(inferredHoleNumbers::contains)
             fun count(type: String) = sourceUsable.count { it.featureType == type }
             return CourseMappingQuality(
                 retrievedFeatureCount = geometry.features.size,
@@ -55,6 +59,7 @@ data class CourseMappingQuality(
                 inferredHoleCount = usable.count { it.featureType == "hole" && it.origin == CourseFeatureOrigin.INFERRED },
                 expectedHoleCount = when { numbered.maxOrNull() == 9 -> 9; (numbered.maxOrNull() ?: 0) > 9 -> 18; else -> null },
                 missingNumberedHoles = missing,
+                unresolvedNumberedHoles = unresolved,
                 geometryIssues = geometry.incompleteRelations.size,
                 holesWithoutGreen = reconstruction.holes.count { it.green == null }
             )
