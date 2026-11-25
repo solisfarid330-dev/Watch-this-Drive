@@ -1,5 +1,9 @@
 package com.watchthisdrive.app.ui
 
+import kotlin.math.asin
+import kotlin.math.atan2
+import kotlin.math.cos
+import kotlin.math.sin
 import android.location.Location
 import com.watchthisdrive.app.BuildConfig
 import android.os.Bundle
