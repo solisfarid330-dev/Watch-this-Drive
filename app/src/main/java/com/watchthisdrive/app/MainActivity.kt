@@ -828,6 +828,31 @@ private fun CourseDetailScreen(
         )
     }
 
+    val mappingPreferences = remember(course.id) {
+        appContext.getSharedPreferences("course_mapping_preferences", android.content.Context.MODE_PRIVATE)
+    }
+    val expectedHolePreferenceKey = "expected_holes_${course.elementType}_${course.id}"
+    var selectedExpectedHoleCount by remember(course.id) {
+        mutableStateOf(
+            mappingPreferences.getInt(expectedHolePreferenceKey, course.expectedHoleCount ?: 0)
+                .takeIf { it == 9 || it == 18 }
+        )
+    }
+
+    fun setExpectedHoleCount(count: Int?) {
+        val editor = mappingPreferences.edit()
+        if (count == null) editor.remove(expectedHolePreferenceKey) else editor.putInt(expectedHolePreferenceKey, count)
+        editor.apply()
+        selectedExpectedHoleCount = count ?: course.expectedHoleCount
+        geometry?.let { current ->
+            val updated = current.copy(expectedHoleCount = selectedExpectedHoleCount)
+            val enriched = CourseFeatureInference.addInferredFeatures(CourseHoleInference.addInferredHoles(updated))
+            geometry = enriched
+            reconstruction = CourseReconstructionEngine.reconstruct(enriched)
+            recoveryMessage = "Rechecked the course against the ${selectedExpectedHoleCount?.let { "$it-hole" } ?: "automatic"} hole target."
+        }
+    }
+
     fun improveMapping(featureType: String? = null) {
         if (recoveryLoading) return
         recoveryLoading = true
@@ -853,7 +878,8 @@ private fun CourseDetailScreen(
                     courseId = course.id,
                     courseName = course.name,
                     features = mergedFeatures,
-                    incompleteRelations = (previous?.incompleteRelations.orEmpty() + recovered.incompleteRelations).distinct()
+                    incompleteRelations = (previous?.incompleteRelations.orEmpty() + recovered.incompleteRelations).distinct(),
+                    expectedHoleCount = selectedExpectedHoleCount ?: previous?.expectedHoleCount ?: recovered.expectedHoleCount ?: course.expectedHoleCount
                 )))
                 val improved = CourseReconstructionEngine.reconstruct(merged)
                 val oldCount = reconstruction?.holes?.size ?: 0
@@ -894,7 +920,8 @@ private fun CourseDetailScreen(
         CourseGeometryLoader.load(course) { result ->
             result.fold(
                 onSuccess = {
-                    val enriched = CourseFeatureInference.addInferredFeatures(CourseHoleInference.addInferredHoles(it))
+                    val withExpectedCount = it.copy(expectedHoleCount = selectedExpectedHoleCount ?: it.expectedHoleCount)
+                    val enriched = CourseFeatureInference.addInferredFeatures(CourseHoleInference.addInferredHoles(withExpectedCount))
                     geometry = enriched
                     reconstruction = CourseReconstructionEngine.reconstruct(enriched)
                     loading = false
@@ -993,6 +1020,27 @@ private fun CourseDetailScreen(
 
                         quality?.let { report ->
                             Divider(color = Color(0xFF344238))
+                            Text("Expected course length", color = Color.White, fontWeight = FontWeight.SemiBold)
+                            Text(
+                                "Use mapped course metadata when available, or set the known length here.",
+                                color = Color(0xFFB6C1B9),
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                TextButton(onClick = { setExpectedHoleCount(9) }) {
+                                    Text(if (selectedExpectedHoleCount == 9) "✓ 9 holes" else "9 holes")
+                                }
+                                TextButton(onClick = { setExpectedHoleCount(18) }) {
+                                    Text(if (selectedExpectedHoleCount == 18) "✓ 18 holes" else "18 holes")
+                                }
+                                TextButton(onClick = { setExpectedHoleCount(null) }) {
+                                    Text("Auto")
+                                }
+                            }
                             Text(
                                 if (report.needsAttention) "Mapping needs attention" else "Mapping data loaded",
                                 color = if (report.needsAttention) Color(0xFFFFC857) else Color(0xFFB8F36B),
