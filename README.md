@@ -47,3 +47,15 @@ GitHub Actions runs unit tests and builds the debug APK on pushes to main, featu
 - Jetpack Compose
 - MapLibre Native Android SDK 11.8.0
 - OpenStreetMap / Overpass geometry data
+
+
+## In-app mapping diagnostics and recovery
+
+The course detail screen now includes a source-data coverage summary, an **Improve course mapping** action, and a **Report a missing feature** action.
+
+- Diagnostics count usable OSM hole lines, tees, greens, fairways, bunkers, and water features; numbered-hole gaps are reported only when the source itself supplies enough numbering evidence.
+- The improvement action performs a second, broader Overpass query for golf-tagged features and `golf:hole` tags within the selected course area. It merges newly retrieved features with the existing set by OSM element identity, retains existing usable geometry, and reconstructs the course again.
+- Missing-feature reports are currently stored locally on the device for that selected OSM course boundary. They are not uploaded to a server and do not create map geometry; they are groundwork for more targeted recovery and later opt-in feedback.
+- A broader query can only recover information that exists in the queried OSM data. It cannot fill genuinely unmapped fairways/greens or replace satellite-image recognition.
+
+These controls are an initial recovery framework, not a claim that imagery recognition or full automatic repair is complete.
