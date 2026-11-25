@@ -1,23 +1,49 @@
 # Watch this Drive
 
-An Android-first personal golf companion. Initial foundation includes a Compose interface, MapLibre satellite map powered by MapTiler, a GPS permission/location check, and a GitHub Actions APK workflow.
+An Android-first golf companion focused on selecting a real golf course, reconstructing its mapped hole geometry, and providing on-course distances and carry-based club guidance.
 
-## Build configuration
+## Current app foundation
 
-- Android Gradle Plugin 8.7.3
-- Gradle 8.9
+- Find golf-course boundaries near the device or search around a course name, city, or ZIP code.
+- Load the selected course's mapped golf features from OpenStreetMap through Overpass.
+- Reconstruct hole centerlines and associate tee, green, and pin features using geometry and endpoint evidence.
+- Assign fairway, bunker, and water features to the most likely hole corridor; ambiguous associations are left unassigned rather than guessed.
+- Use a mapped pin when available. If a mapped pin is absent but a green polygon is available, estimate a safe point inside the green and label it as an estimate.
+- Display an active-hole map with hole-up orientation when direction evidence is strong, GPS position, tap-to-measure targets, score/stroke controls, and a carry-distance Caddy recommendation.
+
+Course data is discovered and loaded at runtime; there are no per-course production geometry files or course-specific reconstruction rules. Test fixtures for South Padre Island, Westwood, and Cottonwood are validation data only.
+
+## Data coverage and limitations
+
+Reconstruction quality depends on the OpenStreetMap data mapped for the selected course. A course without a mapped boundary or usable golf-hole centerlines may not be reconstructable by the current pipeline. Missing greens or pins are not fabricated: the app reports uncertain or unavailable geometry, and an estimated pin is only produced from a usable mapped green polygon.
+
+Fairway, bunker, and water overlays use available mapped geometry. Satellite-image classification is still research work, not a production source of automatically detected boundaries. Treat mapped/estimated overlays as guidance, not survey-grade measurements.
+
+Club distances are **carry only**: yards through the air to first landing, before bounce and roll. The Caddy uses those carry values consistently.
+
+## Map imagery
+
+The app uses MapLibre Native with MapTiler satellite tiles. Configure a GitHub Actions repository secret named MAPTILER_API_KEY to provide the client-side map key during CI builds. Restrict the key in MapTiler Cloud to the extent supported by your plan. The key is compiled into the APK and should be treated as a public client key, not as a server secret.
+
+For local builds, set MAPTILER_API_KEY in the environment or in ~/.gradle/gradle.properties.
+
+## Build and test
+
+Requirements: Java 17 and Android SDK components required by Android Gradle Plugin 8.7.3.
+
+```bash
+./gradlew testDebugUnitTest assembleDebug
+```
+
+The debug APK is written to app/build/outputs/apk/debug/app-debug.apk.
+
+GitHub Actions runs unit tests and builds the debug APK on pushes to main, feature/**, and migration/**, and supports manual dispatch. Test reports and the APK are uploaded as workflow artifacts.
+
+## Technology
+
 - Kotlin 2.0.21
-- Java 17 (GitHub Actions)
+- Android Gradle Plugin 8.7.3
+- Gradle 8.9 (checked-in wrapper)
+- Jetpack Compose
 - MapLibre Native Android SDK 11.8.0
-
-## MapTiler API key
-
-Set a GitHub Actions repository secret named `MAPTILER_API_KEY`. The key is compiled into the app as a client-side map key; restrict it in MapTiler Cloud to the extent supported by your plan and rotate it if exposed. Do not commit keys to source control.
-
-For local builds, use `~/.gradle/gradle.properties` with `MAPTILER_API_KEY=your_key` or set the environment variable.
-
-## Build
-
-`gradle assembleDebug`
-
-The GitHub Actions workflow builds the APK on every push to `main` and on manual dispatch.
+- OpenStreetMap / Overpass geometry data
