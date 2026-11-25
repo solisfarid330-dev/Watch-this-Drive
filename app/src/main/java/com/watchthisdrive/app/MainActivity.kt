@@ -882,14 +882,23 @@ private fun CourseDetailScreen(
                     expectedHoleCount = selectedExpectedHoleCount ?: previous?.expectedHoleCount ?: recovered.expectedHoleCount ?: course.expectedHoleCount
                 )))
                 val improved = CourseReconstructionEngine.reconstruct(merged)
+                val previousSourceKeys = previous?.features.orEmpty()
+                    .filter { it.origin == com.watchthisdrive.app.data.CourseFeatureOrigin.SOURCE }
+                    .map { it.elementType to it.id }.toSet()
+                val newSourceFeatureCount = recovered.features.count {
+                    it.origin == com.watchthisdrive.app.data.CourseFeatureOrigin.SOURCE &&
+                        (it.elementType to it.id) !in previousSourceKeys
+                }
                 val oldCount = reconstruction?.holes?.size ?: 0
                 geometry = merged
                 reconstruction = improved
-                recoveryMessage = if (improved.holes.size > oldCount ||
-                    merged.features.size > previous?.features?.size.orZero()) {
-                    "Mapping refreshed. The app retained existing features and added any newly recovered data."
-                } else {
-                    "The wider search found no additional mapped geometry. Some features may not exist in the available map data yet."
+                recoveryMessage = buildString {
+                    append("Wider search returned ${recovered.features.size} mapped features; ")
+                    append("$newSourceFeatureCount were new. ")
+                    append("${improved.holes.size} holes are currently reconstructed.")
+                    if (newSourceFeatureCount == 0 && improved.holes.size <= oldCount) {
+                        append(" No additional geometry was recovered from this search.")
+                    }
                 }
             }
             result.onFailure { problem ->
