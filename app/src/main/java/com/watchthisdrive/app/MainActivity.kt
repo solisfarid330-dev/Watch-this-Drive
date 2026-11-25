@@ -216,7 +216,7 @@ private fun WatchThisDriveApp() {
                                 hole = hole,
                                 holeIndex = safeIndex,
                                 holeCount = holes.size,
-                                strokes = roundStrokes[hole.number] ?: 1,
+                                strokes = roundStrokes[hole.number] ?: 0,
                                 carryDistances = clubCarries,
                                 geometry = mapGeometry,
                                 reconstruction = mapReconstruction,
