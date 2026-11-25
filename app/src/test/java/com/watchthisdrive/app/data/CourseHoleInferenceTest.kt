@@ -108,4 +108,27 @@ class CourseHoleInferenceTest {
         assertEquals(setOf("8", "9"), inferred.mapNotNull { it.holeNumber }.toSet())
     }
 
+    @Test
+    fun numberedTeeAndGreenAreNotRejectedByFairwayMappedForAnotherHole() {
+        val distantFairway = fairway().copy(
+            id = 999,
+            holeNumber = "1",
+            points = listOf(
+                GeoPoint(0.03, 0.03), GeoPoint(0.03, 0.031),
+                GeoPoint(0.031, 0.031), GeoPoint(0.031, 0.03), GeoPoint(0.03, 0.03)
+            ),
+            rings = listOf(listOf(
+                GeoPoint(0.03, 0.03), GeoPoint(0.03, 0.031),
+                GeoPoint(0.031, 0.031), GeoPoint(0.031, 0.03), GeoPoint(0.03, 0.03)
+            ))
+        )
+        val input = CourseGeometry(1, "Generic", holes() + listOf(tee(), green(), distantFairway))
+        val inferred = CourseHoleInference.addInferredHoles(input).features.single {
+            it.origin == CourseFeatureOrigin.INFERRED && it.featureType == "hole"
+        }
+        assertEquals("6", inferred.holeNumber)
+        assertEquals(0.45, inferred.confidence!!, 0.0)
+        assertEquals("inferred_from_numbered_tee_green_without_fairway", inferred.geometryStatus)
+    }
+
 }

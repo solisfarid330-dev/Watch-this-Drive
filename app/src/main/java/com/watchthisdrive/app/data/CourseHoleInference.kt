@@ -54,8 +54,10 @@ object CourseHoleInference {
             if (matchingTees.size != 1 || matchingGreens.size != 1) return@mapNotNull null
             val tee = representativePoint(matchingTees.single()) ?: return@mapNotNull null
             val green = representativePoint(matchingGreens.single()) ?: return@mapNotNull null
-            if (!plausibleLine(tee, green, fairways)) return@mapNotNull null
-            val hasFairwayEvidence = fairways.isNotEmpty()
+            // Matching numbered tee and green markers are direct evidence.
+            // A fairway mapped for another hole must not veto this connection.
+            if (!plausibleLine(tee, green)) return@mapNotNull null
+            val hasFairwayEvidence = fairwaySupport(tee, green, fairways) >= MIN_FAIRWAY_SUPPORT
             inferredFeature(
                 number, tee, green,
                 if (hasFairwayEvidence) 0.65 else 0.45,
@@ -189,9 +191,8 @@ object CourseHoleInference {
         }
     }
 
-    private fun plausibleLine(tee: GeoPoint, green: GeoPoint, fairways: List<CourseFeature>): Boolean =
-        meters(tee, green) in MIN_HOLE_LENGTH_M..MAX_HOLE_LENGTH_M &&
-            (fairways.isEmpty() || fairwaySupport(tee, green, fairways) >= MIN_FAIRWAY_SUPPORT)
+    private fun plausibleLine(tee: GeoPoint, green: GeoPoint): Boolean =
+        meters(tee, green) in MIN_HOLE_LENGTH_M..MAX_HOLE_LENGTH_M
 
     private fun fairwaySupport(tee: GeoPoint, green: GeoPoint, fairways: List<CourseFeature>): Double {
         val samples = (0..20).map { step ->
