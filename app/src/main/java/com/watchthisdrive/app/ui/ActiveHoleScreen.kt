@@ -84,14 +84,27 @@ fun ActiveHoleScreen(
             callback = object : LocationCallback() {
                 override fun onLocationResult(result: LocationResult) {
                     val candidate = result.lastLocation ?: return
+                    val now = System.currentTimeMillis()
+                    val ageMillis = now - candidate.time
+                    if (candidate.time <= 0L || ageMillis > 15_000L || ageMillis < -5_000L) {
+                        gpsMessage = "Waiting for a fresh GPS fix"
+                        return
+                    }
                     if (candidate.accuracy > 35f) {
                         gpsMessage = "GPS accuracy ±${candidate.accuracy.toInt()} m"
                         return
                     }
                     val previous = player
                     if (previous != null && candidate.time < previous.time) return
-                    if (previous != null && candidate.time - previous.time < 5000 &&
-                        previous.distanceTo(candidate) > 100f && candidate.accuracy > previous.accuracy) return
+                    if (previous != null) {
+                        val elapsedSeconds = ((candidate.time - previous.time).coerceAtLeast(1L)) / 1000f
+                        val jumpMeters = previous.distanceTo(candidate)
+                        val plausibleJumpMeters = maxOf(120f, elapsedSeconds * 15f)
+                        if (jumpMeters > plausibleJumpMeters && candidate.accuracy >= previous.accuracy) {
+                            gpsMessage = "Ignoring an inconsistent GPS position"
+                            return
+                        }
+                    }
                     player = candidate
                     gpsMessage = "GPS ±${candidate.accuracy.toInt()} m"
                 }
@@ -103,7 +116,9 @@ fun ActiveHoleScreen(
             try {
                 fused.requestLocationUpdates(request, callback, context.mainLooper)
                 fused.lastLocation.addOnSuccessListener { last ->
-                    if (player == null && last != null && last.accuracy <= 35f) player = last
+                    val ageMillis = last?.let { System.currentTimeMillis() - it.time }
+                    if (player == null && last != null && last.accuracy <= 35f &&
+                        ageMillis != null && ageMillis in -5_000L..15_000L) player = last
                 }
             } catch (_: SecurityException) {
                 gpsMessage = "Location permission needed"
@@ -126,7 +141,7 @@ fun ActiveHoleScreen(
     val targetDistance = if (playerOnHole != null && target != null) FloatArray(1).also {
         Location.distanceBetween(playerOnHole.latitude, playerOnHole.longitude, target!!.latitude, target!!.longitude, it)
     }[0] else null
-    val relativeScore = hole.par?.let { strokes - it }
+    val relativeScore = hole.par?.takeIf { strokes > 0 }?.let { strokes - it }
     val relativeLabel = when {
         relativeScore == null -> "—"
         relativeScore == 0 -> "E"
@@ -164,7 +179,7 @@ fun ActiveHoleScreen(
                 Column(Modifier.padding(horizontal = 14.dp, vertical = 10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("SCORE", color = Color(0xFFB6C1B9), style = MaterialTheme.typography.labelSmall)
                     Text(relativeLabel, color = Color.White, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-                    Text("Stroke $strokes", color = Color(0xFFB8F36B), style = MaterialTheme.typography.labelMedium)
+                    Text("Strokes $strokes", color = Color(0xFFB8F36B), style = MaterialTheme.typography.labelMedium)
                 }
             }
             IconButton(onClick = { northUp = !northUp }, modifier = Modifier.background(Color(0xE91A251E), RoundedCornerShape(14.dp))) {
@@ -215,7 +230,7 @@ fun ActiveHoleScreen(
                     Text("${holeIndex + 1} / $holeCount", color = Color(0xFFB8F36B), fontWeight = FontWeight.Bold)
                     TextButton(onClick = onNextHole, enabled = holeIndex < holeCount - 1) { Text("Next", color = Color.White) }
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(onClick = { onStrokesChange(strokes - 1) }, enabled = strokes > 1) { Icon(Icons.Filled.Remove, contentDescription = "Remove stroke", tint = Color.White) }
+                        IconButton(onClick = { onStrokesChange(strokes - 1) }, enabled = strokes > 0) { Icon(Icons.Filled.Remove, contentDescription = "Remove stroke", tint = Color.White) }
                         Text("$strokes", color = Color.White, fontWeight = FontWeight.Bold)
                         IconButton(onClick = { onStrokesChange(strokes + 1) }) { Icon(Icons.Filled.Add, contentDescription = "Add stroke", tint = Color(0xFFB8F36B)) }
                     }
