@@ -70,6 +70,9 @@ object CourseReconstructionEngine {
             if (reverse.isFinite() && !forward.isFinite()) {
                 line = line.asReversed()
                 teeToGreenOriented = true
+            } else if (forward.isFinite() && !reverse.isFinite()) {
+                // Tee-at-start plus green-at-end is sufficient forward evidence.
+                teeToGreenOriented = true
             } else if (forward.isFinite() && reverse.isFinite() && abs(forward - reverse) >= 3.0) {
                 if (reverse < forward) line = line.asReversed()
                 teeToGreenOriented = true
