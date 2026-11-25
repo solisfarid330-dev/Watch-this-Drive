@@ -31,6 +31,8 @@ import com.watchthisdrive.app.data.CourseDiscovery
 import com.watchthisdrive.app.data.ClubCarryDistances
 import com.watchthisdrive.app.data.CourseGeometry
 import com.watchthisdrive.app.data.CourseGeometryLoader
+import com.watchthisdrive.app.data.CourseMappingQuality
+import com.watchthisdrive.app.data.MissingCourseFeature
 import com.watchthisdrive.app.data.CourseReconstruction
 import com.watchthisdrive.app.data.CourseReconstructionEngine
 import com.watchthisdrive.app.data.GolfCourse
@@ -812,6 +814,65 @@ private fun CourseDetailScreen(
     var error by remember(course.id) {
         mutableStateOf<String?>(null)
     }
+    var recoveryLoading by remember(course.id) { mutableStateOf(false) }
+    var recoveryMessage by remember(course.id) { mutableStateOf<String?>(null) }
+    var showMissingFeatureDialog by remember(course.id) { mutableStateOf(false) }
+    var reportedFeatures by remember(course.id) {
+        mutableStateOf(
+            androidx.compose.ui.platform.LocalContext.current
+                .getSharedPreferences("course_mapping_reports", android.content.Context.MODE_PRIVATE)
+                .getStringSet("course_${course.elementType}_${course.id}", emptySet())
+                .orEmpty()
+        )
+    }
+    val appContext = androidx.compose.ui.platform.LocalContext.current
+
+    fun improveMapping() {
+        if (recoveryLoading) return
+        recoveryLoading = true
+        recoveryMessage = "Searching for additional mapped golf features…"
+        CourseGeometryLoader.loadRecovery(course) { result ->
+            result.onSuccess { recovered ->
+                val previous = geometry
+                val mergedFeatures = (previous?.features.orEmpty() + recovered.features)
+                    .groupBy { it.elementType to it.id }
+                    .values.map { candidates ->
+                        candidates.firstOrNull { it.hasUsableGeometry } ?: candidates.first()
+                    }
+                val merged = CourseGeometry(
+                    courseId = course.id,
+                    courseName = course.name,
+                    features = mergedFeatures,
+                    incompleteRelations = (previous?.incompleteRelations.orEmpty() + recovered.incompleteRelations).distinct()
+                )
+                val improved = CourseReconstructionEngine.reconstruct(merged)
+                val oldCount = reconstruction?.holes?.size ?: 0
+                geometry = merged
+                reconstruction = improved
+                recoveryMessage = if (improved.holes.size > oldCount ||
+                    merged.features.size > previous?.features?.size.orZero()) {
+                    "Mapping refreshed. The app retained existing features and added any newly recovered data."
+                } else {
+                    "The wider search found no additional mapped geometry. Some features may not exist in the available map data yet."
+                }
+            }
+            result.onFailure { problem ->
+                recoveryMessage = "Could not complete the improvement search: ${problem.message ?: "Please try again."}"
+            }
+            recoveryLoading = false
+        }
+    }
+
+    fun reportMissingFeature(feature: MissingCourseFeature) {
+        val updated = reportedFeatures + feature.name
+        reportedFeatures = updated
+        appContext.getSharedPreferences("course_mapping_reports", android.content.Context.MODE_PRIVATE)
+            .edit()
+            .putStringSet("course_${course.elementType}_${course.id}", updated)
+            .apply()
+        recoveryMessage = "${feature.label} marked as missing on this device. We'll use this feedback to guide future recovery attempts."
+        showMissingFeatureDialog = false
+    }
 
     LaunchedEffect(course.id) {
         CourseGeometryLoader.load(course) { result ->
@@ -906,6 +967,46 @@ private fun CourseDetailScreen(
 
                     else -> {
                         val features = geometry?.features.orEmpty()
+                        val currentGeometry = geometry
+                        val currentReconstruction = reconstruction
+                        val quality = if (currentGeometry != null && currentReconstruction != null) {
+                            CourseMappingQuality.assess(currentGeometry, currentReconstruction)
+                        } else null
+
+                        quality?.let { report ->
+                            Divider(color = Color(0xFF344238))
+                            Text(
+                                if (report.needsAttention) "Mapping needs attention" else "Mapping data loaded",
+                                color = if (report.needsAttention) Color(0xFFFFC857) else Color(0xFFB8F36B),
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                "${report.holeCenterlineCount} hole lines · ${report.reconstructedHoleCount} reconstructed · " +
+                                    "${report.teeCount} tees · ${report.greenCount} greens · " +
+                                    "${report.fairwayCount} fairways · ${report.bunkerCount} bunkers · ${report.waterCount} water features",
+                                color = Color.White,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                            if (report.missingNumberedHoles.isNotEmpty()) {
+                                Text(
+                                    "Numbered hole gaps in source data: ${report.missingNumberedHoles.joinToString()}",
+                                    color = Color(0xFFFFC857),
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
+                            if (report.holesWithoutGreen > 0) {
+                                Text(
+                                    "${report.holesWithoutGreen} reconstructed holes have no confidently matched green.",
+                                    color = Color(0xFFFFC857),
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
+                            Text(
+                                "These counts describe available map data, not a verified inventory of the physical course.",
+                                color = Color(0xFFB6C1B9),
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
 
                         geometry?.takeIf { it.features.any { feature -> feature.hasUsableGeometry } }?.let {
                             Text("Decoded course layout", color = Color.White, fontWeight = FontWeight.SemiBold)
@@ -998,9 +1099,76 @@ private fun CourseDetailScreen(
                                 color = Color(0xFFB6C1B9)
                             )
                         }
+
+                        Button(
+                            onClick = { improveMapping() },
+                            enabled = !recoveryLoading,
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFFB8F36B),
+                                contentColor = Color(0xFF101713)
+                            )
+                        ) {
+                            if (recoveryLoading) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(18.dp),
+                                    strokeWidth = 2.dp,
+                                    color = Color(0xFF101713)
+                                )
+                                Spacer(Modifier.width(8.dp))
+                            } else {
+                                Icon(Icons.Filled.Refresh, contentDescription = null)
+                                Spacer(Modifier.width(8.dp))
+                            }
+                            Text(if (recoveryLoading) "IMPROVING MAPPING…" else "IMPROVE COURSE MAPPING")
+                        }
+                        OutlinedButton(
+                            onClick = { showMissingFeatureDialog = true },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFB8F36B))
+                        ) {
+                            Icon(Icons.Filled.Flag, contentDescription = null)
+                            Spacer(Modifier.width(8.dp))
+                            Text("REPORT A MISSING FEATURE")
+                        }
+                        recoveryMessage?.let {
+                            Text(it, color = Color(0xFFB6C1B9), style = MaterialTheme.typography.bodySmall)
+                        }
+                        if (reportedFeatures.isNotEmpty()) {
+                            Text(
+                                "Reported missing on this device: " +
+                                    reportedFeatures.mapNotNull { name ->
+                                        MissingCourseFeature.entries.firstOrNull { it.name == name }?.label
+                                    }.joinToString(),
+                                color = Color(0xFFFFC857),
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
                     }
                 }
             }
+        }
+
+        if (showMissingFeatureDialog) {
+            AlertDialog(
+                onDismissRequest = { showMissingFeatureDialog = false },
+                title = { Text("What is missing?") },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        MissingCourseFeature.entries.forEach { feature ->
+                            TextButton(
+                                onClick = { reportMissingFeature(feature) },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(feature.label, modifier = Modifier.fillMaxWidth())
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showMissingFeatureDialog = false }) { Text("Cancel") }
+                }
+            )
         }
 
         Button(
@@ -1018,3 +1186,5 @@ private fun CourseDetailScreen(
         }
     }
 }
+
+private fun Int?.orZero(): Int = this ?: 0
