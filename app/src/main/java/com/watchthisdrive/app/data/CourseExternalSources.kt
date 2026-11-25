@@ -221,6 +221,32 @@ object OpenGolfApiCourseLoader {
 }
 
 /**
+ * Applies only factual scorecard fields to already-mapped OSM hole features.
+ * Yardages remain validation metadata; they never create or reshape geometry.
+ */
+internal fun enrichGeometryWithScorecard(
+    geometry: CourseGeometry,
+    metadata: ExternalCourseMetadata,
+    preferredHoleCount: Int? = null
+): CourseGeometry {
+    val parsByHole = metadata.holes.mapNotNull { hole ->
+        hole.par?.let { hole.number to it }
+    }.toMap()
+    val expected = preferredHoleCount?.takeIf { it == 9 || it == 18 }
+        ?: metadata.holeCount?.takeIf { it == 9 || it == 18 }
+        ?: geometry.expectedHoleCount
+    return geometry.copy(
+        expectedHoleCount = expected,
+        features = geometry.features.map { feature ->
+            val number = feature.holeNumber?.toIntOrNull()
+            if (feature.featureType == "hole" && feature.par == null && number != null) {
+                feature.copy(par = parsByHole[number] ?: feature.par)
+            } else feature
+        }
+    )
+}
+
+/**
  * Public USGS/USDA NAIP imagery. The returned bitmap is visual evidence only;
  * it is not classified or promoted to course geometry.
  */
