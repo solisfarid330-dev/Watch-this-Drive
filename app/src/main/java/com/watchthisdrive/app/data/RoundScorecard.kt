@@ -17,7 +17,12 @@ data class RoundScorecard(
     val players: List<RoundPlayer>,
     val userPlayerId: String,
     val startedAt: Long = System.currentTimeMillis(),
-    val activeHoleNumber: String = "1"
+    val activeHoleNumber: String = "1",
+    val courseId: Long? = null,
+    val courseElementType: String? = null,
+    val courseLatitude: Double? = null,
+    val courseLongitude: Double? = null,
+    val expectedHoleCount: Int? = null
 ) {
     val user: RoundPlayer get() = players.first { it.id == userPlayerId }
     fun totalFor(player: RoundPlayer): Int = player.scores.values.sum()
@@ -28,9 +33,16 @@ data class RoundScorecard(
     }
 
     companion object {
-        fun new(courseName: String, holePars: Map<String, Int?>): RoundScorecard {
+        fun new(courseName: String, holePars: Map<String, Int?>, courseId: Long? = null,
+                courseElementType: String? = null, courseLatitude: Double? = null,
+                courseLongitude: Double? = null, expectedHoleCount: Int? = null): RoundScorecard {
             val player = RoundPlayer(UUID.randomUUID().toString(), "You")
-            return RoundScorecard(courseName, holePars, listOf(player), player.id)
+            return RoundScorecard(
+                courseName = courseName, holePars = holePars, players = listOf(player),
+                userPlayerId = player.id, courseId = courseId,
+                courseElementType = courseElementType, courseLatitude = courseLatitude,
+                courseLongitude = courseLongitude, expectedHoleCount = expectedHoleCount
+            )
         }
     }
 }
@@ -64,6 +76,11 @@ object RoundScorecardStore {
         put("courseName", round.courseName)
         put("startedAt", round.startedAt)
         put("activeHoleNumber", round.activeHoleNumber)
+        put("courseId", round.courseId ?: JSONObject.NULL)
+        put("courseElementType", round.courseElementType)
+        put("courseLatitude", round.courseLatitude ?: JSONObject.NULL)
+        put("courseLongitude", round.courseLongitude ?: JSONObject.NULL)
+        put("expectedHoleCount", round.expectedHoleCount ?: JSONObject.NULL)
         put("userPlayerId", round.userPlayerId)
         put("holePars", JSONObject().apply {
             round.holePars.forEach { (hole, par) -> put(hole.toString(), par ?: JSONObject.NULL) }
@@ -109,7 +126,12 @@ object RoundScorecardStore {
             players = players,
             userPlayerId = json.getString("userPlayerId"),
             startedAt = json.optLong("startedAt", System.currentTimeMillis()),
-            activeHoleNumber = json.optString("activeHoleNumber", "1")
+            activeHoleNumber = json.optString("activeHoleNumber", "1"),
+            courseId = if (json.isNull("courseId")) null else json.optLong("courseId"),
+            courseElementType = json.optString("courseElementType").takeIf { it.isNotBlank() },
+            courseLatitude = if (json.isNull("courseLatitude")) null else json.optDouble("courseLatitude"),
+            courseLongitude = if (json.isNull("courseLongitude")) null else json.optDouble("courseLongitude"),
+            expectedHoleCount = if (json.isNull("expectedHoleCount")) null else json.optInt("expectedHoleCount")
         )
     }
 }
