@@ -61,7 +61,7 @@ object RoundScorecardStore {
     fun saveActive(context: Context, round: RoundScorecard?) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().apply {
             if (round == null) remove(ACTIVE) else putString(ACTIVE, encode(round).toString())
-        }.apply()
+        }.commit()
     }
 
     fun saveCompleted(context: Context, round: RoundScorecard) {
@@ -69,7 +69,7 @@ object RoundScorecardStore {
         val history = runCatching { JSONArray(prefs.getString(COMPLETED, "[]")) }
             .getOrDefault(JSONArray())
         history.put(encode(round).put("completedAt", System.currentTimeMillis()))
-        prefs.edit().putString(COMPLETED, history.toString()).remove(ACTIVE).apply()
+        prefs.edit().putString(COMPLETED, history.toString()).remove(ACTIVE).commit()
     }
 
     private fun encode(round: RoundScorecard): JSONObject = JSONObject().apply {
