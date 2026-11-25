@@ -32,6 +32,8 @@ class CourseGeometryQueryTest {
 
         assertTrue(query.contains("nwr(area.courseArea)[\"golf\"=\"hole\"];"))
         assertTrue(query.contains("nwr(area.courseArea)[\"golf:hole\"];"))
+        assertTrue(query.contains("nwr(around:2000,0.0,0.0)[\"golf\"=\"hole\"];"))
+        assertTrue(query.contains("nwr(around:2000,0.0,0.0)[\"golf:hole\"];"))
         assertFalse(query.contains("[\"golf\"=\"null\"]"))
     }
 }
