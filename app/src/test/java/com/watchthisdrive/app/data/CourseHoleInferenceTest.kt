@@ -6,11 +6,11 @@ import org.junit.Test
 class CourseHoleInferenceTest {
     private fun tee() = CourseFeature(106,"node","tee","6",null,listOf(GeoPoint(0.0,0.010)),CourseGeometryType.POINT)
     private fun green() = CourseFeature(206,"way","green","6",null,
-        listOf(GeoPoint(0.004,0.014),GeoPoint(0.004,0.0142),GeoPoint(0.0042,0.0142),GeoPoint(0.0042,0.014),GeoPoint(0.004,0.014)),
-        CourseGeometryType.POLYGON,listOf(listOf(GeoPoint(0.004,0.014),GeoPoint(0.004,0.0142),GeoPoint(0.0042,0.0142),GeoPoint(0.0042,0.014),GeoPoint(0.004,0.014))))
+        listOf(GeoPoint(0.0024,0.0124),GeoPoint(0.0024,0.0126),GeoPoint(0.0026,0.0126),GeoPoint(0.0026,0.0124),GeoPoint(0.0024,0.0124)),
+        CourseGeometryType.POLYGON,listOf(listOf(GeoPoint(0.0024,0.0124),GeoPoint(0.0024,0.0126),GeoPoint(0.0026,0.0126),GeoPoint(0.0026,0.0124),GeoPoint(0.0024,0.0124))))
     private fun fairway() = CourseFeature(306,"way","fairway","6",null,
-        listOf(GeoPoint(-0.0002,0.0098),GeoPoint(0.0044,0.0138),GeoPoint(0.0046,0.0136),GeoPoint(0.0,0.0096),GeoPoint(-0.0002,0.0098)),
-        CourseGeometryType.POLYGON,listOf(listOf(GeoPoint(-0.0002,0.0098),GeoPoint(0.0044,0.0138),GeoPoint(0.0046,0.0136),GeoPoint(0.0,0.0096),GeoPoint(-0.0002,0.0098))))
+        listOf(GeoPoint(-0.0002,0.0098),GeoPoint(0.0028,0.0122),GeoPoint(0.0030,0.0120),GeoPoint(0.0,0.0096),GeoPoint(-0.0002,0.0098)),
+        CourseGeometryType.POLYGON,listOf(listOf(GeoPoint(-0.0002,0.0098),GeoPoint(0.0028,0.0122),GeoPoint(0.0030,0.0120),GeoPoint(0.0,0.0096),GeoPoint(-0.0002,0.0098))))
     private fun holes()=(1..9).filter{it!=6}.map { n -> CourseFeature(n.toLong(),"way","hole",n.toString(),null,
         listOf(GeoPoint(0.0,n*0.001),GeoPoint(0.004,n*0.001)),CourseGeometryType.LINE) }
 

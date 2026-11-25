@@ -227,6 +227,24 @@ object CourseHoleInference {
         return hypot(Math.toRadians(b.longitude-a.longitude)*6371008.8*cos(lat), Math.toRadians(b.latitude-a.latitude)*6371008.8)
     }
 
+
+    private fun distanceToLine(point: GeoPoint, line: List<GeoPoint>): Double {
+        if (line.size < 2) return Double.POSITIVE_INFINITY
+        return line.zipWithNext().minOf { (a, b) ->
+            val latitude = Math.toRadians((point.latitude + a.latitude + b.latitude) / 3.0)
+            fun xy(p: GeoPoint) = Pair(
+                Math.toRadians(p.longitude) * 6371008.8 * cos(latitude),
+                Math.toRadians(p.latitude) * 6371008.8
+            )
+            val p = xy(point); val start = xy(a); val end = xy(b)
+            val dx = end.first - start.first; val dy = end.second - start.second
+            val denominator = dx * dx + dy * dy
+            val t = if (denominator == 0.0) 0.0 else
+                (((p.first - start.first) * dx + (p.second - start.second) * dy) / denominator).coerceIn(0.0, 1.0)
+            hypot(p.first - start.first - t * dx, p.second - start.second - t * dy)
+        }
+    }
+
     private fun pointInPolygon(point:GeoPoint,ring:List<GeoPoint>):Boolean {
         var inside=false
         for(i in 0 until ring.lastIndex) {
