@@ -20,7 +20,7 @@ fun CaddySetupScreen(context: Context, carryDistances: Map<String, Int>, onChang
     Column(Modifier.fillMaxSize().padding(20.dp)) {
         Text("YOUR CADDY", color = Color(0xFFB8F36B), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
         Text("Club carry distances", color = Color.White, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-        Text("Enter how far each club carries the ball through the air to its first landing. Do not include bounce or roll.", color = Color(0xFFB6C1B9), style = MaterialTheme.typography.bodyMedium)
+        Text("Starter carry estimates are prefilled. Adjust each club to your own distance through the air to first landing; do not include bounce or roll.", color = Color(0xFFB6C1B9), style = MaterialTheme.typography.bodyMedium)
         Spacer(Modifier.height(16.dp))
         LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(ClubCarryDistances.clubNames) { club ->
