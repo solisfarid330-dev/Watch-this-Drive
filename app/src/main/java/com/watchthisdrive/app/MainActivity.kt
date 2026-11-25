@@ -484,7 +484,11 @@ private fun WatchThisDriveApp() {
                     Tab.CADDY -> CaddySetupScreen(
                         context = context,
                         carryDistances = clubCarries,
-                        onChange = { clubCarries = it }
+                        onChange = { clubCarries = it },
+                        savedRoundSummaries = savedRounds.map { saved ->
+                            "${saved.round.courseName} · ${saved.round.holePars.size} holes"
+                        },
+                        cachedCourses = CourseGeometryCache.list(context)
                     )
                 }
             }
@@ -536,9 +540,25 @@ private fun HomeScreen(hasActiveRound: Boolean, onResumeRound: () -> Unit, onFin
             Icon(Icons.Filled.Search, null); Spacer(Modifier.width(8.dp)); Text("BROWSE COURSES")
         }
         if (!hasActiveRound) Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF18231C)), shape = RoundedCornerShape(16.dp)) {
-            Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Filled.Scoreboard, null, tint = Color(0xFFB8F36B)); Spacer(Modifier.width(12.dp))
-                Column { Text("Scorecard-only games", color = Color.White, fontWeight = FontWeight.SemiBold); Text("Start a scorecard without GPS or course mapping from the Scorecard tab.", color = Color(0xFFB6C1B9), style = MaterialTheme.typography.bodySmall) }
+            Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(11.dp)) {
+                Text("YOUR GOLF TOOLKIT", color = Color(0xFFB8F36B), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                Text("Everything you need before and during a round.", color = Color.White, fontWeight = FontWeight.SemiBold)
+                val features = listOf(
+                    Icons.Filled.Map to ("Course mapping" to "Reconstructs playable hole layouts from available course data."),
+                    Icons.Filled.MyLocation to ("Live GPS distances" to "Measure to the pin or tap any point on the course map."),
+                    Icons.Filled.SportsGolf to ("Caddy recommendations" to "Use your personal club carry distances for target selection."),
+                    Icons.Filled.Scoreboard to ("Scorecards and history" to "Track players, record scores, and revisit completed rounds."),
+                    Icons.Filled.Folder to ("Saved on this device" to "Keep mapped courses and round data locally on your phone.")
+                )
+                features.forEach { (icon, feature) ->
+                    Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Icon(icon, null, tint = Color(0xFFB8F36B), modifier = Modifier.size(20.dp))
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(feature.first, color = Color.White, fontWeight = FontWeight.SemiBold)
+                            Text(feature.second, color = Color(0xFFB6C1B9), style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                }
             }
         }
     }
