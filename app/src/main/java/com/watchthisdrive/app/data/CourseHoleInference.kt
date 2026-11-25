@@ -104,7 +104,7 @@ object CourseHoleInference {
             it.holeNumber.isNullOrBlank() || it.holeNumber?.toIntOrNull()?.let { number -> number in missingNumbers } == true
         }
         val greens = allGreens.filter {
-            it.holeNumber.isNullOrBlank() || it.holeNumber?.toIntOrNull() in missingNumbers
+            it.holeNumber.isNullOrBlank() || it.holeNumber?.toIntOrNull()?.let { number -> number in missingNumbers } == true
         }
         val clusters = clusterTees(tees)
         if (clusters.isEmpty()) return emptyList()
