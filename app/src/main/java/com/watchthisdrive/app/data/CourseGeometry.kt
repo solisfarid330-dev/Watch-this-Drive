@@ -113,19 +113,20 @@ object CourseGeometryLoader {
                         })
                     }
                     val failures = mutableListOf<String>()
-                    var emptyResult: CourseGeometry? = null
+                    val responses = mutableListOf<CourseGeometry>()
                     repeat(OVERPASS_SERVERS.size) {
                         try {
                             val (server, geometry) = completion.take().get()
-                            if (geometry.features.isNotEmpty()) return@runCatching geometry
-                            if (emptyResult == null) emptyResult = geometry
-                            failures.add("$server returned no golf features")
+                            responses.add(geometry)
+                            if (geometry.features.isEmpty()) failures.add("$server returned no golf features")
                         } catch (e: Exception) {
                             val cause = e.cause ?: e
                             failures.add("${cause.javaClass.simpleName}: ${cause.message ?: "request failed"}")
                         }
                     }
-                    emptyResult ?: throw Exception(
+                    val merged = mergeGeometryResponses(course, responses)
+                    if (merged.features.isNotEmpty()) return@runCatching merged
+                    responses.firstOrNull() ?: throw Exception(
                         "Course mapping search could not reach a responsive map server. " +
                             failures.joinToString(" | ")
                     )
@@ -135,6 +136,24 @@ object CourseGeometryLoader {
             }
             Handler(Looper.getMainLooper()).post { onResult(result) }
         }
+    }
+
+    internal fun mergeGeometryResponses(
+        course: GolfCourse,
+        responses: List<CourseGeometry>
+    ): CourseGeometry {
+        val features = responses.flatMap { it.features }
+            .groupBy { it.elementType to it.id }
+            .values.map { candidates ->
+                candidates.firstOrNull { it.hasUsableGeometry } ?: candidates.first()
+            }
+        return CourseGeometry(
+            courseId = course.id,
+            courseName = course.name,
+            features = features,
+            incompleteRelations = responses.flatMap { it.incompleteRelations }.distinct(),
+            expectedHoleCount = course.expectedHoleCount
+        )
     }
 
     internal fun buildRecoveryQuery(course: GolfCourse, featureType: String? = null): String {
