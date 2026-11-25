@@ -22,9 +22,9 @@ data class RoundScorecard(
     val user: RoundPlayer get() = players.first { it.id == userPlayerId }
     fun totalFor(player: RoundPlayer): Int = player.scores.values.sum()
     fun relativeToPar(player: RoundPlayer): Int? {
-        val scoredPars = player.scores.keys.mapNotNull { holePars[it] }
-        if (scoredPars.isEmpty()) return null
-        return totalFor(player) - scoredPars.sum()
+        val scoredHoles = player.scores.filterKeys { holePars[it] != null }
+        if (scoredHoles.isEmpty()) return null
+        return scoredHoles.entries.sumOf { (hole, strokes) -> strokes - (holePars[hole] ?: 0) }
     }
 
     companion object {
