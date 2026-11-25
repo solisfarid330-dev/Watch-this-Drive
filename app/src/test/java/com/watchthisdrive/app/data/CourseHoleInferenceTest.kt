@@ -187,4 +187,29 @@ class CourseHoleInferenceTest {
         assertEquals("6", inferred.holeNumber)
         assertEquals("inferred_from_numbered_tee_green_and_fairway", inferred.geometryStatus)
     }
+
+    @Test
+    fun combinesSupportAcrossSeparateFairwayFragments() {
+        fun fragment(id: Long, t: Double): CourseFeature {
+            val center = GeoPoint(0.0025 * t, 0.010 + 0.0025 * t)
+            val ring = listOf(
+                GeoPoint(center.latitude - 0.00015, center.longitude - 0.00015),
+                GeoPoint(center.latitude - 0.00015, center.longitude + 0.00015),
+                GeoPoint(center.latitude + 0.00015, center.longitude + 0.00015),
+                GeoPoint(center.latitude + 0.00015, center.longitude - 0.00015),
+                GeoPoint(center.latitude - 0.00015, center.longitude - 0.00015)
+            )
+            return CourseFeature(id, "way", "fairway", "6", null, ring,
+                CourseGeometryType.POLYGON, listOf(ring))
+        }
+        val input = CourseGeometry(
+            1, "Generic", holes() + listOf(tee(), green(), fragment(401, 0.22), fragment(402, 0.78))
+        )
+        val inferred = CourseHoleInference.addInferredHoles(input).features.single {
+            it.origin == CourseFeatureOrigin.INFERRED && it.featureType == "hole"
+        }
+        assertEquals(0.65, inferred.confidence!!, 0.0)
+        assertEquals("inferred_from_numbered_tee_green_and_fairway", inferred.geometryStatus)
+    }
+
 }
