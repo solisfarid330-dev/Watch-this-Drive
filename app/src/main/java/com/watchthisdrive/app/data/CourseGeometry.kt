@@ -121,7 +121,7 @@ object CourseGeometryLoader {
         val normalizedType = featureType?.lowercase()?.takeIf {
             it in setOf("hole", "tee", "green", "fairway", "bunker", "water_hazard")
         }
-        val relationMembers = if (normalizedType == null && course.elementType.equals("relation", ignoreCase = true)) "way(r.course);" else ""
+        val relationMembers = if (course.elementType.equals("relation", ignoreCase = true)) "way(r.course);" else ""
         val featureSelector = when (normalizedType) {
             "hole" -> """
                 nwr(area.courseArea)["golf"="hole"];
