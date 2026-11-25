@@ -9,9 +9,20 @@ class CourseExternalSourcesTest {
 
     @Test
     fun currentOpenGolfSearchContractUsesCourseNameAndApiV1Path() {
-        val url = OpenGolfApiCourseLoader.buildSearchUrl("South Padre Island Golf Club")
+        val course = GolfCourse(
+            id = 77L,
+            elementType = "relation",
+            name = "South Padre Island Golf Club",
+            latitude = 26.1,
+            longitude = -97.2,
+            distanceMeters = 0f
+        )
+        val url = OpenGolfApiCourseLoader.buildSearchUrl(course)
         assertTrue(url.startsWith("https://api.opengolfapi.org/api/v1/courses/search?"))
         assertTrue(url.contains("q=South+Padre+Island+Golf+Club"))
+        assertTrue(url.contains("lat=26.1"))
+        assertTrue(url.contains("lng=-97.2"))
+        assertTrue(url.contains("radius_mi=10"))
         assertTrue(url.contains("limit=20"))
     }
 
