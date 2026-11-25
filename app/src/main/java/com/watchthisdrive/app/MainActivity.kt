@@ -28,6 +28,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.google.android.gms.location.LocationServices
 import com.watchthisdrive.app.data.CourseDiscovery
@@ -494,9 +495,30 @@ private fun WatchThisDriveApp() {
 @Composable
 private fun HomeScreen(hasActiveRound: Boolean, onResumeRound: () -> Unit, onFindCourses: () -> Unit) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(22.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
-        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-            Text("WATCH THIS DRIVE", color = Color(0xFFB8F36B), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold)
-            Text("Golf companion", color = Color(0xFFB6C1B9), style = MaterialTheme.typography.titleSmall)
+        Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
+            Text(
+                "WATCH THIS",
+                color = Color.White,
+                fontSize = 23.sp,
+                lineHeight = 26.sp,
+                letterSpacing = 2.sp,
+                fontWeight = FontWeight.ExtraBold
+            )
+            Text(
+                "DRIVE",
+                color = Color(0xFFB8F36B),
+                fontSize = 40.sp,
+                lineHeight = 42.sp,
+                letterSpacing = 2.sp,
+                fontWeight = FontWeight.ExtraBold
+            )
+            Text(
+                "GOLF COMPANION",
+                color = Color(0xFFB6C1B9),
+                style = MaterialTheme.typography.labelSmall,
+                letterSpacing = 2.5.sp,
+                fontWeight = FontWeight.SemiBold
+            )
         }
         Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF1D2A22)), shape = RoundedCornerShape(22.dp)) {
             Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
