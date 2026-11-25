@@ -82,15 +82,26 @@ object CourseGeometryLoader {
         query: String,
         onResult: (Result<CourseGeometry>) -> Unit
     ) {
-        thread {
+        thread(name = "course-geometry-load") {
             val result = runCatching {
+                // Bound the entire operation, not just each individual HTTP request.
+                // This prevents three slow Overpass mirrors from keeping the UI busy
+                // for several minutes.
+                val deadlineNanos = System.nanoTime() + 60_000_000_000L
                 var lastError: Exception? = null
                 for (server in OVERPASS_SERVERS) {
+                    val remainingMs = ((deadlineNanos - System.nanoTime()) / 1_000_000L).toInt()
+                    if (remainingMs <= 0) break
                     try {
-                        return@runCatching fetchGeometry(server, query, course)
-                    } catch (e: Exception) { lastError = e }
+                        return@runCatching fetchGeometry(server, query, course, remainingMs)
+                    } catch (e: Exception) {
+                        lastError = e
+                    }
                 }
-                throw Exception("All geometry servers failed. " + (lastError?.message ?: ""))
+                if (System.nanoTime() >= deadlineNanos) {
+                    throw Exception("Course mapping search timed out after 60 seconds. Please try again later.")
+                }
+                throw Exception("All geometry servers failed. " + (lastError?.message ?: "Please try again later."))
             }
             Handler(Looper.getMainLooper()).post { onResult(result) }
         }
@@ -137,12 +148,17 @@ object CourseGeometryLoader {
         """.trimIndent()
     }
 
-    private fun fetchGeometry(server: String, query: String, course: GolfCourse): CourseGeometry {
+    private fun fetchGeometry(
+        server: String,
+        query: String,
+        course: GolfCourse,
+        timeoutMs: Int
+    ): CourseGeometry {
         val connection = URL(server).openConnection() as HttpURLConnection
         try {
             connection.requestMethod = "POST"
-            connection.connectTimeout = 15000
-            connection.readTimeout = 70000
+            connection.connectTimeout = minOf(10000, timeoutMs.coerceAtLeast(1000))
+            connection.readTimeout = timeoutMs.coerceAtLeast(1000)
             connection.doOutput = true
             connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
             connection.setRequestProperty("Accept", "application/json")
