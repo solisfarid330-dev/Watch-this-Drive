@@ -36,6 +36,9 @@ import com.watchthisdrive.app.data.ExternalCourseMetadata
 import com.watchthisdrive.app.data.NaipImageryLoader
 import com.watchthisdrive.app.data.enrichGeometryWithScorecard
 import com.watchthisdrive.app.data.ClubCarryDistances
+import com.watchthisdrive.app.data.RoundPlayer
+import com.watchthisdrive.app.data.RoundScorecard
+import com.watchthisdrive.app.data.RoundScorecardStore
 import com.watchthisdrive.app.data.CourseGeometry
 import com.watchthisdrive.app.data.CourseGeometryLoader
 import com.watchthisdrive.app.data.CourseFeatureInference
@@ -49,6 +52,7 @@ import com.watchthisdrive.app.ui.CourseGeometryPreview
 import com.watchthisdrive.app.ui.GolfMap
 import com.watchthisdrive.app.ui.ActiveHoleScreen
 import com.watchthisdrive.app.ui.CaddySetupScreen
+import com.watchthisdrive.app.ui.GlobalScorecardScreen
 import com.watchthisdrive.app.ui.GolfTheme
 import java.util.Locale
 
@@ -65,6 +69,7 @@ private enum class Tab(val label: String) {
 
 @Composable
 private fun WatchThisDriveApp() {
+    val context = androidx.compose.ui.platform.LocalContext.current
     var selected by remember { mutableStateOf(Tab.HOME) }
     var showNearbyCourses by remember { mutableStateOf(false) }
     var selectedCourse by remember { mutableStateOf<GolfCourse?>(null) }
@@ -72,14 +77,23 @@ private fun WatchThisDriveApp() {
     var mapTarget by remember { mutableStateOf<Location?>(null) }
     var mapGeometry by remember { mutableStateOf<CourseGeometry?>(null) }
     var mapReconstruction by remember { mutableStateOf<CourseReconstruction?>(null) }
-    var activeRound by remember { mutableStateOf(false) }
+    var roundScorecard by remember { mutableStateOf(RoundScorecardStore.loadActive(context)) }
+    var activeRound by remember { mutableStateOf(roundScorecard != null) }
     var activeHoleIndex by remember { mutableIntStateOf(0) }
-    var roundStrokes by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
     var locationMessage by remember { mutableStateOf("Location not checked yet") }
 
-    val context = androidx.compose.ui.platform.LocalContext.current
     val fused = remember { LocationServices.getFusedLocationProviderClient(context) }
     var clubCarries by remember { mutableStateOf(ClubCarryDistances.load(context)) }
+
+    fun updateRoundScore(playerId: String, holeNumber: Int, strokes: Int) {
+        val current = roundScorecard ?: return
+        val updated = current.copy(players = current.players.map { player ->
+            if (player.id != playerId) player else player.copy(scores =
+                if (strokes <= 0) player.scores - holeNumber else player.scores + (holeNumber to strokes.coerceAtMost(20)))
+        })
+        roundScorecard = updated
+        RoundScorecardStore.saveActive(context, updated)
+    }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -141,12 +155,13 @@ private fun WatchThisDriveApp() {
     Scaffold(
         containerColor = Color(0xFF101713),
         bottomBar = {
-            if (!showNearbyCourses && !activeRound) {
+            if (!showNearbyCourses) {
                 NavigationBar(
                     containerColor = Color(0xFF18231C),
                     contentColor = Color.White
                 ) {
-                    Tab.values().forEach { tab ->
+                    val visibleTabs = if (activeRound) listOf(Tab.MAP, Tab.SCORE, Tab.CADDY) else Tab.values().toList()
+                    visibleTabs.forEach { tab ->
                         val icon = when (tab) {
                             Tab.HOME -> Icons.Filled.Home
                             Tab.MAP -> Icons.Filled.Map
@@ -158,7 +173,7 @@ private fun WatchThisDriveApp() {
                             selected = selected == tab,
                             onClick = { selected = tab },
                             icon = { Icon(icon, contentDescription = tab.label) },
-                            label = { Text(tab.label) },
+                            label = { Text(if (activeRound && tab == Tab.MAP) "Active Game" else tab.label) },
                             colors = NavigationBarItemDefaults.colors(
                                 selectedIconColor = Color(0xFF101713),
                                 selectedTextColor = Color(0xFFB8F36B),
@@ -193,7 +208,14 @@ private fun WatchThisDriveApp() {
                             showNearbyCourses = false
                             activeRound = loadedReconstruction?.holes?.isNotEmpty() == true
                             activeHoleIndex = 0
-                            roundStrokes = emptyMap()
+                            val holes = loadedReconstruction?.holes.orEmpty()
+                            if (holes.isNotEmpty()) {
+                                roundScorecard = RoundScorecard.new(selectedCourse!!.name, holes.associate { it.number to it.par })
+                                RoundScorecardStore.saveActive(context, roundScorecard)
+                            } else {
+                                roundScorecard = null
+                                RoundScorecardStore.saveActive(context, null)
+                            }
                             selected = Tab.MAP
                         }
                     )
@@ -227,25 +249,56 @@ private fun WatchThisDriveApp() {
                                 hole = hole,
                                 holeIndex = safeIndex,
                                 holeCount = holes.size,
-                                strokes = roundStrokes[hole.number] ?: 0,
+                                strokes = roundScorecard?.user?.scores?.get(hole.number) ?: 0,
+                                overallStrokes = roundScorecard?.user?.scores?.values?.sum() ?: 0,
+                                overallRelativeToPar = roundScorecard?.let { round ->
+                                    val scoredHoles = round.user.scores.keys
+                                    if (scoredHoles.any { round.holePars[it] != null }) round.user.scores.entries.sumOf { (number, value) -> value - (round.holePars[number] ?: 0) } else null
+                                },
                                 carryDistances = clubCarries,
                                 geometry = mapGeometry,
                                 reconstruction = mapReconstruction,
-                                onStrokesChange = { value -> roundStrokes = roundStrokes + (hole.number to value.coerceAtLeast(0)) },
+                                onStrokesChange = { value -> roundScorecard?.let { updateRoundScore(it.userPlayerId, hole.number, value) } },
                                 onPreviousHole = { if (safeIndex > 0) activeHoleIndex = safeIndex - 1 },
                                 onNextHole = { if (safeIndex < holes.lastIndex) activeHoleIndex = safeIndex + 1 },
-                                onExitRound = { activeRound = false }
+                                onExitRound = { selected = Tab.SCORE }
                             )
                         } else {
                             GolfMap(location = mapTarget ?: location, onLocate = { mapTarget = null; locate() }, courseGeometry = mapGeometry, reconstruction = mapReconstruction)
                         }
                     }
 
-                    Tab.SCORE -> PlaceholderScreen(
-                        "Scorecard",
-                        "Your round and player scores will live here.",
-                        Icons.Filled.Scoreboard
-                    )
+                    Tab.SCORE -> {
+                        val round = roundScorecard
+                        if (activeRound && round != null) {
+                            GlobalScorecardScreen(
+                                round = round,
+                                onScoreChange = { playerId, holeNumber, strokes -> updateRoundScore(playerId, holeNumber, strokes) },
+                                onAddPlayer = { name ->
+                                    val current = roundScorecard
+                                    if (current != null && name.isNotBlank()) {
+                                        val updated = current.copy(players = current.players + RoundPlayer(java.util.UUID.randomUUID().toString(), name.trim()))
+                                        roundScorecard = updated
+                                        RoundScorecardStore.saveActive(context, updated)
+                                    }
+                                },
+                                onRemovePlayer = { playerId ->
+                                    val current = roundScorecard
+                                    if (current != null && playerId != current.userPlayerId) {
+                                        val updated = current.copy(players = current.players.filterNot { it.id == playerId })
+                                        roundScorecard = updated
+                                        RoundScorecardStore.saveActive(context, updated)
+                                    }
+                                },
+                                onFinishRound = {
+                                    roundScorecard?.let { RoundScorecardStore.saveCompleted(context, it) }
+                                    roundScorecard = null
+                                    activeRound = false
+                                    selected = Tab.MAP
+                                }
+                            )
+                        } else PlaceholderScreen("Scorecard", "Start a game to keep score for every hole and player.", Icons.Filled.Scoreboard)
+                    }
 
                     Tab.CADDY -> CaddySetupScreen(
                         context = context,
