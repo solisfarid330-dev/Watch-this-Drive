@@ -243,7 +243,7 @@ object CourseReconstructionEngine {
 
         val corridorTypes = setOf("fairway", "bunker", "water_hazard")
         val assigned = drafts.map { mutableMapOf<String, MutableList<CourseFeature>>() }
-        val unassigned = mutableSetOf<Pair<String, Long>>()
+        val ambiguousByHole = mutableMapOf<Int, MutableList<CourseFeature>>()
         features.filter { it.featureType in corridorTypes }.forEach { candidate ->
             val distances = drafts.mapIndexed { index, draft -> index to featureToLineDistance(candidate, draft.line) }
                 .filter { it.second.isFinite() && it.second <= CORRIDOR_LIMIT_M }
@@ -252,13 +252,20 @@ object CourseReconstructionEngine {
             val best = distances[0]
             val second = distances.getOrNull(1)
             if (second != null && second.second - best.second < UNIQUE_MARGIN_M) {
-                unassigned.add(candidate.elementType to candidate.id)
+                // Only the competing holes receive this warning. A distant hole should
+                // not inherit unrelated ambiguity elsewhere on the course.
+                listOf(best.first, second.first).forEach { index ->
+                    ambiguousByHole.getOrPut(index) { mutableListOf() }.add(candidate)
+                }
             } else {
                 assigned[best.first].getOrPut(candidate.featureType) { mutableListOf() }.add(candidate)
             }
         }
 
         val holes = drafts.mapIndexed { index, draft ->
+            val corridorWarnings = ambiguousByHole[index].orEmpty().map { feature ->
+                "${feature.featureType.replace('_', ' ')} feature association ambiguous with another hole"
+            }
             ReconstructedHole(
                 number = draft.feature.holeNumber ?: (index + 1).toString(),
                 centerline = draft.line,
@@ -269,7 +276,7 @@ object CourseReconstructionEngine {
                 fairways = assigned[index]["fairway"].orEmpty(),
                 bunkers = assigned[index]["bunker"].orEmpty(),
                 waterHazards = assigned[index]["water_hazard"].orEmpty(),
-                associationWarnings = draft.warnings + if (unassigned.isNotEmpty()) listOf("${unassigned.size} nearby hazard/fairway features remain ambiguous course-wide") else emptyList(),
+                associationWarnings = draft.warnings + corridorWarnings,
                 par = draft.feature.par,
                 teeToGreenOriented = draft.teeToGreenOriented
             )
