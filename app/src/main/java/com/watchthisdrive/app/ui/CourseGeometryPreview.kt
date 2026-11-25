@@ -18,10 +18,12 @@ import androidx.compose.ui.unit.dp
 import com.watchthisdrive.app.data.CourseFeature
 import com.watchthisdrive.app.data.CourseGeometry
 import com.watchthisdrive.app.data.CourseGeometryType
+import com.watchthisdrive.app.data.CourseReconstruction
+import com.watchthisdrive.app.data.PinSource
 import com.watchthisdrive.app.data.GeoPoint
 
 @Composable
-fun CourseGeometryPreview(geometry: CourseGeometry, modifier: Modifier = Modifier) {
+fun CourseGeometryPreview(geometry: CourseGeometry, modifier: Modifier = Modifier, reconstruction: CourseReconstruction? = null) {
     val allPoints = geometry.features.flatMap { feature ->
         when (feature.geometryType) {
             CourseGeometryType.POINT, CourseGeometryType.LINE -> feature.points
@@ -30,11 +32,13 @@ fun CourseGeometryPreview(geometry: CourseGeometry, modifier: Modifier = Modifie
             CourseGeometryType.UNKNOWN -> emptyList()
         }
     }
-    if (allPoints.isEmpty()) return
-    val minLat = allPoints.minOf { it.latitude }
-    val maxLat = allPoints.maxOf { it.latitude }
-    val minLon = allPoints.minOf { it.longitude }
-    val maxLon = allPoints.maxOf { it.longitude }
+    val pinPoints = reconstruction?.holes.orEmpty().mapNotNull { it.pin }
+    if (allPoints.isEmpty() && pinPoints.isEmpty()) return
+    val visiblePoints = allPoints + pinPoints
+    val minLat = visiblePoints.minOf { it.latitude }
+    val maxLat = visiblePoints.maxOf { it.latitude }
+    val minLon = visiblePoints.minOf { it.longitude }
+    val maxLon = visiblePoints.maxOf { it.longitude }
     val latSpan = (maxLat - minLat).coerceAtLeast(0.00001)
     val lonSpan = (maxLon - minLon).coerceAtLeast(0.00001)
     val midLat = (minLat + maxLat) / 2.0
@@ -108,6 +112,13 @@ fun CourseGeometryPreview(geometry: CourseGeometry, modifier: Modifier = Modifie
             geometry.features.filter { it.geometryType == CourseGeometryType.POINT }.forEach { feature ->
                 val color = featureColor(feature.featureType)
                 feature.points.firstOrNull()?.let { drawCircle(color, radius = 3.dp.toPx(), center = screen(it)) }
+            }
+
+            reconstruction?.holes.orEmpty().filter { it.pin != null }.forEach { hole ->
+                val point = screen(hole.pin!!)
+                val color = if (hole.pinSource == PinSource.ESTIMATED_GREEN_CENTER) Color(0xFFFFC857) else Color(0xFFFF6B6B)
+                drawCircle(color, radius = 5.dp.toPx(), center = point)
+                drawCircle(Color(0xFF101713), radius = 2.dp.toPx(), center = point)
             }
         }
     }

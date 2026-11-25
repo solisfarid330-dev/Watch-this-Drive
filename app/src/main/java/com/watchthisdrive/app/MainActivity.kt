@@ -28,11 +28,16 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.google.android.gms.location.LocationServices
 import com.watchthisdrive.app.data.CourseDiscovery
+import com.watchthisdrive.app.data.ClubCarryDistances
 import com.watchthisdrive.app.data.CourseGeometry
 import com.watchthisdrive.app.data.CourseGeometryLoader
+import com.watchthisdrive.app.data.CourseReconstruction
+import com.watchthisdrive.app.data.CourseReconstructionEngine
 import com.watchthisdrive.app.data.GolfCourse
 import com.watchthisdrive.app.ui.CourseGeometryPreview
 import com.watchthisdrive.app.ui.GolfMap
+import com.watchthisdrive.app.ui.ActiveHoleScreen
+import com.watchthisdrive.app.ui.CaddySetupScreen
 import com.watchthisdrive.app.ui.GolfTheme
 import java.util.Locale
 
@@ -54,10 +59,16 @@ private fun WatchThisDriveApp() {
     var selectedCourse by remember { mutableStateOf<GolfCourse?>(null) }
     var location by remember { mutableStateOf<Location?>(null) }
     var mapTarget by remember { mutableStateOf<Location?>(null) }
+    var mapGeometry by remember { mutableStateOf<CourseGeometry?>(null) }
+    var mapReconstruction by remember { mutableStateOf<CourseReconstruction?>(null) }
+    var activeRound by remember { mutableStateOf(false) }
+    var activeHoleIndex by remember { mutableIntStateOf(0) }
+    var roundStrokes by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
     var locationMessage by remember { mutableStateOf("Location not checked yet") }
 
     val context = androidx.compose.ui.platform.LocalContext.current
     val fused = remember { LocationServices.getFusedLocationProviderClient(context) }
+    var clubCarries by remember { mutableStateOf(ClubCarryDistances.load(context)) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -119,7 +130,7 @@ private fun WatchThisDriveApp() {
     Scaffold(
         containerColor = Color(0xFF101713),
         bottomBar = {
-            if (!showNearbyCourses) {
+            if (!showNearbyCourses && !activeRound) {
                 NavigationBar(
                     containerColor = Color(0xFF18231C),
                     contentColor = Color.White
@@ -160,13 +171,18 @@ private fun WatchThisDriveApp() {
                     CourseDetailScreen(
                         course = selectedCourse!!,
                         onBack = { selectedCourse = null },
-                        onViewOnMap = {
+                        onViewOnMap = { loadedGeometry, loadedReconstruction ->
+                            mapGeometry = loadedGeometry
+                            mapReconstruction = loadedReconstruction
                             mapTarget = Location("selected-course").apply {
                                 latitude = selectedCourse!!.latitude
                                 longitude = selectedCourse!!.longitude
                             }
                             selectedCourse = null
                             showNearbyCourses = false
+                            activeRound = loadedReconstruction?.holes?.isNotEmpty() == true
+                            activeHoleIndex = 0
+                            roundStrokes = emptyMap()
                             selected = Tab.MAP
                         }
                     )
@@ -190,7 +206,29 @@ private fun WatchThisDriveApp() {
                         }
                     )
 
-                    Tab.MAP -> GolfMap(location = mapTarget ?: location, onLocate = { mapTarget = null; locate() })
+                    Tab.MAP -> {
+                        val holes = mapReconstruction?.holes.orEmpty()
+                        if (activeRound && holes.isNotEmpty()) {
+                            val safeIndex = activeHoleIndex.coerceIn(0, holes.lastIndex)
+                            val hole = holes[safeIndex]
+                            ActiveHoleScreen(
+                                courseName = mapGeometry?.courseName ?: "Golf course",
+                                hole = hole,
+                                holeIndex = safeIndex,
+                                holeCount = holes.size,
+                                strokes = roundStrokes[hole.number] ?: 1,
+                                carryDistances = clubCarries,
+                                geometry = mapGeometry,
+                                reconstruction = mapReconstruction,
+                                onStrokesChange = { value -> roundStrokes = roundStrokes + (hole.number to value.coerceAtLeast(1)) },
+                                onPreviousHole = { if (safeIndex > 0) activeHoleIndex = safeIndex - 1 },
+                                onNextHole = { if (safeIndex < holes.lastIndex) activeHoleIndex = safeIndex + 1 },
+                                onExitRound = { activeRound = false }
+                            )
+                        } else {
+                            GolfMap(location = mapTarget ?: location, onLocate = { mapTarget = null; locate() }, courseGeometry = mapGeometry, reconstruction = mapReconstruction)
+                        }
+                    }
 
                     Tab.SCORE -> PlaceholderScreen(
                         "Scorecard",
@@ -198,10 +236,10 @@ private fun WatchThisDriveApp() {
                         Icons.Filled.Scoreboard
                     )
 
-                    Tab.CADDY -> PlaceholderScreen(
-                        "Your caddy",
-                        "Default club distances will be ready from day one. The caddy will learn and adapt as you record shots.",
-                        Icons.Filled.SportsGolf
+                    Tab.CADDY -> CaddySetupScreen(
+                        context = context,
+                        carryDistances = clubCarries,
+                        onChange = { clubCarries = it }
                     )
                 }
             }
@@ -760,10 +798,13 @@ private fun PlaceholderScreen(
 private fun CourseDetailScreen(
     course: GolfCourse,
     onBack: () -> Unit,
-    onViewOnMap: () -> Unit
+    onViewOnMap: (CourseGeometry?, CourseReconstruction?) -> Unit
 ) {
     var geometry by remember(course.id) {
         mutableStateOf<CourseGeometry?>(null)
+    }
+    var reconstruction by remember(course.id) {
+        mutableStateOf<CourseReconstruction?>(null)
     }
     var loading by remember(course.id) {
         mutableStateOf(true)
@@ -777,6 +818,7 @@ private fun CourseDetailScreen(
             result.fold(
                 onSuccess = {
                     geometry = it
+                    reconstruction = CourseReconstructionEngine.reconstruct(it)
                     loading = false
                 },
                 onFailure = {
@@ -867,12 +909,31 @@ private fun CourseDetailScreen(
 
                         geometry?.takeIf { it.features.any { feature -> feature.hasUsableGeometry } }?.let {
                             Text("Decoded course layout", color = Color.White, fontWeight = FontWeight.SemiBold)
-                            CourseGeometryPreview(it, Modifier.fillMaxWidth())
+                            CourseGeometryPreview(it, Modifier.fillMaxWidth(), reconstruction)
                             Text(
                                 "Geographic feature preview only — not satellite imagery or verified hole assignments.",
                                 color = Color(0xFFB6C1B9),
                                 style = MaterialTheme.typography.bodySmall
                             )
+                        }
+
+                        reconstruction?.let { reconstructed ->
+                            Text(
+                                "${reconstructed.holes.size} holes reconstructed · " +
+                                    "${reconstructed.mappedPinCount} mapped pins · " +
+                                    "${reconstructed.estimatedPinCount} estimated green-center pins",
+                                color = Color(0xFFB8F36B),
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            reconstructed.holes.forEach { hole ->
+                                Text(
+                                    "Hole ${hole.number}: " +
+                                        (hole.pinSource?.let { if (it == com.watchthisdrive.app.data.PinSource.MAPPED) "mapped pin" else "estimated pin" } ?: "pin unavailable") +
+                                        " · ${hole.fairways.size} fairways · ${hole.bunkers.size} bunkers · ${hole.waterHazards.size} water features",
+                                    color = Color.White,
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
                         }
 
                         Text(
@@ -943,7 +1004,8 @@ private fun CourseDetailScreen(
         }
 
         Button(
-            onClick = onViewOnMap,
+            onClick = { onViewOnMap(geometry, reconstruction) },
+            enabled = !loading && geometry != null,
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(
                 containerColor = Color(0xFFB8F36B),
@@ -952,7 +1014,7 @@ private fun CourseDetailScreen(
         ) {
             Icon(Icons.Filled.Map, contentDescription = null)
             Spacer(Modifier.width(8.dp))
-            Text("View on Satellite Map")
+            Text(if (reconstruction?.holes?.isNotEmpty() == true) "Start Round" else "View Course Map")
         }
     }
 }

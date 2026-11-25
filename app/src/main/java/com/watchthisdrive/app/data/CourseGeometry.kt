@@ -27,7 +27,8 @@ data class CourseFeature(
     val rings: List<List<GeoPoint>> = emptyList(),
     // Each polygon has its own rings. Used for OSM multipolygon relations.
     val polygons: List<List<List<GeoPoint>>> = emptyList(),
-    val geometryStatus: String = "unverified"
+    val geometryStatus: String = "unverified",
+    val par: Int? = null
 ) {
     val hasUsableGeometry: Boolean
         get() = !geometryStatus.startsWith("invalid_or_incomplete") && when (geometryType) {
@@ -166,7 +167,8 @@ object CourseGeometryLoader {
                         parsed.geometryType == CourseGeometryType.MULTI_POLYGON ->
                         "ring_closure_area_self_intersection_and_inner_containment_checked"
                     else -> "source_geometry"
-                }
+                },
+                par = tags.optString("par").toIntOrNull()?.takeIf { it in 3..6 }
             ))
             if (parsed.error != null) relationErrors.add("$elementType/$id: ${parsed.error}")
         }
