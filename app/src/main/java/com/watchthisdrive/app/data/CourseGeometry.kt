@@ -10,6 +10,7 @@ import java.net.URLEncoder
 import java.util.concurrent.Callable
 import java.util.concurrent.ExecutorCompletionService
 import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
 
 data class GeoPoint(val latitude: Double, val longitude: Double)
@@ -118,11 +119,31 @@ object CourseGeometryLoader {
                     }
                     val failures = mutableListOf<String>()
                     val responses = mutableListOf<CourseGeometry>()
-                    repeat(OVERPASS_SERVERS.size) {
+                    var remaining = OVERPASS_SERVERS.size
+                    var usefulResponseReceived = false
+                    var mergeDeadlineNanos = Long.MAX_VALUE
+                    while (remaining > 0) {
+                        // Once a mirror returns usable geometry, give other mirrors
+                        // a short grace period so fast independent results can still
+                        // be merged. Do not wait for the slowest mirror: that was
+                        // adding up to 65 seconds to every successful course load.
+                        val completed = if (usefulResponseReceived) {
+                            val waitNanos = mergeDeadlineNanos - System.nanoTime()
+                            if (waitNanos <= 0L) null
+                            else completion.poll(waitNanos, TimeUnit.NANOSECONDS)
+                        } else {
+                            completion.take()
+                        } ?: break
+                        remaining--
                         try {
-                            val (server, geometry) = completion.take().get()
+                            val (server, geometry) = completed.get()
                             responses.add(geometry)
-                            if (geometry.features.isEmpty()) failures.add("$server returned no golf features")
+                            if (geometry.features.isEmpty()) {
+                                failures.add("$server returned no golf features")
+                            } else if (!usefulResponseReceived) {
+                                usefulResponseReceived = true
+                                mergeDeadlineNanos = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(1500)
+                            }
                         } catch (e: Exception) {
                             val cause = e.cause ?: e
                             failures.add("${cause.javaClass.simpleName}: ${cause.message ?: "request failed"}")
