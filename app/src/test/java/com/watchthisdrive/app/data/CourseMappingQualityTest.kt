@@ -1,0 +1,33 @@
+package com.watchthisdrive.app.data
+
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+class CourseMappingQualityTest {
+    private fun hole(number: String) = CourseFeature(
+        id = number.toLong(),
+        elementType = "way",
+        featureType = "hole",
+        holeNumber = number,
+        name = null,
+        points = listOf(GeoPoint(0.0, number.toDouble() * 0.001), GeoPoint(0.01, number.toDouble() * 0.001)),
+        geometryType = CourseGeometryType.LINE,
+        geometryStatus = "source_geometry"
+    )
+
+    @Test fun identifiesGapsOnlyFromExplicitNumberedHoleEvidence() {
+        val geometry = CourseGeometry(1, "Generic", listOf(hole("1"), hole("2"), hole("4"), hole("5"), hole("6"), hole("7"), hole("8"), hole("9")))
+        val quality = CourseMappingQuality.assess(geometry, CourseReconstructionEngine.reconstruct(geometry))
+        assertEquals(listOf(3), quality.missingNumberedHoles)
+    }
+
+    @Test fun doesNotInventExpectedHoleCountWhenSourceHasNoNumbering() {
+        val features = (1..5).map { index ->
+            hole(index.toString()).copy(holeNumber = null)
+        }
+        val geometry = CourseGeometry(1, "Generic", features)
+        val quality = CourseMappingQuality.assess(geometry, CourseReconstructionEngine.reconstruct(geometry))
+        assertTrue(quality.missingNumberedHoles.isEmpty())
+    }
+}
