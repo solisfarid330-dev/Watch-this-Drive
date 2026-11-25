@@ -103,7 +103,11 @@ object CourseGeometryLoader {
                 // spending the full timeout on each host. Accept the first response
                 // containing actual features; an empty HTTP 200 must not mask useful
                 // data from another mirror.
-                val serverBudgetMs = when {\n                    query.contains("[timeout:60]") -> 65_000\n                    query.contains("[timeout:25]") -> 30_000\n                    else -> 20_000\n                }
+                val serverBudgetMs = when {
+                    query.contains("[timeout:60]") -> 65_000
+                    query.contains("[timeout:25]") -> 30_000
+                    else -> 20_000
+                }
                 val executor = Executors.newFixedThreadPool(OVERPASS_SERVERS.size)
                 val completion = ExecutorCompletionService<Pair<String, CourseGeometry>>(executor)
                 try {
