@@ -47,4 +47,28 @@ class CourseHoleInferenceTest {
         assertEquals(setOf("6", "7"), inferred.mapNotNull { it.holeNumber }.toSet())
     }
 
+    @Test fun usesCourseMetadataToRecoverTheFinalNumberedHole() {
+        val input = CourseGeometry(
+            courseId = 1, courseName = "Nine-hole course",
+            features = (1..8).map { n -> CourseFeature(
+                n.toLong(), "way", "hole", n.toString(), null,
+                listOf(GeoPoint(0.0, n * 0.001), GeoPoint(0.002, n * 0.001)),
+                CourseGeometryType.LINE
+            ) } + listOf(
+                CourseFeature(109, "node", "tee", "9", null, listOf(GeoPoint(0.0, 0.010)), CourseGeometryType.POINT),
+                CourseFeature(209, "way", "green", "9", null,
+                    listOf(GeoPoint(0.0024,0.0124),GeoPoint(0.0024,0.0126),GeoPoint(0.0026,0.0126),GeoPoint(0.0026,0.0124),GeoPoint(0.0024,0.0124)),
+                    CourseGeometryType.POLYGON,
+                    listOf(listOf(GeoPoint(0.0024,0.0124),GeoPoint(0.0024,0.0126),GeoPoint(0.0026,0.0126),GeoPoint(0.0026,0.0124),GeoPoint(0.0024,0.0124)))),
+                CourseFeature(309, "way", "fairway", "9", null,
+                    listOf(GeoPoint(-0.0002,0.0098),GeoPoint(0.0028,0.0122),GeoPoint(0.0030,0.0120),GeoPoint(0.0,0.0096),GeoPoint(-0.0002,0.0098)),
+                    CourseGeometryType.POLYGON,
+                    listOf(listOf(GeoPoint(-0.0002,0.0098),GeoPoint(0.0028,0.0122),GeoPoint(0.0030,0.0120),GeoPoint(0.0,0.0096),GeoPoint(-0.0002,0.0098))))
+            ),
+            expectedHoleCount = 9
+        )
+        val result = CourseHoleInference.addInferredHoles(input)
+        assertTrue(result.features.any { it.origin == CourseFeatureOrigin.INFERRED && it.featureType == "hole" && it.holeNumber == "9" })
+    }
+
 }

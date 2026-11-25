@@ -43,4 +43,14 @@ class CourseMappingQualityTest {
         assertTrue(quality.unresolvedNumberedHoles.isEmpty())
     }
 
+    @Test fun usesExpectedCourseMetadataWhenTheHighestMappedHoleIsEight() {
+        val geometry = CourseGeometry(
+            1, "Nine-hole course", (1..8).map { hole(it.toString()) },
+            expectedHoleCount = 9
+        )
+        val quality = CourseMappingQuality.assess(geometry, CourseReconstructionEngine.reconstruct(geometry))
+        assertEquals(9, quality.expectedHoleCount)
+        assertEquals(listOf(9), quality.missingNumberedHoles)
+    }
+
 }

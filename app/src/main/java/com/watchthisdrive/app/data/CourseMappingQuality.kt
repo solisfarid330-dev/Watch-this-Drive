@@ -38,9 +38,15 @@ data class CourseMappingQuality(
             val centerlines = sourceUsable.filter { it.featureType == "hole" }
             val numbered = centerlines.mapNotNull { it.holeNumber?.toIntOrNull() }
                 .filter { it in 1..72 }.toSet()
-            // Only report gaps when source numbering itself establishes the range.
-            val missing = if (numbered.size >= 2 && numbered.maxOrNull()!! >= 9) {
-                (1..numbered.maxOrNull()!!).filterNot(numbered::contains)
+            // Prefer explicit course metadata; otherwise use a complete 9/18 numbering range.
+            val expected = geometry.expectedHoleCount?.takeIf { it == 9 || it == 18 }
+                ?: when {
+                    (numbered.maxOrNull() ?: 0) > 9 -> 18
+                    numbered.maxOrNull() == 9 -> 9
+                    else -> null
+                }
+            val missing = if (numbered.size >= 2 && expected != null) {
+                (1..expected).filterNot(numbered::contains)
             } else emptyList()
             val inferredHoleNumbers = usable.filter { it.origin == CourseFeatureOrigin.INFERRED && it.featureType == "hole" }
                 .mapNotNull { it.holeNumber?.toIntOrNull() }.toSet()
@@ -57,7 +63,7 @@ data class CourseMappingQuality(
                 waterCount = count("water_hazard"),
                 inferredFairwayCount = usable.count { it.featureType == "fairway" && it.origin == CourseFeatureOrigin.INFERRED },
                 inferredHoleCount = usable.count { it.featureType == "hole" && it.origin == CourseFeatureOrigin.INFERRED },
-                expectedHoleCount = when { numbered.maxOrNull() == 9 -> 9; (numbered.maxOrNull() ?: 0) > 9 -> 18; else -> null },
+                expectedHoleCount = expected,
                 missingNumberedHoles = missing,
                 unresolvedNumberedHoles = unresolved,
                 geometryIssues = geometry.incompleteRelations.size,

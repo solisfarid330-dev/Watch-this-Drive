@@ -30,8 +30,10 @@ object CourseHoleInference {
                 it.geometryType == CourseGeometryType.LINE && it.holeNumber?.toIntOrNull() in 1..18
         }
         val numbered = mappedHoles.mapNotNull { it.holeNumber?.toIntOrNull() }.toSet()
+        if (numbered.isEmpty()) return course
         val maximum = numbered.maxOrNull() ?: return course
-        val expectedCount = when { maximum > 9 -> 18; maximum >= 9 -> 9; else -> return course }
+        val expectedCount = course.expectedHoleCount?.takeIf { it == 9 || it == 18 }
+            ?: when { maximum > 9 -> 18; maximum >= 9 -> 9; else -> return course }
         val missing = (1..expectedCount).filterNot(numbered::contains)
         if (missing.isEmpty()) return course
 

@@ -56,7 +56,8 @@ data class CourseGeometry(
     val courseId: Long,
     val courseName: String,
     val features: List<CourseFeature>,
-    val incompleteRelations: List<String> = emptyList()
+    val incompleteRelations: List<String> = emptyList(),
+    val expectedHoleCount: Int? = null
 ) {
     fun count(featureType: String): Int = features.count { it.featureType == featureType }
     fun countWithUsableGeometry(featureType: String): Int =
@@ -242,7 +243,7 @@ object CourseGeometryLoader {
             ))
             if (parsed.error != null) relationErrors.add("$elementType/$id: ${parsed.error}")
         }
-        return CourseGeometry(course.id, course.name, features, relationErrors)
+        return CourseGeometry(course.id, course.name, features, relationErrors, course.expectedHoleCount)
     }
 
     private data class Parsed(

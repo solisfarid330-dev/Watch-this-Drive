@@ -16,7 +16,8 @@ data class GolfCourse(
     val name: String,
     val latitude: Double,
     val longitude: Double,
-    val distanceMeters: Float
+    val distanceMeters: Float,
+    val expectedHoleCount: Int? = null
 ) {
     val distanceMiles: Double
         get() = distanceMeters / 1609.344
@@ -201,6 +202,14 @@ object CourseDiscovery {
         }
     }
 
+
+    internal fun parseExpectedHoleCount(tags: JSONObject): Int? {
+        return listOf("holes", "golf:holes", "golf_holes")
+            .asSequence()
+            .mapNotNull { tags.optString(it).toIntOrNull() }
+            .firstOrNull { it == 9 || it == 18 }
+    }
+
     private fun parseCourses(
         response: String,
         userLatitude: Double,
@@ -249,7 +258,8 @@ object CourseDiscovery {
                     name = name,
                     latitude = lat,
                     longitude = lon,
-                    distanceMeters = distance[0]
+                    distanceMeters = distance[0],
+                    expectedHoleCount = parseExpectedHoleCount(tags)
                 )
             )
         }
