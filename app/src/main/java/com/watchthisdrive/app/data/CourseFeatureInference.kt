@@ -25,7 +25,7 @@ object CourseFeatureInference {
             }
             buildFairway(hole)
         }
-        val retained = course.features.filterNot { it.origin == CourseFeatureOrigin.INFERRED }
+        val retained = course.features.filterNot { it.origin == CourseFeatureOrigin.INFERRED && it.featureType == "fairway" }
         return course.copy(features = retained + inferred)
     }
 
