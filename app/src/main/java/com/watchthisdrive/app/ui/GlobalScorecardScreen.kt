@@ -51,8 +51,8 @@ fun GlobalScorecardScreen(round: RoundScorecard, onScoreChange: (String, Int, In
                 Text("ROUND TOTALS", color = Color(0xFFB8F36B), fontWeight = FontWeight.Bold)
                 round.players.forEach { player ->
                     val total = player.scores.values.sum()
-                    val par = player.scores.keys.mapNotNull { round.holePars[it] }.sum()
-                    val relative = if (player.scores.keys.any { round.holePars[it] != null }) total - par else null
+                    val scoredWithPar = player.scores.filterKeys { round.holePars[it] != null }
+                    val relative = if (scoredWithPar.isEmpty()) null else scoredWithPar.entries.sumOf { (hole, strokes) -> strokes - (round.holePars[hole] ?: 0) }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(player.name, color = Color.White)
                         Text("$total strokes · ${relative?.let { scoreLabel(it) } ?: "—"}", color = if (player.id == round.userPlayerId) Color(0xFFB8F36B) else Color.White, fontWeight = FontWeight.SemiBold)
@@ -75,8 +75,8 @@ fun GlobalScorecardScreen(round: RoundScorecard, onScoreChange: (String, Int, In
 @Composable
 private fun PlayerScorecard(player: RoundPlayer, isUser: Boolean, holes: List<Int>, pars: Map<Int, Int?>, onScoreChange: (Int, Int) -> Unit, onRemove: () -> Unit) {
     val total = player.scores.values.sum()
-    val scoredPars = player.scores.keys.mapNotNull { pars[it] }
-    val relative = if (scoredPars.isEmpty()) null else total - scoredPars.sum()
+    val scoredWithPar = player.scores.filterKeys { pars[it] != null }
+    val relative = if (scoredWithPar.isEmpty()) null else scoredWithPar.entries.sumOf { (hole, strokes) -> strokes - (pars[hole] ?: 0) }
     Card(colors = CardDefaults.cardColors(containerColor = if (isUser) Color(0xFF24372A) else Color(0xFF1B2520)), shape = RoundedCornerShape(16.dp)) {
         Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
