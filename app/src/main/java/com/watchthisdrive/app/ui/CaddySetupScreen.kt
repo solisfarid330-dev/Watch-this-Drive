@@ -21,7 +21,20 @@ fun CaddySetupScreen(context: Context, carryDistances: Map<String, Int>, onChang
         Text("SETTINGS", color = Color(0xFFB8F36B), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
         Text("Club carry distances", color = Color.White, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
         Text("Starter carry estimates are prefilled. Adjust each club to your own distance through the air to first landing; do not include bounce or roll.", color = Color(0xFFB6C1B9), style = MaterialTheme.typography.bodyMedium)
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(12.dp))
+        Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF1B2520)), shape = RoundedCornerShape(14.dp)) {
+            Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                Text("LOCATION", color = Color(0xFFB8F36B), fontWeight = FontWeight.Bold)
+                Text("Location is used to find nearby courses and calculate distances during an active GPS game. Manage app permissions in Android Settings.", color = Color(0xFFB6C1B9), style = MaterialTheme.typography.bodySmall)
+            }
+        }
+        Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF1B2520)), shape = RoundedCornerShape(14.dp)) {
+            Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                Text("ON-DEVICE DATA", color = Color(0xFFB8F36B), fontWeight = FontWeight.Bold)
+                Text("Active rounds, saved scorecards, and mapped course layouts are stored on this device. They are removed if app data is cleared or the app is uninstalled.", color = Color(0xFFB6C1B9), style = MaterialTheme.typography.bodySmall)
+            }
+        }
+        Text("CLUB CARRY DISTANCES", color = Color(0xFFB8F36B), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
         LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(ClubCarryDistances.clubNames) { club ->
                 var value by remember(club, carryDistances[club]) { mutableStateOf(carryDistances[club]?.toString().orEmpty()) }
