@@ -101,7 +101,7 @@ object CourseHoleInference {
         // direct numbered pairing was ambiguous (for example, multiple green areas).
         val missingNumbers = missing.toSet()
         val tees = allTees.filter {
-            it.holeNumber.isNullOrBlank() || it.holeNumber?.toIntOrNull() in missingNumbers
+            it.holeNumber.isNullOrBlank() || it.holeNumber?.toIntOrNull()?.let { number -> number in missingNumbers } == true
         }
         val greens = allGreens.filter {
             it.holeNumber.isNullOrBlank() || it.holeNumber?.toIntOrNull() in missingNumbers
