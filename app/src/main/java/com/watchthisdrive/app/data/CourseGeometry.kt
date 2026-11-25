@@ -66,10 +66,24 @@ object CourseGeometryLoader {
         "https://overpass-api.de/api/interpreter"
     )
 
-    fun load(course: GolfCourse, onResult: (Result<CourseGeometry>) -> Unit) {
+    fun load(course: GolfCourse, onResult: (Result<CourseGeometry>) -> Unit) =
+        loadWithQuery(course, buildCourseQuery(course), onResult)
+
+    /**
+     * Recovery scan: repeat the course-area search with additional OSM tagging
+     * and direct relation-member coverage. This can recover features omitted by
+     * the normal tagged-area query without substituting course-specific data.
+     */
+    fun loadRecovery(course: GolfCourse, onResult: (Result<CourseGeometry>) -> Unit) =
+        loadWithQuery(course, buildRecoveryQuery(course), onResult)
+
+    private fun loadWithQuery(
+        course: GolfCourse,
+        query: String,
+        onResult: (Result<CourseGeometry>) -> Unit
+    ) {
         thread {
             val result = runCatching {
-                val query = buildCourseQuery(course)
                 var lastError: Exception? = null
                 for (server in OVERPASS_SERVERS) {
                     try {
@@ -80,6 +94,28 @@ object CourseGeometryLoader {
             }
             Handler(Looper.getMainLooper()).post { onResult(result) }
         }
+    }
+
+    internal fun buildRecoveryQuery(course: GolfCourse): String {
+        val element = when (course.elementType.lowercase()) {
+            "relation" -> "relation(${course.id});"
+            "way" -> "way(${course.id});"
+            else -> throw Exception("This course is represented by an OSM node, which does not provide a course boundary.")
+        }
+        val relationMembers = if (course.elementType.equals("relation", ignoreCase = true)) {
+            "way(r.course);"
+        } else ""
+        return """
+            [out:json][timeout:90];
+            $element -> .course;
+            .course map_to_area -> .courseArea;
+            (
+              nwr(area.courseArea)["golf"];
+              nwr(area.courseArea)["golf:hole"];
+              $relationMembers
+            );
+            out body geom;
+        """.trimIndent()
     }
 
     internal fun buildCourseQuery(course: GolfCourse): String {
@@ -127,7 +163,9 @@ object CourseGeometryLoader {
         for (i in 0 until elements.length()) {
             val element = elements.getJSONObject(i)
             val tags = element.optJSONObject("tags") ?: continue
-            val golfType = tags.optString("golf").trim()
+            val golfType = tags.optString("golf").trim().ifBlank {
+                if (tags.has("golf:hole")) "hole" else ""
+            }
             if (golfType.isBlank()) continue
             val id = element.optLong("id")
             val elementType = element.optString("type")
