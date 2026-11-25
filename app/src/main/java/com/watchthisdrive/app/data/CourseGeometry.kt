@@ -78,8 +78,11 @@ object CourseGeometryLoader {
      * and direct relation-member coverage. This can recover features omitted by
      * the normal tagged-area query without substituting course-specific data.
      */
-    fun loadRecovery(course: GolfCourse, onResult: (Result<CourseGeometry>) -> Unit) =
-        loadWithQuery(course, buildRecoveryQuery(course), onResult)
+    fun loadRecovery(
+        course: GolfCourse,
+        featureType: String? = null,
+        onResult: (Result<CourseGeometry>) -> Unit
+    ) = loadWithQuery(course, buildRecoveryQuery(course, featureType), onResult)
 
     private fun loadWithQuery(
         course: GolfCourse,
@@ -88,45 +91,53 @@ object CourseGeometryLoader {
     ) {
         thread(name = "course-geometry-load") {
             val result = runCatching {
-                // Bound the entire operation, not just each individual HTTP request.
-                // This prevents three slow Overpass mirrors from keeping the UI busy
-                // for several minutes.
-                val deadlineNanos = System.nanoTime() + 60_000_000_000L
+                // Give each mirror a bounded opportunity. A stalled first mirror must
+                // not consume the entire recovery window and prevent fallback servers.
+                val perServerBudgetMs = 18_000
                 var lastError: Exception? = null
                 for (server in OVERPASS_SERVERS) {
-                    val remainingMs = ((deadlineNanos - System.nanoTime()) / 1_000_000L).toInt()
-                    if (remainingMs <= 0) break
                     try {
-                        return@runCatching fetchGeometry(server, query, course, remainingMs)
+                        return@runCatching fetchGeometry(server, query, course, perServerBudgetMs)
                     } catch (e: Exception) {
                         lastError = e
                     }
                 }
-                if (System.nanoTime() >= deadlineNanos) {
-                    throw Exception("Course mapping search timed out after 60 seconds. Please try again later.")
-                }
-                throw Exception("All geometry servers failed. " + (lastError?.message ?: "Please try again later."))
+                throw Exception(
+                    "Course mapping search could not reach a responsive map server. " +
+                        (lastError?.message ?: "Please try again later.")
+                )
             }
             Handler(Looper.getMainLooper()).post { onResult(result) }
         }
     }
 
-    internal fun buildRecoveryQuery(course: GolfCourse): String {
+    internal fun buildRecoveryQuery(course: GolfCourse, featureType: String? = null): String {
         val element = when (course.elementType.lowercase()) {
             "relation" -> "relation(${course.id});"
             "way" -> "way(${course.id});"
             else -> throw Exception("This course is represented by an OSM node, which does not provide a course boundary.")
         }
-        val relationMembers = if (course.elementType.equals("relation", ignoreCase = true)) {
-            "way(r.course);"
-        } else ""
+        val relationMembers = if (course.elementType.equals("relation", ignoreCase = true)) "way(r.course);" else ""
+        val normalizedType = featureType?.lowercase()?.takeIf {
+            it in setOf("hole", "tee", "green", "fairway", "bunker", "water_hazard")
+        }
+        val featureSelector = when (normalizedType) {
+            "hole" -> """
+                nwr(area.courseArea)["golf"="hole"];
+                nwr(area.courseArea)["golf:hole"];
+            """.trimIndent()
+            null -> """
+                nwr(area.courseArea)["golf"];
+                nwr(area.courseArea)["golf:hole"];
+            """.trimIndent()
+            else -> """nwr(area.courseArea)["golf"="$normalizedType"];"""
+        }
         return """
-            [out:json][timeout:90];
+            [out:json][timeout:25];
             $element -> .course;
             .course map_to_area -> .courseArea;
             (
-              nwr(area.courseArea)["golf"];
-              nwr(area.courseArea)["golf:hole"];
+              $featureSelector
               $relationMembers
             );
             out body geom;
