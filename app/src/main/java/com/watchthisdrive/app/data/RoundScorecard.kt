@@ -8,16 +8,16 @@ import java.util.UUID
 data class RoundPlayer(
     val id: String,
     val name: String,
-    val scores: Map<Int, Int> = emptyMap()
+    val scores: Map<String, Int> = emptyMap()
 )
 
 data class RoundScorecard(
     val courseName: String,
-    val holePars: Map<Int, Int?>,
+    val holePars: Map<String, Int?>,
     val players: List<RoundPlayer>,
     val userPlayerId: String,
     val startedAt: Long = System.currentTimeMillis(),
-    val activeHoleNumber: Int = 1
+    val activeHoleNumber: String = "1"
 ) {
     val user: RoundPlayer get() = players.first { it.id == userPlayerId }
     fun totalFor(player: RoundPlayer): Int = player.scores.values.sum()
@@ -28,7 +28,7 @@ data class RoundScorecard(
     }
 
     companion object {
-        fun new(courseName: String, holePars: Map<Int, Int?>): RoundScorecard {
+        fun new(courseName: String, holePars: Map<String, Int?>): RoundScorecard {
             val player = RoundPlayer(UUID.randomUUID().toString(), "You")
             return RoundScorecard(courseName, holePars, listOf(player), player.id)
         }
@@ -87,7 +87,7 @@ object RoundScorecardStore {
             val keys = parsJson.keys()
             while (keys.hasNext()) {
                 val key = keys.next()
-                put(key.toInt(), if (parsJson.isNull(key)) null else parsJson.getInt(key))
+                put(key, if (parsJson.isNull(key)) null else parsJson.getInt(key))
             }
         }
         val playersJson = json.getJSONArray("players")
@@ -98,7 +98,7 @@ object RoundScorecardStore {
                 val keys = scoresJson.keys()
                 while (keys.hasNext()) {
                     val key = keys.next()
-                    put(key.toInt(), scoresJson.getInt(key))
+                    put(key, scoresJson.getInt(key))
                 }
             }
             RoundPlayer(item.getString("id"), item.getString("name"), scores)
@@ -109,7 +109,7 @@ object RoundScorecardStore {
             players = players,
             userPlayerId = json.getString("userPlayerId"),
             startedAt = json.optLong("startedAt", System.currentTimeMillis()),
-            activeHoleNumber = json.optInt("activeHoleNumber", 1)
+            activeHoleNumber = json.optString("activeHoleNumber", "1")
         )
     }
 }
