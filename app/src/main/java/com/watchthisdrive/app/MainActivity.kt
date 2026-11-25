@@ -948,8 +948,10 @@ private fun CourseDetailScreen(
                 val externalHoleCount = metadata?.holeCount?.takeIf { it == 9 || it == 18 }
                 if (selectedExpectedHoleCount == null && externalHoleCount != null) {
                     selectedExpectedHoleCount = externalHoleCount
+                }
+                metadata?.let { matchedMetadata ->
                     geometry?.let { current ->
-                        val enriched = enrichGeometryWithScorecard(current, metadata, selectedExpectedHoleCount)
+                        val enriched = enrichGeometryWithScorecard(current, matchedMetadata, selectedExpectedHoleCount)
                         val inferred = CourseFeatureInference.addInferredFeatures(
                             CourseHoleInference.addInferredHoles(enriched)
                         )
