@@ -25,7 +25,9 @@ data class CourseReconstruction(val holes: List<ReconstructedHole>) {
 }
 
 object CourseReconstructionEngine {
-    private const val MARKER_ENDPOINT_LIMIT_M = 45.0
+    private const val TEE_GREEN_ENDPOINT_LIMIT_M = 30.0
+    private const val PIN_ENDPOINT_LIMIT_M = 20.0
+    private const val DIRECTION_MARGIN_M = 10.0
     private const val CORRIDOR_LIMIT_M = 55.0
     private const val UNIQUE_MARGIN_M = 8.0
 
@@ -60,7 +62,7 @@ object CourseReconstructionEngine {
             listOf(true to hole.points.first(), false to hole.points.last()).forEach { (isStart, point) ->
                 teeFeatures.forEach { tee ->
                     val distance = featureDistance(point, tee)
-                    if (distance.isFinite() && distance <= MARKER_ENDPOINT_LIMIT_M) {
+                    if (distance.isFinite() && distance <= TEE_GREEN_ENDPOINT_LIMIT_M) {
                         teeMatches.add(TeeMatch(index, isStart, tee, distance))
                     }
                 }
@@ -86,10 +88,10 @@ object CourseReconstructionEngine {
             val end = line.last()
             val startTee = teeAssociations[index to true]
             val endTee = teeAssociations[index to false]
-            val startGreen = nearestFeature(start, greens)?.takeIf { it.second <= MARKER_ENDPOINT_LIMIT_M }
-            val endGreen = nearestFeature(end, greens)?.takeIf { it.second <= MARKER_ENDPOINT_LIMIT_M }
-            val startPin = nearestFeature(start, pins)?.takeIf { it.second <= MARKER_ENDPOINT_LIMIT_M }
-            val endPin = nearestFeature(end, pins)?.takeIf { it.second <= MARKER_ENDPOINT_LIMIT_M }
+            val startGreen = nearestFeature(start, greens)?.takeIf { it.second <= TEE_GREEN_ENDPOINT_LIMIT_M }
+            val endGreen = nearestFeature(end, greens)?.takeIf { it.second <= TEE_GREEN_ENDPOINT_LIMIT_M }
+            val startPin = nearestFeature(start, pins)?.takeIf { it.second <= PIN_ENDPOINT_LIMIT_M }
+            val endPin = nearestFeature(end, pins)?.takeIf { it.second <= PIN_ENDPOINT_LIMIT_M }
 
             // Orient the centerline from tee toward green when endpoint evidence supports it.
             val forwardParts = listOfNotNull(startTee?.second, endGreen?.second)
@@ -103,7 +105,7 @@ object CourseReconstructionEngine {
             } else if (forward.isFinite() && !reverse.isFinite()) {
                 // Tee-at-start plus green-at-end is sufficient forward evidence.
                 teeToGreenOriented = true
-            } else if (forward.isFinite() && reverse.isFinite() && abs(forward - reverse) >= 3.0) {
+            } else if (forward.isFinite() && reverse.isFinite() && abs(forward - reverse) >= DIRECTION_MARGIN_M) {
                 if (reverse < forward) {
                     line = line.asReversed()
                     lineReversed = true
@@ -136,11 +138,11 @@ object CourseReconstructionEngine {
             val tee = (if (lineReversed) endTee else startTee)?.first
             val teeEndpoint = line.first()
             val greenEndpoint = line.last()
-            val green = nearestFeature(greenEndpoint, greens)?.takeIf { it.second <= MARKER_ENDPOINT_LIMIT_M }?.first
-                ?: nearestFeature(teeEndpoint, greens)?.takeIf { it.second <= MARKER_ENDPOINT_LIMIT_M }?.first
+            val green = nearestFeature(greenEndpoint, greens)?.takeIf { it.second <= TEE_GREEN_ENDPOINT_LIMIT_M }?.first
+                ?: nearestFeature(teeEndpoint, greens)?.takeIf { it.second <= TEE_GREEN_ENDPOINT_LIMIT_M }?.first
 
             val mappedPin = nearestFeature(greenEndpoint, pins)
-                ?.takeIf { it.second <= MARKER_ENDPOINT_LIMIT_M }?.first
+                ?.takeIf { it.second <= TEE_GREEN_ENDPOINT_LIMIT_M }?.first
             val pin = mappedPin?.let { representativePoint(it) }
                 ?: green?.let { polygonCenter(it) }
             val pinSource = when {
