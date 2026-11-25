@@ -33,7 +33,7 @@ fun GlobalScorecardScreen(round: RoundScorecard, onScoreChange: (String, String,
         round.players.forEach { player ->
             PlayerScorecard(player, player.id == round.userPlayerId, holes, round.holePars,
                 { hole, strokes -> onScoreChange(player.id, hole, strokes) },
-                { onRemovePlayer(player.id) })
+                { onRemovePlayer(player.id) }, readOnly)
         }
         if (!readOnly) Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF1B2921)), shape = RoundedCornerShape(16.dp)) {
             Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -75,7 +75,7 @@ fun GlobalScorecardScreen(round: RoundScorecard, onScoreChange: (String, String,
 }
 
 @Composable
-private fun PlayerScorecard(player: RoundPlayer, isUser: Boolean, holes: List<String>, pars: Map<String, Int?>, onScoreChange: (String, Int) -> Unit, onRemove: () -> Unit) {
+private fun PlayerScorecard(player: RoundPlayer, isUser: Boolean, holes: List<String>, pars: Map<String, Int?>, onScoreChange: (String, Int) -> Unit, onRemove: () -> Unit, readOnly: Boolean) {
     val total = player.scores.values.sum()
     val scoredWithPar = player.scores.filterKeys { pars[it] != null }
     val relative = if (scoredWithPar.isEmpty()) null else scoredWithPar.entries.sumOf { (hole, strokes) -> strokes - (pars[hole] ?: 0) }
@@ -86,7 +86,7 @@ private fun PlayerScorecard(player: RoundPlayer, isUser: Boolean, holes: List<St
                     Text(player.name + if (isUser) " (YOU)" else "", color = Color.White, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
                     Text("$total strokes · ${relative?.let { scoreLabel(it) } ?: "—"}", color = Color(0xFFB8F36B), style = MaterialTheme.typography.labelMedium)
                 }
-                if (!isUser) TextButton(onClick = onRemove) { Text("Remove", color = Color(0xFFFFB4AB)) }
+                if (!isUser && !readOnly) TextButton(onClick = onRemove) { Text("Remove", color = Color(0xFFFFB4AB)) }
             }
             holes.forEach { hole ->
                 val strokes = player.scores[hole] ?: 0
@@ -95,9 +95,9 @@ private fun PlayerScorecard(player: RoundPlayer, isUser: Boolean, holes: List<St
                         Text("Hole $hole", color = Color.White, fontWeight = FontWeight.SemiBold)
                         Text("Par ${pars[hole] ?: "—"}", color = Color(0xFFB6C1B9), style = MaterialTheme.typography.labelSmall)
                     }
-                    IconButton(onClick = { onScoreChange(hole, (strokes - 1).coerceAtLeast(0)) }, enabled = strokes > 0) { Icon(Icons.Filled.Remove, contentDescription = "Remove stroke", tint = Color.White) }
+                    if (!readOnly) IconButton(onClick = { onScoreChange(hole, (strokes - 1).coerceAtLeast(0)) }, enabled = strokes > 0) { Icon(Icons.Filled.Remove, contentDescription = "Remove stroke", tint = Color.White) }
                     Text(if (strokes == 0) "—" else strokes.toString(), color = Color.White, fontWeight = FontWeight.Bold)
-                    IconButton(onClick = { onScoreChange(hole, strokes + 1) }) { Icon(Icons.Filled.Add, contentDescription = "Add stroke", tint = Color(0xFFB8F36B)) }
+                    if (!readOnly) IconButton(onClick = { onScoreChange(hole, strokes + 1) }) { Icon(Icons.Filled.Add, contentDescription = "Add stroke", tint = Color(0xFFB8F36B)) }
                 }
             }
         }
