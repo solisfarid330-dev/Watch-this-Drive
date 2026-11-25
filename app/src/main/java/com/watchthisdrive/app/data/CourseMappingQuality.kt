@@ -39,10 +39,17 @@ data class CourseMappingQuality(
             val numbered = centerlines.mapNotNull { it.holeNumber?.toIntOrNull() }
                 .filter { it in 1..72 }.toSet()
             // Prefer explicit course metadata; otherwise use a complete 9/18 numbering range.
+            val numberedLayoutEvidence = sourceUsable.filter {
+                it.featureType in setOf("hole", "tee", "green", "fairway")
+            }.mapNotNull { it.holeNumber?.toIntOrNull() }.filter { it in 1..18 }
+            val highestNumberedEvidence = maxOf(
+                numbered.maxOrNull() ?: 0,
+                numberedLayoutEvidence.maxOrNull() ?: 0
+            )
             val expected = geometry.expectedHoleCount?.takeIf { it == 9 || it == 18 }
                 ?: when {
-                    (numbered.maxOrNull() ?: 0) > 9 -> 18
-                    numbered.maxOrNull() == 9 -> 9
+                    highestNumberedEvidence > 9 -> 18
+                    highestNumberedEvidence == 9 -> 9
                     else -> null
                 }
             val missing = if (expected != null && (numbered.isNotEmpty() || geometry.expectedHoleCount != null)) {

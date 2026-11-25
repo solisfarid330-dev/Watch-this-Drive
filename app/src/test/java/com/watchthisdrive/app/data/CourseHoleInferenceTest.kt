@@ -76,4 +76,36 @@ class CourseHoleInferenceTest {
         assertTrue(result.features.any { it.origin == CourseFeatureOrigin.INFERRED && it.featureType == "hole" && it.holeNumber == "9" })
     }
 
+    @Test
+    fun infersMissingFinalHolesFromNumberedTeeAndGreenRefsInAutoMode() {
+        fun green(number: Int, lat: Double, lon: Double) = CourseFeature(
+            200L + number, "way", "green", number.toString(), null,
+            listOf(
+                GeoPoint(lat, lon), GeoPoint(lat, lon + 0.0002),
+                GeoPoint(lat + 0.0002, lon + 0.0002), GeoPoint(lat + 0.0002, lon),
+                GeoPoint(lat, lon)
+            ), CourseGeometryType.POLYGON,
+            listOf(listOf(
+                GeoPoint(lat, lon), GeoPoint(lat, lon + 0.0002),
+                GeoPoint(lat + 0.0002, lon + 0.0002), GeoPoint(lat + 0.0002, lon),
+                GeoPoint(lat, lon)
+            ))
+        )
+        val lines = (1..7).map { n -> CourseFeature(
+            n.toLong(), "way", "hole", n.toString(), null,
+            listOf(GeoPoint(0.0, n * 0.001), GeoPoint(0.004, n * 0.001)),
+            CourseGeometryType.LINE
+        ) }
+        val markers = listOf(
+            CourseFeature(108, "node", "tee", "8", null, listOf(GeoPoint(0.0, 0.010)), CourseGeometryType.POINT),
+            green(8, 0.0024, 0.0124),
+            CourseFeature(109, "node", "tee", "9", null, listOf(GeoPoint(0.0, 0.020)), CourseGeometryType.POINT),
+            green(9, 0.0024, 0.0224)
+        )
+        val inferred = CourseHoleInference.addInferredHoles(
+            CourseGeometry(1, "Generic nine-hole course", lines + markers)
+        ).features.filter { it.origin == CourseFeatureOrigin.INFERRED && it.featureType == "hole" }
+        assertEquals(setOf("8", "9"), inferred.mapNotNull { it.holeNumber }.toSet())
+    }
+
 }

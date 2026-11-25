@@ -65,4 +65,18 @@ class CourseMappingQualityTest {
         assertEquals((1..9).toList(), quality.unresolvedNumberedHoles)
     }
 
+    @Test
+    fun detectsNineHoleTargetFromNumberedTeeAndGreenEvidence() {
+        val features = (1..7).map { hole(it.toString()) } + listOf(
+            CourseFeature(108, "node", "tee", "8", null, listOf(GeoPoint(0.0, 0.010)), CourseGeometryType.POINT),
+            CourseFeature(208, "node", "green", "8", null, listOf(GeoPoint(0.002, 0.012)), CourseGeometryType.POINT),
+            CourseFeature(109, "node", "tee", "9", null, listOf(GeoPoint(0.0, 0.020)), CourseGeometryType.POINT),
+            CourseFeature(209, "node", "green", "9", null, listOf(GeoPoint(0.002, 0.022)), CourseGeometryType.POINT)
+        )
+        val geometry = CourseGeometry(1, "Generic", features)
+        val quality = CourseMappingQuality.assess(geometry, CourseReconstructionEngine.reconstruct(geometry))
+        assertEquals(9, quality.expectedHoleCount)
+        assertEquals(listOf(8, 9), quality.missingNumberedHoles)
+    }
+
 }

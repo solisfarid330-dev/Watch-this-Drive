@@ -30,8 +30,14 @@ object CourseHoleInference {
                 it.geometryType == CourseGeometryType.LINE && it.holeNumber?.toIntOrNull() in 1..18
         }
         val numbered = mappedHoles.mapNotNull { it.holeNumber?.toIntOrNull() }.toSet()
-        val maximum = numbered.maxOrNull() ?: 0
-        if (numbered.isEmpty() && course.expectedHoleCount == null) return course
+        // Tee and green refs can reveal course length when the corresponding
+        // hole centerlines are the exact features missing.
+        val numberedLayoutEvidence = usable.filter {
+            it.origin == CourseFeatureOrigin.SOURCE &&
+                it.featureType in setOf("hole", "tee", "green", "fairway")
+        }.mapNotNull { it.holeNumber?.toIntOrNull() }.filter { it in 1..18 }
+        val maximum = maxOf(numbered.maxOrNull() ?: 0, numberedLayoutEvidence.maxOrNull() ?: 0)
+        if (numbered.isEmpty() && maximum == 0 && course.expectedHoleCount == null) return course
         val expectedCount = course.expectedHoleCount?.takeIf { it == 9 || it == 18 }
             ?: when { maximum > 9 -> 18; maximum >= 9 -> 9; else -> return course }
         val missing = (1..expectedCount).filterNot(numbered::contains)
