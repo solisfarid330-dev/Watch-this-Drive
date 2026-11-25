@@ -64,14 +64,20 @@ object CourseHoleInference {
         allGreens: List<CourseFeature>,
         fairways: List<CourseFeature>
     ): List<CourseFeature> {
-        // Do not guess ordering across disjoint numbering gaps.
-        if (missing.zipWithNext().any { (a, b) -> b != a + 1 }) return emptyList()
+        // The sequence is only inferable as a run bounded by known holes.
+        if (missing.size !in 1..2 || missing.zipWithNext().any { (a, b) -> b != a + 1 }) return emptyList()
         val tees = allTees.filter { it.holeNumber.isNullOrBlank() }
         val greens = allGreens.filter { it.holeNumber.isNullOrBlank() }
         val clusters = clusterTees(tees)
         if (clusters.isEmpty()) return emptyList()
         val greenPoints = greens.mapNotNull { feature -> representativePoint(feature)?.let { feature to it } }
         if (greenPoints.isEmpty()) return emptyList()
+
+        val beforeHole = mappedHoles.firstOrNull { it.holeNumber?.toIntOrNull() == missing.first() - 1 }
+        val afterHole = mappedHoles.firstOrNull { it.holeNumber?.toIntOrNull() == missing.last() + 1 }
+        val before = beforeHole?.let { orientMappedHole(it, clusters, greenPoints)?.green }
+        val after = afterHole?.let { orientMappedHole(it, clusters, greenPoints)?.tee }
+        if (before == null && after == null) return emptyList()
 
         val usedTeeClusters = mutableSetOf<TeeCluster>()
         val usedGreens = mutableSetOf<CourseFeature>()
@@ -82,7 +88,7 @@ object CourseHoleInference {
         }
         val availableTees = clusters.filterNot { it in usedTeeClusters }
         val availableGreens = greenPoints.filterNot { it.first in usedGreens }
-        if (availableTees.isEmpty() || availableGreens.isEmpty()) return emptyList()
+        if (availableTees.size < missing.size || availableGreens.size < missing.size) return emptyList()
 
         val candidates = mutableListOf<Candidate>()
         availableTees.forEach { tee ->
@@ -90,61 +96,49 @@ object CourseHoleInference {
                 val length = meters(tee.point, greenPoint)
                 if (length !in MIN_HOLE_LENGTH_M..MAX_HOLE_LENGTH_M) return@greenLoop
                 val support = fairwaySupport(tee.point, greenPoint, fairways)
-                if (support < MIN_FAIRWAY_SUPPORT) return@greenLoop
-                val score = length + (1.0 - support) * 250.0
+                val score = abs(length - 250.0) * 0.05 + (1.0 - support) * 80.0
                 candidates.add(Candidate(tee, greenFeature, greenPoint, score))
             }
         }
         if (candidates.isEmpty()) return emptyList()
 
-        // Keep only mutual, unambiguous best matches. This prevents a tee or green
-        // from being reused and avoids arbitrary straight-line connections.
-        val byTee = candidates.groupBy { it.tee }
-        val byGreen = candidates.groupBy { it.green.elementType to it.green.id }
-        val mutual = candidates.filter { candidate ->
-            val teeRanked = byTee[candidate.tee].orEmpty().sortedBy { it.score }
-            val greenRanked = byGreen[candidate.green.elementType to candidate.green.id].orEmpty().sortedBy { it.score }
-            teeRanked.firstOrNull() == candidate && greenRanked.firstOrNull() == candidate &&
-                (teeRanked.getOrNull(1)?.score?.minus(candidate.score) ?: Double.POSITIVE_INFINITY) >= PAIR_AMBIGUITY_MARGIN &&
-                (greenRanked.getOrNull(1)?.score?.minus(candidate.score) ?: Double.POSITIVE_INFINITY) >= PAIR_AMBIGUITY_MARGIN
+        data class Ordered(val candidates: List<Candidate>, val score: Double)
+        val orderedOptions = mutableListOf<Ordered>()
+        if (missing.size == 1) {
+            candidates.forEach { candidate ->
+                val firstLeg = before?.let { meters(it, candidate.tee.point) } ?: 0.0
+                val lastLeg = after?.let { meters(candidate.greenPoint, it) } ?: 0.0
+                if ((before != null && firstLeg > 350.0) || (after != null && lastLeg > 350.0)) return@forEach
+                orderedOptions.add(Ordered(listOf(candidate), candidate.score + (firstLeg + lastLeg) * 0.8))
+            }
+        } else {
+            candidates.forEach { first ->
+                candidates.forEach secondLoop@{ second ->
+                    if (first.tee == second.tee || first.green.elementType == second.green.elementType && first.green.id == second.green.id) return@secondLoop
+                    val firstLeg = before?.let { meters(it, first.tee.point) } ?: 0.0
+                    val middleLeg = meters(first.greenPoint, second.tee.point)
+                    val lastLeg = after?.let { meters(second.greenPoint, it) } ?: 0.0
+                    if ((before != null && firstLeg > 350.0) || middleLeg > 350.0 ||
+                        (after != null && lastLeg > 350.0)) return@secondLoop
+                    orderedOptions.add(
+                        Ordered(listOf(first, second),
+                            first.score + second.score + (firstLeg + middleLeg + lastLeg) * 0.8)
+                    )
+                }
+            }
         }
-        if (mutual.size != missing.size) return emptyList()
-
-        val ordered = orderCandidates(missing, mutual, mappedHoles, clusters, greenPoints) ?: return emptyList()
-        return missing.zip(ordered).map { (number, candidate) ->
-            inferredFeature(number, candidate.tee.point, candidate.greenPoint, 0.50,
-                "inferred_from_unmatched_tee_green_and_fairway_layout")
+        val ranked = orderedOptions.sortedBy { it.score }
+        if (ranked.isEmpty()) return emptyList()
+        if (ranked.getOrNull(1)?.score?.minus(ranked.first().score)?.let { it < PAIR_AMBIGUITY_MARGIN } == true) return emptyList()
+        return missing.zip(ranked.first().candidates).map { (number, candidate) ->
+            val supported = fairwaySupport(candidate.tee.point, candidate.greenPoint, fairways) >= MIN_FAIRWAY_SUPPORT
+            inferredFeature(
+                number, candidate.tee.point, candidate.greenPoint,
+                if (supported) 0.50 else 0.35,
+                if (supported) "inferred_from_unmatched_tee_green_fairway_and_hole_sequence"
+                else "inferred_from_unmatched_tee_green_and_neighboring_hole_sequence"
+            )
         }
-    }
-
-    private fun orderCandidates(
-        missing: List<Int>,
-        candidates: List<Candidate>,
-        mappedHoles: List<CourseFeature>,
-        clusters: List<TeeCluster>,
-        greens: List<Pair<CourseFeature, GeoPoint>>
-    ): List<Candidate>? {
-        if (candidates.size == 1) return candidates
-        val previous = mappedHoles.firstOrNull { it.holeNumber?.toIntOrNull() == missing.first() - 1 }
-            ?.let { orientMappedHole(it, clusters, greens)?.green }
-        val next = mappedHoles.firstOrNull { it.holeNumber?.toIntOrNull() == missing.last() + 1 }
-            ?.let { orientMappedHole(it, clusters, greens)?.tee }
-        if (previous == null && next == null) return null
-        if (candidates.size > 6) return null
-
-        fun permutations(items: List<Candidate>): List<List<Candidate>> {
-            if (items.size <= 1) return listOf(items)
-            return items.flatMap { item -> permutations(items - item).map { listOf(item) + it } }
-        }
-        val ranked = permutations(candidates).map { order ->
-            var cost = previous?.let { meters(it, order.first().tee.point) } ?: 0.0
-            order.zipWithNext().forEach { (a, b) -> cost += meters(a.greenPoint, b.tee.point) }
-            cost += next?.let { meters(order.last().greenPoint, it) } ?: 0.0
-            order to cost
-        }.sortedBy { it.second }
-        if (ranked.isEmpty()) return null
-        if (ranked.getOrNull(1)?.second?.minus(ranked.first().second)?.let { it < PAIR_AMBIGUITY_MARGIN } == true) return null
-        return ranked.first().first
     }
 
     private fun orientMappedHole(
@@ -200,7 +194,10 @@ object CourseHoleInference {
                 else -> emptyList()
             }
             if (polygons.isEmpty()) 0.0 else samples.count { point ->
-                polygons.any { polygon -> pointInPolygon(point, polygon.firstOrNull().orEmpty()) }
+                polygons.any { polygon ->
+                    val outer = polygon.firstOrNull().orEmpty()
+                    pointInPolygon(point, outer) || distanceToLine(point, outer) <= 35.0
+                }
             } / samples.size.toDouble()
         } ?: 0.0
     }
