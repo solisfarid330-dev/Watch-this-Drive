@@ -64,3 +64,12 @@ These controls are an initial recovery framework, not a claim that imagery recog
 ## Local data and settings
 
 The Settings screen provides expandable sections for club carry distances, location permissions, and on-device data. Saved course-map inventory is read from the app's private `filesDir/mapped_courses/` cache. Completed scorecards remain in app-private local storage; Android's Files app does not normally expose these private files. Clearing app storage or uninstalling the app removes this local data; there is no cloud sync.
+
+
+## Scorecard sharing, data controls, and credits
+
+- Active and completed scorecards are stored as JSON in Android private SharedPreferences under `round_scorecards`. The active round and completed-round history are separate entries.
+- Scorecards can be exported as a branded PDF through Android's share sheet. The PDF includes the course, golfer, round date, hole numbers, pars, entered scores, and totals. The export is generated in the app cache and shared through Android's FileProvider; it is not uploaded by WTD.
+- Settings provides an inventory of cached course maps and saved scorecards, with individual deletion and a confirmed delete-all action. The delete-all action also clears the active round and club carry settings.
+- Location controls link to Android's app-permission and device-location settings. WTD uses foreground location only; it does not request background location.
+- Credits in Settings identify project roles and third-party services. OpenStreetMap data is provided under ODbL; consult the linked source credits for their respective terms.
