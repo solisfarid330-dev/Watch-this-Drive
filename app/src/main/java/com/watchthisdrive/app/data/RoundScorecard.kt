@@ -14,7 +14,6 @@ data class RoundPlayer(
 data class RoundScorecard(
     val courseName: String,
     val holePars: Map<String, Int?>,
-    val holeYardages: Map<String, Int?> = emptyMap(),
     val players: List<RoundPlayer>,
     val userPlayerId: String,
     val startedAt: Long = System.currentTimeMillis(),
@@ -26,7 +25,8 @@ data class RoundScorecard(
     val expectedHoleCount: Int? = null,
     val scorecardOnly: Boolean = false,
     val scorecardTitle: String = "",
-    val endedAt: Long? = null
+    val endedAt: Long? = null,
+    val holeYardages: Map<String, Int?> = emptyMap()
 ) {
     val user: RoundPlayer get() = players.first { it.id == userPlayerId }
     fun totalFor(player: RoundPlayer): Int = player.scores.values.sum()
