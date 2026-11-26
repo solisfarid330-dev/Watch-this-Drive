@@ -209,14 +209,18 @@ object OpenGolfApiCourseLoader {
             val code = connection.responseCode
             if (code !in 200..299) throw Exception("OpenGolfAPI returned HTTP $code")
             val body = connection.inputStream.bufferedReader().use { it.readText() }
-            val trimmed = body.trimStart()
-            return if (trimmed.startsWith("[")) JSONObject().put("data", JSONArray(body)) else JSONObject(body)
+            return parseJsonResponse(body)
         } finally {
             connection.disconnect()
         }
     }
 
-    private fun findArray(root: JSONObject, key: String): JSONArray? {
+    internal fun parseJsonResponse(body: String): JSONObject {
+        val trimmed = body.trimStart()
+        return if (trimmed.startsWith("[")) JSONObject().put("data", JSONArray(body)) else JSONObject(body)
+    }
+
+    internal fun findArray(root: JSONObject, key: String): JSONArray? {
         root.optJSONArray(key)?.let { return it }
         root.optJSONArray("data")?.let { if (key == "data" || key in setOf("courses", "results", "holes", "scorecard", "tees")) return it }
         root.optJSONObject("data")?.optJSONArray(key)?.let { return it }
