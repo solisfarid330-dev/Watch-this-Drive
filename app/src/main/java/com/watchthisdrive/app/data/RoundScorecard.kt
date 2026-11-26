@@ -14,6 +14,7 @@ data class RoundPlayer(
 data class RoundScorecard(
     val courseName: String,
     val holePars: Map<String, Int?>,
+    val holeYardages: Map<String, Int?> = emptyMap(),
     val players: List<RoundPlayer>,
     val userPlayerId: String,
     val startedAt: Long = System.currentTimeMillis(),
@@ -24,7 +25,8 @@ data class RoundScorecard(
     val courseLongitude: Double? = null,
     val expectedHoleCount: Int? = null,
     val scorecardOnly: Boolean = false,
-    val scorecardTitle: String = ""
+    val scorecardTitle: String = "",
+    val endedAt: Long? = null
 ) {
     val user: RoundPlayer get() = players.first { it.id == userPlayerId }
     fun totalFor(player: RoundPlayer): Int = player.scores.values.sum()
@@ -37,10 +39,11 @@ data class RoundScorecard(
     companion object {
         fun new(courseName: String, holePars: Map<String, Int?>, courseId: Long? = null,
                 courseElementType: String? = null, courseLatitude: Double? = null,
-                courseLongitude: Double? = null, expectedHoleCount: Int? = null): RoundScorecard {
+                courseLongitude: Double? = null, expectedHoleCount: Int? = null,
+                holeYardages: Map<String, Int?> = emptyMap()): RoundScorecard {
             val player = RoundPlayer(UUID.randomUUID().toString(), "You")
             return RoundScorecard(
-                courseName = courseName, holePars = holePars, players = listOf(player),
+                courseName = courseName, holePars = holePars, holeYardages = holeYardages, players = listOf(player),
                 userPlayerId = player.id, courseId = courseId,
                 courseElementType = courseElementType, courseLatitude = courseLatitude,
                 courseLongitude = courseLongitude, expectedHoleCount = expectedHoleCount
@@ -83,7 +86,8 @@ object RoundScorecardStore {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val history = runCatching { JSONArray(prefs.getString(COMPLETED, "[]")) }
             .getOrDefault(JSONArray())
-        history.put(encode(round).put("completedAt", System.currentTimeMillis()))
+        val completedAt = System.currentTimeMillis()
+        history.put(encode(round.copy(endedAt = completedAt)).put("completedAt", completedAt))
         prefs.edit().putString(COMPLETED, history.toString()).remove(ACTIVE).commit()
     }
 
@@ -95,6 +99,14 @@ object RoundScorecardStore {
         prefs.edit().putString(COMPLETED, JSONArray().apply {
             remaining.forEach { put(encode(it.round).put("completedAt", it.completedAt)) }
         }.toString()).commit()
+    }
+
+    fun renameCompleted(context: Context, saved: SavedRound, title: String) {
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val updated = loadCompleted(context).map { item ->
+            if (item.completedAt == saved.completedAt && item.round.startedAt == saved.round.startedAt) item.copy(round = item.round.copy(scorecardTitle = title.trim().take(48))) else item
+        }
+        prefs.edit().putString(COMPLETED, JSONArray().apply { updated.forEach { put(encode(it.round).put("completedAt", it.completedAt)) } }.toString()).commit()
     }
 
     fun clearAll(context: Context) {
@@ -112,6 +124,8 @@ object RoundScorecardStore {
         put("expectedHoleCount", round.expectedHoleCount ?: JSONObject.NULL)
         put("scorecardOnly", round.scorecardOnly)
         put("scorecardTitle", round.scorecardTitle)
+        put("endedAt", round.endedAt ?: JSONObject.NULL)
+        put("holeYardages", JSONObject().apply { round.holeYardages.forEach { (hole, yards) -> put(hole, yards ?: JSONObject.NULL) } })
         put("userPlayerId", round.userPlayerId)
         put("holePars", JSONObject().apply {
             round.holePars.forEach { (hole, par) -> put(hole.toString(), par ?: JSONObject.NULL) }
@@ -138,6 +152,8 @@ object RoundScorecardStore {
                 put(key, if (parsJson.isNull(key)) null else parsJson.getInt(key))
             }
         }
+        val yardagesJson = json.optJSONObject("holeYardages") ?: JSONObject()
+        val yardages = buildMap<String, Int?> { val keys = yardagesJson.keys(); while (keys.hasNext()) { val key = keys.next(); put(key, if (yardagesJson.isNull(key)) null else yardagesJson.optInt(key)) } }
         val playersJson = json.getJSONArray("players")
         val players = (0 until playersJson.length()).map { index ->
             val item = playersJson.getJSONObject(index)
@@ -154,6 +170,7 @@ object RoundScorecardStore {
         return RoundScorecard(
             courseName = json.getString("courseName"),
             holePars = pars,
+            holeYardages = yardages,
             players = players,
             userPlayerId = json.getString("userPlayerId"),
             startedAt = json.optLong("startedAt", System.currentTimeMillis()),
@@ -164,7 +181,8 @@ object RoundScorecardStore {
             courseLongitude = if (json.isNull("courseLongitude")) null else json.optDouble("courseLongitude"),
             expectedHoleCount = if (json.isNull("expectedHoleCount")) null else json.optInt("expectedHoleCount"),
             scorecardOnly = json.optBoolean("scorecardOnly", false),
-            scorecardTitle = json.optString("scorecardTitle", "")
+            scorecardTitle = json.optString("scorecardTitle", ""),
+            endedAt = if (json.isNull("endedAt")) null else json.optLong("endedAt")
         )
     }
 }
