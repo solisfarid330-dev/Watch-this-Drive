@@ -39,4 +39,30 @@ class CourseScorecardEnrichmentTest {
         assertEquals(400, enriched.holeYardages["1"])
         assertEquals(155, enriched.holeYardages["2"])
     }
+
+    @Test fun reconstructedGeometryParWinsOverPublishedApiParInBothModes() {
+        val activeRound = RoundScorecard.new("Test Golf Club", mapOf("1" to 4, "2" to null))
+        val scorecardOnlyRound = RoundScorecard.new("Test Golf Club", mapOf("1" to null, "2" to null))
+            .copy(scorecardOnly = true)
+        val geometryPars = mapOf("1" to 5, "2" to 4)
+
+        val activeResolved = activeRound.withResolvedCourseFacts(geometryPars, metadata)
+        val scorecardResolved = scorecardOnlyRound.withResolvedCourseFacts(geometryPars, metadata)
+
+        assertEquals(activeResolved.holePars, scorecardResolved.holePars)
+        assertEquals(4, scorecardResolved.holePars["1"])
+        assertEquals(4, scorecardResolved.holePars["2"])
+    }
+
+    @Test fun existingManualParWinsOverGeometryAndApiFallbackFillsOnlyMissingHoles() {
+        val round = RoundScorecard.new("Test Golf Club", mapOf("1" to 6, "2" to null, "3" to null))
+        val enriched = round.withResolvedCourseFacts(
+            geometryPars = mapOf("1" to 5, "2" to 4),
+            metadata = metadata.copy(holes = metadata.holes + CourseScorecardHole(3, 5, null, 510))
+        )
+
+        assertEquals(6, enriched.holePars["1"])
+        assertEquals(4, enriched.holePars["2"])
+        assertEquals(5, enriched.holePars["3"])
+    }
 }
