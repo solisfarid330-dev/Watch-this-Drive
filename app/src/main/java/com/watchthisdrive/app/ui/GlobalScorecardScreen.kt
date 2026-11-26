@@ -23,7 +23,7 @@ import com.watchthisdrive.app.data.RoundPlayer
 import com.watchthisdrive.app.data.RoundScorecard
 
 @Composable
-fun GlobalScorecardScreen(round: RoundScorecard, onScoreChange: (String, String, Int) -> Unit, onAddPlayer: (String) -> Unit, onRemovePlayer: (String) -> Unit, onFinishRound: () -> Unit, readOnly: Boolean = false, onBack: () -> Unit = {}, onShare: () -> Unit = {}, onTitleChange: (String) -> Unit = {}, onParChange: (String, Int?) -> Unit = { _, _ -> }, onDownload: () -> Unit = {}, courseFactsStatus: String? = null, onQuitRound: () -> Unit = {}) {
+fun GlobalScorecardScreen(round: RoundScorecard, onScoreChange: (String, String, Int) -> Unit, onAddPlayer: (String) -> Unit, onRemovePlayer: (String) -> Unit, onFinishRound: () -> Unit, readOnly: Boolean = false, onBack: () -> Unit = {}, onShare: () -> Unit = {}, onTitleChange: (String) -> Unit = {}, onParChange: (String, Int?) -> Unit = { _, _ -> }, onDownload: () -> Unit = {}, courseFactsStatus: String? = null, onRetryCourseFacts: () -> Unit = {}, onQuitRound: () -> Unit = {}) {
     var newPlayerName by remember { mutableStateOf("") }
     var titleDraft by remember(round.startedAt, round.scorecardTitle) { mutableStateOf(round.scorecardTitle) }
     var showFinishDialog by remember { mutableStateOf(false) }
@@ -36,7 +36,14 @@ fun GlobalScorecardScreen(round: RoundScorecard, onScoreChange: (String, String,
     Column(Modifier.fillMaxSize().background(Color(0xFF101713)).verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("GLOBAL SCORECARD", color = Color(0xFFB8F36B), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
         Text(round.courseName, color = Color.White, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-        if (!readOnly && round.scorecardOnly && courseFactsStatus != null) Text(courseFactsStatus, color = Color(0xFFB6C1B9), style = MaterialTheme.typography.bodySmall)
+        if (!readOnly && round.scorecardOnly && courseFactsStatus != null) {
+            Text(courseFactsStatus, color = Color(0xFFB6C1B9), style = MaterialTheme.typography.bodySmall)
+            if (!courseFactsStatus.startsWith("Looking up")) {
+                TextButton(onClick = onRetryCourseFacts, contentPadding = PaddingValues(horizontal = 0.dp, vertical = 0.dp)) {
+                    Text("RETRY COURSE DATA LOOKUP", color = Color(0xFFB8F36B), style = MaterialTheme.typography.labelSmall)
+                }
+            }
+        }
         if (!readOnly) {
             OutlinedTextField(value = titleDraft, onValueChange = { value -> titleDraft = value.take(48); onTitleChange(value.take(48)) }, modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text("Scorecard title (optional)") }, placeholder = { Text("e.g. Saturday morning round") }, colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, focusedBorderColor = Color(0xFFB8F36B), unfocusedBorderColor = Color(0xFF526257), cursorColor = Color(0xFFB8F36B)))
         } else if (round.scorecardTitle.isNotBlank()) Text(round.scorecardTitle, color = Color(0xFFB8F36B), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
