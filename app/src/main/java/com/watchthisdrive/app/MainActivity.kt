@@ -289,7 +289,7 @@ private fun WatchThisDriveApp() {
             }.orEmpty()
 
             val publishedPars = externalMetadata?.holes
-                ?.mapNotNull { hole -> hole.par?.let { hole.number to it } }
+                ?.mapNotNull { hole -> hole.par?.let { hole.number.toString() to it } }
                 ?.toMap().orEmpty()
             val publishedYardages = externalMetadata?.holes
                 ?.mapNotNull { hole -> hole.yardage?.let { hole.number.toString() to it } }
@@ -299,7 +299,7 @@ private fun WatchThisDriveApp() {
             // correction); mapped geometry wins over the API when filling blanks.
             val resolved = current.copy(
                 holePars = current.holePars.mapValues { (number, existing) ->
-                    existing ?: geometryPars[number] ?: publishedPars[number.toString()]
+                    existing ?: geometryPars[number] ?: publishedPars[number]
                 },
                 holeYardages = current.holeYardages.mapValues { (number, existing) ->
                     existing ?: publishedYardages[number]
