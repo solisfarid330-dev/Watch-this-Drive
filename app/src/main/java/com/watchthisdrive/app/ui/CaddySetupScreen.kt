@@ -58,13 +58,16 @@ fun CaddySetupScreen(
     onRequestLocationPermission: () -> Unit,
     onOpenAppSettings: () -> Unit,
     onOpenDeviceLocationSettings: () -> Unit,
-    permissionRevision: Int
+    permissionRevision: Int,
+    simulationEnabled: Boolean = false,
+    onSimulationEnabledChange: (Boolean) -> Unit = {},
+    onStartSimulation: () -> Unit = {}
 ) {
     var showCarries by remember { mutableStateOf(false) }
-    var testDistance by remember { mutableFloatStateOf(150f) }
     var showLocation by remember { mutableStateOf(false) }
     var showData by remember { mutableStateOf(false) }
     var showCredits by remember { mutableStateOf(false) }
+    var showDeveloperOptions by remember { mutableStateOf(false) }
     var confirmDeleteAll by remember { mutableStateOf(false) }
     var pendingCourse by remember { mutableStateOf<CourseCacheSummary?>(null) }
     var pendingRound by remember { mutableStateOf<RoundScorecardStore.SavedRound?>(null) }
@@ -128,23 +131,25 @@ fun CaddySetupScreen(
                 }
 
             }
-            SettingsDetail {
-                Text("TRY YOUR CADDY", color = Lime, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium)
-                Text("Test a target distance without being on a course or using GPS. This preview uses your saved carry distances only; it does not simulate or change your GPS position.", color = Muted, style = MaterialTheme.typography.bodySmall)
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("TEST DISTANCE", color = Color.White, fontWeight = FontWeight.SemiBold)
-                    Text("${testDistance.toInt()} yd", color = Lime, fontWeight = FontWeight.Bold)
+
+        }
+
+        SettingsActionCard("Developer Options", if (simulationEnabled) "Course simulation enabled" else "Optional testing tools", { Icon(Icons.Filled.Info, null, tint = Lime) }, showDeveloperOptions) { showDeveloperOptions = !showDeveloperOptions }
+        if (showDeveloperOptions) SettingsDetail {
+            Text("COURSE SIMULATION", color = Lime, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium)
+            Text("Test the real Active Game experience away from a golf course. WTD moves a simulated player marker along the selected course hole and runs the same pin-distance and Caddy calculations used by GPS play.", color = Color.White, style = MaterialTheme.typography.bodySmall)
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                Column(Modifier.weight(1f)) {
+                    Text("Enable course simulation", color = Color.White, fontWeight = FontWeight.SemiBold)
+                    Text("Adds a simulation option for developer testing.", color = Muted, style = MaterialTheme.typography.bodySmall)
                 }
-                Slider(value = testDistance, onValueChange = { testDistance = it }, valueRange = 30f..350f, steps = 31)
-                val preview = recommendClubForCarryDistance(carryDistances, testDistance.toInt())
-                Text("YOUR CADDY RECOMMENDS", color = Lime, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
-                Text(preview?.name ?: "Add club carry distances", color = Color.White, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                Text(when {
-                    preview == null -> "No club carry values are configured yet."
-                    preview.isBeyondLongestCarry -> "Longest club · ${preview.carryYards} yd carry. Target is beyond your longest configured carry."
-                    else -> "${preview.carryYards} yd carry · simulated target distance ${testDistance.toInt()} yd"
-                }, color = Muted, style = MaterialTheme.typography.bodySmall)
-                Text("SIMULATED TEST · NOT GPS", color = Color(0xFFFFC857), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                Switch(checked = simulationEnabled, onCheckedChange = onSimulationEnabledChange)
+            }
+            if (simulationEnabled) {
+                Button(onClick = onStartSimulation, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = Lime, contentColor = Ink)) {
+                    Text("CHOOSE COURSE & START SIMULATION", fontWeight = FontWeight.Bold)
+                }
+                Text("Choose any course available through WTD search. The course map is loaded normally; simulated movement is app-local and never spoofs Android's real GPS provider. A clear SIMULATION MODE banner stays visible during the test.", color = Muted, style = MaterialTheme.typography.bodySmall)
             }
         }
 
