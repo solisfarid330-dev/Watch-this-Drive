@@ -25,11 +25,16 @@ fun ScorecardHubScreen(
     savedRounds: List<SavedRound>,
     onStartScorecardOnly: (String, Int) -> Unit,
     onChooseCourse: (String, Int) -> Unit,
-    onOpenSavedRound: (SavedRound) -> Unit
+    onOpenSavedRound: (SavedRound) -> Unit,
+    onRenameSavedRound: (SavedRound, String) -> Unit = { _, _ -> },
+    onDeleteSavedRound: (SavedRound) -> Unit = {}
 ) {
     var showStartDialog by remember { mutableStateOf(false) }
     var holes by remember { mutableIntStateOf(18) }
     var title by remember { mutableStateOf("") }
+    var renamingRound by remember { mutableStateOf<SavedRound?>(null) }
+    var renameTitle by remember { mutableStateOf("") }
+    var deletingRound by remember { mutableStateOf<SavedRound?>(null) }
 
     Column(Modifier.fillMaxSize().background(Color(0xFF101713)).padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Text("SCORECARD", color = Color(0xFFB8F36B), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
@@ -56,16 +61,25 @@ fun ScorecardHubScreen(
                 val round = saved.round
                 val total = round.user.scores.values.sum()
                 val relative = round.relativeToPar(round.user)?.let { if (it == 0) "E" else if (it > 0) "+$it" else it.toString() } ?: "—"
-                val date = SimpleDateFormat("MMM d, yyyy · h:mm a", Locale.getDefault()).format(Date(saved.completedAt))
+                val date = SimpleDateFormat("MMM d, yyyy", Locale.getDefault()).format(Date(saved.completedAt))
+                val startTime = SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date(round.startedAt))
+                val endTime = SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date(saved.completedAt))
                 Card(Modifier.fillMaxWidth().clickable { onOpenSavedRound(saved) }, colors = CardDefaults.cardColors(containerColor = Color(0xFF1B2921)), shape = RoundedCornerShape(14.dp)) {
                     Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                             Text(round.scorecardTitle.ifBlank { round.courseName }, color = Color.White, fontWeight = FontWeight.Bold)
                             if (round.scorecardTitle.isNotBlank()) Text(round.courseName, color = Color(0xFFB6C1B9), style = MaterialTheme.typography.bodySmall)
-                            Text(date, color = Color(0xFFB6C1B9), style = MaterialTheme.typography.bodySmall)
+                            Text("$date · Started $startTime · Finished $endTime", color = Color(0xFFB6C1B9), style = MaterialTheme.typography.bodySmall)
                             Text("${round.user.scores.size} holes scored · $total strokes · $relative", color = Color(0xFFB8F36B), style = MaterialTheme.typography.labelMedium)
                         }
-                        Icon(Icons.Filled.ChevronRight, null, tint = Color(0xFFB8F36B))
+                        var menuExpanded by remember(saved.completedAt, round.startedAt) { mutableStateOf(false) }
+                        Box {
+                            IconButton(onClick = { menuExpanded = true }) { Icon(Icons.Filled.MoreVert, "Saved scorecard options", tint = Color(0xFFB8F36B)) }
+                            DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                                DropdownMenuItem(text = { Text("Rename") }, onClick = { menuExpanded = false; renameTitle = round.scorecardTitle.ifBlank { round.courseName }; renamingRound = saved })
+                                DropdownMenuItem(text = { Text("Delete") }, onClick = { menuExpanded = false; deletingRound = saved })
+                            }
+                        }
                     }
                 }
             }
@@ -84,12 +98,24 @@ fun ScorecardHubScreen(
                 }
             }
         },
-        confirmButton = { TextButton(onClick = { showStartDialog = false; onStartScorecardOnly(title.trim(), holes) }) { Text("START WITHOUT COURSE", color = Color(0xFF4B7D22)) } },
+        confirmButton = { TextButton(onClick = { showStartDialog = false; onStartScorecardOnly(title.trim(), holes) }, colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFFB8F36B))) { Text("START WITHOUT COURSE") } },
         dismissButton = {
             Row {
-                TextButton(onClick = { showStartDialog = false; onChooseCourse(title.trim(), holes) }) { Text("CHOOSE COURSE", color = Color(0xFF4B7D22)) }
-                TextButton(onClick = { showStartDialog = false }) { Text("CANCEL") }
+                TextButton(onClick = { showStartDialog = false; onChooseCourse(title.trim(), holes) }, colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFFB8F36B))) { Text("CHOOSE COURSE") }
+                TextButton(onClick = { showStartDialog = false }, colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFF4B7D22))) { Text("CANCEL") }
             }
         }
     )
+    renamingRound?.let { saved ->
+        AlertDialog(onDismissRequest = { renamingRound = null }, title = { Text("Rename saved scorecard") },
+            text = { OutlinedTextField(value = renameTitle, onValueChange = { renameTitle = it.take(48) }, singleLine = true, label = { Text("Scorecard title") }) },
+            confirmButton = { TextButton(onClick = { onRenameSavedRound(saved, renameTitle); renamingRound = null }) { Text("SAVE", color = Color(0xFFB8F36B)) } },
+            dismissButton = { TextButton(onClick = { renamingRound = null }) { Text("CANCEL") } })
+    }
+    deletingRound?.let { saved ->
+        AlertDialog(onDismissRequest = { deletingRound = null }, title = { Text("Delete saved scorecard?") },
+            text = { Text("This permanently deletes this saved round from this device.") },
+            confirmButton = { TextButton(onClick = { onDeleteSavedRound(saved); deletingRound = null }) { Text("DELETE", color = Color(0xFFFFB4AB)) } },
+            dismissButton = { TextButton(onClick = { deletingRound = null }) { Text("CANCEL") } })
+    }
 }
