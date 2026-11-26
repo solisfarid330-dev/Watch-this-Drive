@@ -125,6 +125,21 @@ object CourseGeometryCache {
             .sortedBy { it.courseName.lowercase() }
     }.getOrDefault(emptyList())
 
+    fun delete(context: Context, courseId: Long) {
+        runCatching {
+            courseFile(context, courseId).delete()
+            val active = File(context.filesDir, ACTIVE_FILE_NAME)
+            if (active.isFile && JSONObject(active.readText(Charsets.UTF_8)).optLong("courseId", Long.MIN_VALUE) == courseId) active.delete()
+        }
+    }
+
+    fun clearAll(context: Context) {
+        runCatching {
+            File(context.filesDir, COURSE_DIRECTORY).deleteRecursively()
+            File(context.filesDir, ACTIVE_FILE_NAME).delete()
+        }
+    }
+
     fun clear(context: Context) {
         runCatching { File(context.filesDir, ACTIVE_FILE_NAME).delete() }
     }
