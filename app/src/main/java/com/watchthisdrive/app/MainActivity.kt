@@ -255,16 +255,7 @@ private fun WatchThisDriveApp() {
                 if (metadata != null) {
                     val current = roundScorecard
                     if (current != null && current.startedAt == expectedRoundStartedAt) {
-                        val parsByHole = metadata.holes.mapNotNull { hole ->
-                            hole.par?.let { hole.number.toString() to it }
-                        }.toMap()
-                        val yardagesByHole = metadata.holes.mapNotNull { hole ->
-                            hole.yardage?.let { hole.number.toString() to it }
-                        }.toMap()
-                        val updated = current.copy(
-                            holePars = current.holePars.mapValues { (number, existing) -> existing ?: parsByHole[number] },
-                            holeYardages = current.holeYardages + yardagesByHole
-                        )
+                        val updated = current.withCourseScorecardFacts(metadata)
                         roundScorecard = updated
                         RoundScorecardStore.saveActive(context, updated)
                     }
