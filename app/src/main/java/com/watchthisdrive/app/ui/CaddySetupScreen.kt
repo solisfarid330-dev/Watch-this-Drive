@@ -3,8 +3,10 @@ package com.watchthisdrive.app.ui
 import android.Manifest
 import android.content.Context
 import android.location.LocationManager
+import android.os.Build
 import android.content.pm.PackageManager
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -25,6 +27,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.core.content.ContextCompat
 import com.watchthisdrive.app.data.ClubCarryDistances
 import com.watchthisdrive.app.data.CourseCacheSummary
@@ -61,7 +64,7 @@ fun CaddySetupScreen(
     val hasFineLocation = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
     val hasCoarseLocation = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
     val deviceLocationEnabled = remember(permissionRevision) {
-        runCatching { (context.getSystemService(Context.LOCATION_SERVICE) as LocationManager).isLocationEnabled }.getOrDefault(false)
+        runCatching { val manager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager; if (Build.VERSION.SDK_INT >= 28) manager.isLocationEnabled else manager.isProviderEnabled(LocationManager.GPS_PROVIDER) || manager.isProviderEnabled(LocationManager.NETWORK_PROVIDER) }.getOrDefault(false)
     }
     val scorecardStorageBytes = runCatching { java.io.File(context.applicationInfo.dataDir, "shared_prefs/round_scorecards.xml").length() }.getOrDefault(0L)
 
@@ -220,10 +223,11 @@ private fun StatusLine(label: String, value: String) {
 }
 @Composable
 private fun Credit(name: String, detail: String, url: String? = null) {
+    val uriHandler = LocalUriHandler.current
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Text(name, color = Color.White, fontWeight = FontWeight.SemiBold)
         Text(detail, color = Muted, style = MaterialTheme.typography.bodySmall)
-        if (url != null) Text(url, color = Lime, style = MaterialTheme.typography.labelSmall)
+        if (url != null) Text(url, color = Lime, style = MaterialTheme.typography.labelSmall, modifier = Modifier.clickable { runCatching { uriHandler.openUri(url) } })
     }
 }
 private fun formatBytes(bytes: Long): String = when {
