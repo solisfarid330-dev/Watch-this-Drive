@@ -249,6 +249,30 @@ private fun WatchThisDriveApp() {
         RoundScorecardStore.saveActive(context, updated)
     }
 
+    fun enrichRoundWithCourseFacts(course: GolfCourse, expectedRoundStartedAt: Long) {
+        OpenGolfApiCourseLoader.load(course) { metadataResult ->
+            metadataResult.onSuccess { metadata ->
+                if (metadata != null) {
+                    val current = roundScorecard
+                    if (current != null && current.startedAt == expectedRoundStartedAt) {
+                        val parsByHole = metadata.holes.mapNotNull { hole ->
+                            hole.par?.let { hole.number.toString() to it }
+                        }.toMap()
+                        val yardagesByHole = metadata.holes.mapNotNull { hole ->
+                            hole.yardage?.let { hole.number.toString() to it }
+                        }.toMap()
+                        val updated = current.copy(
+                            holePars = current.holePars.mapValues { (number, existing) -> existing ?: parsByHole[number] },
+                            holeYardages = current.holeYardages + yardagesByHole
+                        )
+                        roundScorecard = updated
+                        RoundScorecardStore.saveActive(context, updated)
+                    }
+                }
+            }
+        }
+    }
+
     LaunchedEffect(activeRound) {
         if (activeRound && mapReconstruction == null && roundScorecard != null && !roundScorecard!!.scorecardOnly) {
             restoreActiveCourse()
@@ -371,7 +395,7 @@ private fun WatchThisDriveApp() {
                             activeHoleIndex = 0
                             val holes = loadedReconstruction?.holes.orEmpty()
                             if (holes.isNotEmpty()) {
-                                roundScorecard = RoundScorecard.new(
+                                val newRound = RoundScorecard.new(
                                     selectedCourse!!.name, holes.associate { it.number to it.par },
                                     courseId = selectedCourse!!.id,
                                     courseElementType = selectedCourse!!.elementType,
@@ -379,7 +403,9 @@ private fun WatchThisDriveApp() {
                                     courseLongitude = selectedCourse!!.longitude,
                                     expectedHoleCount = loadedGeometry?.expectedHoleCount ?: selectedCourse!!.expectedHoleCount
                                 )
-                                RoundScorecardStore.saveActive(context, roundScorecard)
+                                roundScorecard = newRound
+                                RoundScorecardStore.saveActive(context, newRound)
+                                enrichRoundWithCourseFacts(selectedCourse!!, newRound.startedAt)
                             } else {
                                 roundScorecard = null
                                 RoundScorecardStore.saveActive(context, null)
@@ -506,24 +532,9 @@ private fun WatchThisDriveApp() {
                                     ).copy(scorecardOnly = true, scorecardTitle = pendingScorecardTitle)
                                     roundScorecard = newRound
                                     RoundScorecardStore.saveActive(context, newRound)
-                                    // Fetch published scorecard facts in the background. The
-                                    // scorecard starts immediately; unavailable pars stay blank.
-                                    OpenGolfApiCourseLoader.load(course) { metadataResult ->
-                                        metadataResult.onSuccess { metadata ->
-                                            if (metadata != null) {
-                                                val current = roundScorecard
-                                                if (current != null && current.startedAt == newRound.startedAt && current.scorecardOnly) {
-                                                    val parsByHole = metadata.holes.mapNotNull { hole ->
-                                                        hole.par?.let { hole.number.toString() to it }
-                                                    }.toMap()
-                                                    val yardagesByHole = metadata.holes.mapNotNull { hole -> hole.yardage?.let { hole.number.toString() to it } }.toMap()
-                                                    val updated = current.copy(holePars = current.holePars.mapValues { (hole, existingPar) -> existingPar ?: parsByHole[hole] }, holeYardages = current.holeYardages + yardagesByHole)
-                                                    roundScorecard = updated
-                                                    RoundScorecardStore.saveActive(context, updated)
-                                                }
-                                            }
-                                        }
-                                    }
+                                    // Use the same factual course-scorecard enrichment as a
+                                    // mapped game, without building or displaying course geometry.
+                                    enrichRoundWithCourseFacts(course, newRound.startedAt)
                                     activeRound = true
                                     activeHoleIndex = 0
                                     viewingSavedRound = null
