@@ -21,16 +21,23 @@ import java.util.Date
 import java.util.Locale
 
 @Composable
-fun ScorecardHubScreen(savedRounds: List<SavedRound>, onStartScorecardOnly: (Int) -> Unit, onOpenSavedRound: (SavedRound) -> Unit) {
+fun ScorecardHubScreen(
+    savedRounds: List<SavedRound>,
+    onStartScorecardOnly: (String, Int) -> Unit,
+    onChooseCourse: (String, Int) -> Unit,
+    onOpenSavedRound: (SavedRound) -> Unit
+) {
     var showStartDialog by remember { mutableStateOf(false) }
     var holes by remember { mutableIntStateOf(18) }
+    var title by remember { mutableStateOf("") }
+
     Column(Modifier.fillMaxSize().background(Color(0xFF101713)).padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Text("SCORECARD", color = Color(0xFFB8F36B), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
         Text("Keep your round.", color = Color.White, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
         Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF1D2A22)), shape = RoundedCornerShape(18.dp)) {
             Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text("SCORECARD-ONLY GAME", color = Color(0xFFB8F36B), fontWeight = FontWeight.Bold)
-                Text("Track scores for yourself and your group without mapping a course or using GPS.", color = Color(0xFFB6C1B9))
+                Text("Track scores for yourself and your group with or without a selected course. GPS and course mapping are optional.", color = Color(0xFFB6C1B9))
                 Button(onClick = { showStartDialog = true }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB8F36B), contentColor = Color(0xFF101713))) {
                     Icon(Icons.Filled.Add, null); Spacer(Modifier.width(8.dp)); Text("START SCORECARD-ONLY GAME", fontWeight = FontWeight.Bold)
                 }
@@ -53,7 +60,8 @@ fun ScorecardHubScreen(savedRounds: List<SavedRound>, onStartScorecardOnly: (Int
                 Card(Modifier.fillMaxWidth().clickable { onOpenSavedRound(saved) }, colors = CardDefaults.cardColors(containerColor = Color(0xFF1B2921)), shape = RoundedCornerShape(14.dp)) {
                     Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                            Text(round.courseName, color = Color.White, fontWeight = FontWeight.Bold)
+                            Text(round.scorecardTitle.ifBlank { round.courseName }, color = Color.White, fontWeight = FontWeight.Bold)
+                            if (round.scorecardTitle.isNotBlank()) Text(round.courseName, color = Color(0xFFB6C1B9), style = MaterialTheme.typography.bodySmall)
                             Text(date, color = Color(0xFFB6C1B9), style = MaterialTheme.typography.bodySmall)
                             Text("${round.user.scores.size} holes scored · $total strokes · $relative", color = Color(0xFFB8F36B), style = MaterialTheme.typography.labelMedium)
                         }
@@ -63,11 +71,25 @@ fun ScorecardHubScreen(savedRounds: List<SavedRound>, onStartScorecardOnly: (Int
             }
         }
     }
-    if (showStartDialog) AlertDialog(onDismissRequest = { showStartDialog = false }, title = { Text("Start a scorecard-only game") },
-        text = { Column(verticalArrangement = Arrangement.spacedBy(10.dp)) { Text("Choose the number of holes."); Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilterChip(selected = holes == 9, onClick = { holes = 9 }, label = { Text("9 holes") })
-            FilterChip(selected = holes == 18, onClick = { holes = 18 }, label = { Text("18 holes") })
-        } } },
-        confirmButton = { TextButton(onClick = { showStartDialog = false; onStartScorecardOnly(holes) }) { Text("START GAME", color = Color(0xFF4B7D22)) } },
-        dismissButton = { TextButton(onClick = { showStartDialog = false }) { Text("CANCEL") } })
+    if (showStartDialog) AlertDialog(
+        onDismissRequest = { showStartDialog = false },
+        title = { Text("Start a scorecard-only game") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedTextField(value = title, onValueChange = { title = it.take(48) }, modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text("Scorecard title (optional)") }, placeholder = { Text("e.g. Saturday morning round") })
+                Text("Choose the number of holes. You can attach a course without enabling GPS.")
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(selected = holes == 9, onClick = { holes = 9 }, label = { Text("9 holes") })
+                    FilterChip(selected = holes == 18, onClick = { holes = 18 }, label = { Text("18 holes") })
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = { showStartDialog = false; onStartScorecardOnly(title.trim(), holes) }) { Text("START WITHOUT COURSE", color = Color(0xFF4B7D22)) } },
+        dismissButton = {
+            Row {
+                TextButton(onClick = { showStartDialog = false; onChooseCourse(title.trim(), holes) }) { Text("CHOOSE COURSE", color = Color(0xFF4B7D22)) }
+                TextButton(onClick = { showStartDialog = false }) { Text("CANCEL") }
+            }
+        }
+    )
 }
