@@ -609,6 +609,8 @@ private fun WatchThisDriveApp() {
                                     CourseGeometryCache.clear(context)
                                     roundScorecard = null
                                     activeRound = false
+                                    simulationMode = false
+                                    developerPreferences.edit().putBoolean("course_simulation_active", false).apply()
                                     viewingSavedRound = null
                                     selected = Tab.HOME
                                 },
