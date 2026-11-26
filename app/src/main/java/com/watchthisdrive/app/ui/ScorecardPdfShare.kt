@@ -16,12 +16,16 @@ import java.text.DateFormat
 import java.util.Date
 
 object ScorecardPdfShare {
-    fun share(context: Context, round: RoundScorecard) {
+    fun share(context: Context, round: RoundScorecard, golferName: String = "") {
         try {
             val directory = File(context.cacheDir, "shared_scorecards").apply { mkdirs() }
             val safeName = round.courseName.replace(Regex("[^A-Za-z0-9_-]"), "_").take(36)
             val file = File(directory, "WTD_${safeName}_${round.startedAt}.pdf")
-            createPdf(file, round)
+            val displayName = golferName.trim().takeIf { it.isNotEmpty() }
+            val exportRound = if (displayName == null) round else round.copy(players = round.players.map { player ->
+                if (player.id == round.userPlayerId) player.copy(name = displayName) else player
+            })
+            createPdf(file, exportRound)
             val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
             val send = Intent(Intent.ACTION_SEND).apply {
                 type = "application/pdf"
