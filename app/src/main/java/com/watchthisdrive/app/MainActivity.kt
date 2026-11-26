@@ -506,11 +506,26 @@ private fun WatchThisDriveApp() {
                         onChange = { clubCarries = it },
                         savedRounds = savedRounds,
                         cachedCourses = CourseGeometryCache.list(context),
+                        mappingReports = context.getSharedPreferences("course_mapping_reports", android.content.Context.MODE_PRIVATE).all.mapNotNull { (key, value) ->
+                            val features = (value as? Set<*>)?.filterIsInstance<String>().orEmpty()
+                            if (features.isEmpty()) null else key to features
+                        },
+                        mappingPreferences = context.getSharedPreferences("course_mapping_preferences", android.content.Context.MODE_PRIVATE).all.mapNotNull { (key, value) ->
+                            (value as? Int)?.let { key to it }
+                        },
                         activeRound = roundScorecard,
                         onDeleteCourse = { id -> CourseGeometryCache.delete(context, id); dataRevision++ },
                         onDeleteScorecard = { saved ->
                             RoundScorecardStore.deleteCompleted(context, saved)
                             savedRounds = RoundScorecardStore.loadCompleted(context)
+                            dataRevision++
+                        },
+                        onDeleteMappingReport = { key ->
+                            context.getSharedPreferences("course_mapping_reports", android.content.Context.MODE_PRIVATE).edit().remove(key).apply()
+                            dataRevision++
+                        },
+                        onDeleteMappingPreference = { key ->
+                            context.getSharedPreferences("course_mapping_preferences", android.content.Context.MODE_PRIVATE).edit().remove(key).apply()
                             dataRevision++
                         },
                         onDeleteActiveRound = {
@@ -526,6 +541,8 @@ private fun WatchThisDriveApp() {
                             CourseGeometryCache.clearAll(context)
                             ClubCarryDistances.clear(context)
                             ScorecardPdfShare.clear(context)
+                            context.getSharedPreferences("course_mapping_reports", android.content.Context.MODE_PRIVATE).edit().clear().commit()
+                            context.getSharedPreferences("course_mapping_preferences", android.content.Context.MODE_PRIVATE).edit().clear().commit()
                             mapGeometry = null
                             mapReconstruction = null
                             mapTarget = null
