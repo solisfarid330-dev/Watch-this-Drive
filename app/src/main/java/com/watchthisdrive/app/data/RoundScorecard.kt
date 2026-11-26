@@ -86,6 +86,20 @@ object RoundScorecardStore {
         prefs.edit().putString(COMPLETED, history.toString()).remove(ACTIVE).commit()
     }
 
+    fun deleteCompleted(context: Context, saved: SavedRound) {
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val remaining = loadCompleted(context).filterNot {
+            it.completedAt == saved.completedAt && it.round.startedAt == saved.round.startedAt
+        }
+        prefs.edit().putString(COMPLETED, JSONArray().apply {
+            remaining.forEach { put(encode(it.round).put("completedAt", it.completedAt)) }
+        }.toString()).commit()
+    }
+
+    fun clearAll(context: Context) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().remove(ACTIVE).remove(COMPLETED).commit()
+    }
+
     private fun encode(round: RoundScorecard): JSONObject = JSONObject().apply {
         put("courseName", round.courseName)
         put("startedAt", round.startedAt)
