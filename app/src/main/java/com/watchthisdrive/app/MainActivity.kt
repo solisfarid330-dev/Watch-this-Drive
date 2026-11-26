@@ -1261,6 +1261,8 @@ private fun CourseDetailScreen(
     var externalMetadataMessage by remember(course.id) { mutableStateOf("Checking OpenGolfAPI course records…") }
     var naipBitmap by remember(course.id) { mutableStateOf<android.graphics.Bitmap?>(null) }
     var naipMessage by remember(course.id) { mutableStateOf("Loading public aerial imagery…") }
+    var showCourseEvidenceDetails by remember(course.id) { mutableStateOf(false) }
+    var showHoleFeatureBreakdown by remember(course.id) { mutableStateOf(false) }
 
     // These evidence sources are independent of OSM mapping: a slow or missing
     // third-party response must never hold up the playable course geometry.
@@ -1456,7 +1458,32 @@ private fun CourseDetailScreen(
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
-                Text("Additional course evidence", color = Color.White, fontWeight = FontWeight.Bold)
+                Row(
+                    modifier = Modifier.fillMaxWidth().clickable { showCourseEvidenceDetails = !showCourseEvidenceDetails },
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text("Additional course evidence", color = Color.White, fontWeight = FontWeight.Bold)
+                        Text(
+                            "OpenGolfAPI · $externalMetadataMessage",
+                            color = Color(0xFFB6C1B9),
+                            style = MaterialTheme.typography.bodySmall,
+                            maxLines = 1
+                        )
+                        Text(
+                            "NAIP imagery · $naipMessage",
+                            color = Color(0xFFB6C1B9),
+                            style = MaterialTheme.typography.bodySmall,
+                            maxLines = 1
+                        )
+                    }
+                    Icon(
+                        if (showCourseEvidenceDetails) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                        contentDescription = if (showCourseEvidenceDetails) "Collapse course evidence" else "Expand course evidence",
+                        tint = Color(0xFFB8F36B)
+                    )
+                }
+                if (showCourseEvidenceDetails) {
                 Text("OpenGolfAPI", color = Color(0xFFB8F36B), fontWeight = FontWeight.SemiBold)
                 Text(externalMetadataMessage, color = Color(0xFFB6C1B9), style = MaterialTheme.typography.bodySmall)
                 externalMetadata?.let { metadata ->
@@ -1505,6 +1532,7 @@ private fun CourseDetailScreen(
                     color = Color(0xFFB6C1B9),
                     style = MaterialTheme.typography.bodySmall
                 )
+                }
             }
         }
 
@@ -1660,14 +1688,32 @@ private fun CourseDetailScreen(
                                 color = Color(0xFFB8F36B),
                                 fontWeight = FontWeight.SemiBold
                             )
-                            reconstructed.holes.forEach { hole ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth().clickable { showHoleFeatureBreakdown = !showHoleFeatureBreakdown },
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
                                 Text(
-                                    "Hole ${hole.number}: " +
-                                        (hole.pinSource?.let { if (it == com.watchthisdrive.app.data.PinSource.MAPPED) "mapped pin" else "estimated pin" } ?: "pin unavailable") +
-                                        " · ${hole.fairways.size} fairways · ${hole.bunkers.size} bunkers · ${hole.waterHazards.size} water features",
+                                    "Individual hole feature breakdown",
                                     color = Color.White,
-                                    style = MaterialTheme.typography.bodySmall
+                                    fontWeight = FontWeight.SemiBold,
+                                    modifier = Modifier.weight(1f)
                                 )
+                                Icon(
+                                    if (showHoleFeatureBreakdown) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                                    contentDescription = if (showHoleFeatureBreakdown) "Collapse hole breakdown" else "Expand hole breakdown",
+                                    tint = Color(0xFFB8F36B)
+                                )
+                            }
+                            if (showHoleFeatureBreakdown) {
+                                reconstructed.holes.forEach { hole ->
+                                    Text(
+                                        "Hole ${hole.number}: " +
+                                            (hole.pinSource?.let { if (it == com.watchthisdrive.app.data.PinSource.MAPPED) "mapped pin" else "estimated pin" } ?: "pin unavailable") +
+                                            " · ${hole.fairways.size} fairways · ${hole.bunkers.size} bunkers · ${hole.waterHazards.size} water features",
+                                        color = Color.White,
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                }
                             }
                         }
 
