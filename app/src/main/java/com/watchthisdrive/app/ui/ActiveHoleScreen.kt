@@ -139,7 +139,7 @@ fun ActiveHoleScreen(
         }
     }
 
-    DisposableEffect(fused, hasLocationPermission) {
+    DisposableEffect(fused, hasLocationPermission, simulationMode) {
         val fine = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
         val coarse = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
         var callback: LocationCallback? = null
