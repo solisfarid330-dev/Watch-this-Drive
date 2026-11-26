@@ -18,7 +18,8 @@ class CourseExternalSourcesTest {
             distanceMeters = 0f
         )
         val url = OpenGolfApiCourseLoader.buildSearchUrl(course)
-        assertTrue(url.startsWith("https://api.opengolfapi.org/api/v1/courses/search?"))
+        assertTrue(url.startsWith("https://api.opengolfapi.org/v1/courses/search?"))
+        assertTrue(OpenGolfApiCourseLoader.buildSearchUrls(course).any { it.startsWith("https://api.opengolfapi.org/api/v1/courses/search?") })
         assertTrue(url.contains("q=South+Padre+Island+Golf+Club"))
         assertTrue(url.contains("lat=26.1"))
         assertTrue(url.contains("lng=-97.2"))
@@ -232,6 +233,20 @@ class CourseExternalSourcesTest {
         assertEquals(350, enriched.holeYardages["1"])
         assertEquals(145, enriched.holeYardages["2"])
         assertTrue(enriched.scorecardOnly)
+    }
+
+    @Test
+    fun parsesOpenGolfHoleEndpointPerTeeYardageMap() {
+        val response = JSONObject(
+            """{"holes":[
+              {"hole_number":1,"par":4,"yardages":{"Championship":402,"Blue":385,"White":360}},
+              {"hole_number":2,"par":3,"yardages":{"Blue":155,"White":130}}
+            ]}"""
+        )
+        val metadata = OpenGolfApiCourseLoader.parseMetadata(response, JSONObject())
+        assertEquals(2, metadata.holes.size)
+        assertEquals(402, metadata.holes[0].yardage)
+        assertEquals(155, metadata.holes[1].yardage)
     }
 
 }
