@@ -146,8 +146,12 @@ fun CaddySetupScreen(
                 Switch(checked = simulationEnabled, onCheckedChange = onSimulationEnabledChange)
             }
             if (simulationEnabled) {
-                Button(onClick = onStartSimulation, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = Lime, contentColor = Ink)) {
-                    Text("CHOOSE COURSE & START SIMULATION", fontWeight = FontWeight.Bold)
+                if (activeRound == null) {
+                    Button(onClick = onStartSimulation, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = Lime, contentColor = Ink)) {
+                        Text("CHOOSE COURSE & START SIMULATION", fontWeight = FontWeight.Bold)
+                    }
+                } else {
+                    Text("Finish or discard the current round before starting a simulation, so your active scorecard is never overwritten.", color = Color(0xFFFFD166), style = MaterialTheme.typography.bodySmall)
                 }
                 Text("Choose any course available through WTD search. The course map is loaded normally; simulated movement is app-local and never spoofs Android's real GPS provider. A clear SIMULATION MODE banner stays visible during the test.", color = Muted, style = MaterialTheme.typography.bodySmall)
             }
