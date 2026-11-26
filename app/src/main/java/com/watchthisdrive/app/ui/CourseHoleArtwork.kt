@@ -24,6 +24,7 @@ import com.watchthisdrive.app.data.CourseGeometryType
 import com.watchthisdrive.app.data.CourseReconstruction
 import com.watchthisdrive.app.data.GeoPoint
 import com.watchthisdrive.app.data.ReconstructedHole
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlin.math.*
@@ -74,9 +75,33 @@ private fun CourseFeature.artworkPoints(): List<GeoPoint> =
         else -> points
     }
 
+private fun polygonCentroid(points: List<GeoPoint>): GeoPoint? {
+    if (points.size < 3) return null
+    val ring = if (points.first() == points.last()) points.dropLast(1) else points
+    if (ring.size < 3) return null
+    var twiceArea = 0.0
+    var latitudeSum = 0.0
+    var longitudeSum = 0.0
+    ring.indices.forEach { index ->
+        val current = ring[index]
+        val next = ring[(index + 1) % ring.size]
+        val cross = current.longitude * next.latitude - next.longitude * current.latitude
+        twiceArea += cross
+        longitudeSum += (current.longitude + next.longitude) * cross
+        latitudeSum += (current.latitude + next.latitude) * cross
+    }
+    if (kotlin.math.abs(twiceArea) < 1e-12) return null
+    return GeoPoint(latitudeSum / (3.0 * twiceArea), longitudeSum / (3.0 * twiceArea))
+}
+
 private fun CourseFeature.artworkCenter(): GeoPoint? {
     val points = artworkPoints()
     if (points.isEmpty()) return null
+    if (geometryType == CourseGeometryType.POLYGON ||
+        geometryType == CourseGeometryType.MULTI_POLYGON
+    ) {
+        polygonCentroid(points)?.let { return it }
+    }
     return GeoPoint(points.map { it.latitude }.average(), points.map { it.longitude }.average())
 }
 
@@ -96,6 +121,31 @@ private fun metersBetween(a: GeoPoint, b: GeoPoint): Double {
     return hypot(dx, dy)
 }
 
+private fun distanceToRouteMeters(point: GeoPoint, route: List<GeoPoint>): Double {
+    if (route.size < 2) return route.firstOrNull()?.let { metersBetween(point, it) } ?: Double.POSITIVE_INFINITY
+    return route.zipWithNext().minOf { (a, b) ->
+        val latitude = Math.toRadians((point.latitude + a.latitude + b.latitude) / 3.0)
+        val scaleX = 111320.0 * cos(latitude)
+        val px = (point.longitude - a.longitude) * scaleX
+        val py = (point.latitude - a.latitude) * 111320.0
+        val bx = (b.longitude - a.longitude) * scaleX
+        val by = (b.latitude - a.latitude) * 111320.0
+        val lengthSquared = bx * bx + by * by
+        val t = if (lengthSquared <= 1e-9) 0.0 else ((px * bx + py * by) / lengthSquared).coerceIn(0.0, 1.0)
+        hypot(px - t * bx, py - t * by)
+    }
+}
+
+private fun CourseFeature.isNearHoleRoute(route: List<GeoPoint>): Boolean {
+    val points = artworkPoints()
+    if (points.isEmpty() || route.size < 2) return false
+    val sample = points + artworkCenter().orEmptyPoint()
+    return sample.any { distanceToRouteMeters(it, route) <= 85.0 }
+}
+
+private fun GeoPoint?.orEmptyPoint(): List<GeoPoint> = this?.let(::listOf).orEmpty()
+
+
 private fun ReconstructedHole.toArtworkHole(geometry: CourseGeometry): ArtworkHole? {
     val teeFeature = tee ?: return null
     val greenFeature = green ?: return null
@@ -111,6 +161,11 @@ private fun ReconstructedHole.toArtworkHole(geometry: CourseGeometry): ArtworkHo
     }
     val length = centerline.zipWithNext().sumOf { (a, b) -> metersBetween(a, b) }
         .takeIf { it > 0.0 } ?: metersBetween(teePoint, greenPoint)
+    val mappedLandscape = geometry.features.filter { feature ->
+        feature.origin == CourseFeatureOrigin.SOURCE &&
+            feature.featureType.lowercase() in setOf("rough", "woodland", "forest", "path", "cart_path", "tree", "trees") &&
+            feature.isNearHoleRoute(centerline.ifEmpty { listOf(teePoint, greenPoint) })
+    }.map { it.toArtworkFeature() }
     return ArtworkHole(
         number = number.toIntOrNull() ?: return null,
         tee = teePoint,
@@ -124,6 +179,10 @@ private fun ReconstructedHole.toArtworkHole(geometry: CourseGeometry): ArtworkHo
         lengthMeters = length,
         mappedFairways = mappedFairways,
         mappedCenterline = centerlineFeature,
+        rough = mappedLandscape.filter { it.featureType.equals("rough", true) },
+        woodland = mappedLandscape.filter { it.featureType.equals("woodland", true) || it.featureType.equals("forest", true) },
+        paths = mappedLandscape.filter { it.featureType.equals("path", true) || it.featureType.equals("cart_path", true) },
+        trees = mappedLandscape.filter { it.featureType.equals("tree", true) || it.featureType.equals("trees", true) },
         par = par
     )
 }
@@ -157,6 +216,8 @@ private fun CourseHoleArtworkImage(
                 BitmapFactory.decodeFile(file.absolutePath)
             }
             failed = bitmap == null
+        } catch (cancelled: CancellationException) {
+            throw cancelled
         } catch (_: Exception) {
             failed = true
         }
