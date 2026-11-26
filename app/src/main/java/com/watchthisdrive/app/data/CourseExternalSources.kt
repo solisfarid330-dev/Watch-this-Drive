@@ -77,10 +77,14 @@ object OpenGolfApiCourseLoader {
             )
             if (candidateName.isBlank()) return@mapNotNull null
             val exactName = candidateName == targetName
-            val containedName = candidateName.contains(targetName) || targetName.contains(candidateName)
-            val shorterLength = minOf(candidateName.length, targetName.length).toDouble()
-            val longerLength = maxOf(candidateName.length, targetName.length).toDouble()
-            val similarName = containedName && shorterLength / longerLength >= 0.72
+            // Normalize common course-type suffix variants without fuzzy matching
+            // the distinctive course name itself.
+            fun identityName(value: String): String = value
+                .removeSuffix("golfclub")
+                .removeSuffix("golfcourse")
+                .removeSuffix("countryclub")
+            val similarName = identityName(candidateName).isNotBlank() &&
+                identityName(candidateName) == identityName(targetName)
 
             val candidateLat = candidate.optDouble("latitude", Double.NaN)
             val candidateLon = candidate.optDouble("longitude", Double.NaN)
