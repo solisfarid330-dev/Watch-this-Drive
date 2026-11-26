@@ -290,61 +290,36 @@ fun ActiveHoleScreen(
                     horizontalArrangement = Arrangement.spacedBy(5.dp)
                 ) {
                     Column(Modifier.weight(0.92f), verticalArrangement = Arrangement.Center) {
-                        Text(
-                            if (target != null) "DISTANCE TO TARGET" else "DISTANCE TO PIN",
-                            color = Color(0xFFB6C1B9), style = MaterialTheme.typography.labelSmall, maxLines = 1
-                        )
-                        Text(
-                            (yardsToTarget ?: yardsToPin)?.let { "$it yd" } ?: "— yd",
-                            color = Color.White, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(if (target != null) "TO TARGET" else "TO PIN", color = Color(0xFFB6C1B9), style = MaterialTheme.typography.labelSmall, maxLines = 1, modifier = Modifier.weight(1f))
+                            if (!simulationMode) {
+                                Text(displayedGpsMessage, color = Color(0xFFB8F36B), style = MaterialTheme.typography.labelSmall, maxLines = 1)
+                                IconButton(onClick = { refreshGps() }, enabled = !refreshingGps, modifier = Modifier.size(24.dp)) {
+                                    if (refreshingGps) CircularProgressIndicator(Modifier.size(13.dp), strokeWidth = 2.dp, color = Color(0xFFB8F36B))
+                                    else Icon(Icons.Filled.Refresh, contentDescription = "Refresh GPS", tint = Color(0xFFB8F36B), modifier = Modifier.size(16.dp))
+                                }
+                            }
+                        }
+                        Text((yardsToTarget ?: yardsToPin)?.let { "$it yd" } ?: "— yd", color = Color.White, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, maxLines = 1)
                         if (simulationMode && simulationPath.size >= 2) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                                 Text("MOVE", color = Color(0xFFFFD166), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
-                                Slider(value = simulationProgress, onValueChange = { simulationProgress = it }, valueRange = 0f..1f, modifier = Modifier.weight(1f).height(24.dp))
+                                Slider(value = simulationProgress, onValueChange = { simulationProgress = it }, valueRange = 0f..1f, modifier = Modifier.weight(1f).height(22.dp))
                                 Text("${(simulationProgress * 100).roundToInt()}%", color = Color.White, style = MaterialTheme.typography.labelSmall)
-                            }
-                        } else {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(displayedGpsMessage, color = Color(0xFFB8F36B), style = MaterialTheme.typography.labelSmall, maxLines = 1, modifier = Modifier.weight(1f, fill = false))
-                                IconButton(onClick = { refreshGps() }, enabled = !refreshingGps, modifier = Modifier.size(28.dp)) {
-                                    if (refreshingGps) CircularProgressIndicator(Modifier.size(14.dp), strokeWidth = 2.dp, color = Color(0xFFB8F36B))
-                                    else Icon(Icons.Filled.Refresh, contentDescription = "Refresh GPS", tint = Color(0xFFB8F36B), modifier = Modifier.size(18.dp))
-                                }
                             }
                         }
                         if (hole.pinSource == com.watchthisdrive.app.data.PinSource.ESTIMATED_GREEN_CENTER) {
                             Text("Estimated green-center pin", color = Color(0xFFFFC857), style = MaterialTheme.typography.labelSmall, maxLines = 1)
                         }
                     }
-                    Surface(
-                        color = Color(0xFF263B2A), shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier.weight(1.08f)
-                    ) {
-                        Column(
-                            Modifier.fillMaxWidth().padding(horizontal = 7.dp, vertical = 4.dp),
-                            verticalArrangement = Arrangement.Center
-                        ) {
-                            Text(
-                                "YOUR CADDY RECOMMENDS",
-                                color = Color(0xFFB8F36B), style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold, maxLines = 1
-                            )
-                            Text(
-                                recommendedClub?.name ?: "Set carry distances",
-                                color = Color.White, fontWeight = FontWeight.Bold,
-                                style = MaterialTheme.typography.titleSmall, maxLines = 1
-                            )
-                            Text(
-                                when {
-                                    recommendedClub == null && caddyDistance == null -> "Waiting for yardage"
-                                    recommendedClub == null && carryDistances.isEmpty() -> "Add your club carries in Settings"
-                                    recommendedClub != null && recommendedClub.isBeyondLongestCarry -> "Longest club · ${recommendedClub.carryYards} yd carry"
-                                    recommendedClub != null -> "${recommendedClub.carryYards} yd carry"
-                                    else -> "No club data available"
-                                },
-                                color = Color(0xFFD5E2D8), style = MaterialTheme.typography.labelSmall, maxLines = 1
-                            )
+                    Surface(color = Color(0xFF263B2A), shape = RoundedCornerShape(10.dp), modifier = Modifier.weight(1.08f)) {
+                        Column(Modifier.fillMaxWidth().padding(horizontal = 7.dp, vertical = 4.dp), verticalArrangement = Arrangement.Center) {
+                            Text("CADDY RECOMMENDS", color = Color(0xFFB8F36B), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, maxLines = 1)
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text(recommendedClub?.name ?: "Set carry distances", color = Color.White, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall, maxLines = 1, modifier = Modifier.weight(1f))
+                                Text(recommendedClub?.let { "${it.carryYards} yd" } ?: "—", color = Color(0xFFD5E2D8), style = MaterialTheme.typography.labelSmall, maxLines = 1)
+                            }
+                            if (recommendedClub?.isBeyondLongestCarry == true) Text("Beyond longest carry", color = Color(0xFFFFD166), style = MaterialTheme.typography.labelSmall, maxLines = 1)
                         }
                     }
                 }
