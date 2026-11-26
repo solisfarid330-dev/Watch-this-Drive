@@ -249,4 +249,13 @@ class CourseExternalSourcesTest {
         assertEquals(155, metadata.holes[1].yardage)
     }
 
+    @Test
+    fun prefersPublishedTeeYardagesWhenMetersAndTeeMapAreBothPresent() {
+        val detail = JSONObject(
+            """{"holes":[{"hole_number":1,"par":4,"meters":350,"yardages":{"Championship":402,"Blue":385,"White":360}}]}"""
+        )
+        val metadata = OpenGolfApiCourseLoader.parseMetadata(detail, JSONObject())
+        assertEquals(402, metadata.holes.single().yardage)
+    }
+
 }
