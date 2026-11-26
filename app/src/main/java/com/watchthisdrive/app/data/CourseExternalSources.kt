@@ -75,7 +75,12 @@ object OpenGolfApiCourseLoader {
             val candidateName = normalizeName(
                 candidate.optString("course_name", candidate.optString("name"))
             )
-            if (candidateName.isBlank() || candidateName != targetName) return@mapNotNull null
+            if (candidateName.isBlank()) return@mapNotNull null
+            val exactName = candidateName == targetName
+            val containedName = candidateName.contains(targetName) || targetName.contains(candidateName)
+            val shorterLength = minOf(candidateName.length, targetName.length).toDouble()
+            val longerLength = maxOf(candidateName.length, targetName.length).toDouble()
+            val similarName = containedName && shorterLength / longerLength >= 0.72
 
             val candidateLat = candidate.optDouble("latitude", Double.NaN)
             val candidateLon = candidate.optDouble("longitude", Double.NaN)
@@ -86,7 +91,11 @@ object OpenGolfApiCourseLoader {
             } else Double.POSITIVE_INFINITY
 
             if (!exactOsmMatch && distance > MAX_MATCH_DISTANCE_METERS) return@mapNotNull null
-            Triple(candidate, if (exactOsmMatch) 0.0 else distance, exactOsmMatch)
+            // Name variants such as "Golf Club" vs "Golf Course" are common.
+            // Accept only strong containment variants, and only with the existing
+            // tight geographic match (or an exact OSM ID); never fuzzy-match by name alone.
+            if (!exactOsmMatch && !exactName && !similarName) return@mapNotNull null
+            Triple(candidate, if (exactOsmMatch) 0.0 else distance + if (exactName) 0.0 else 1.0, exactOsmMatch)
         }
         return ranked.minByOrNull { it.second }?.first
     }
@@ -186,6 +195,7 @@ object OpenGolfApiCourseLoader {
         root.optJSONArray(key)?.let { return it }
         root.optJSONObject("data")?.optJSONArray(key)?.let { return it }
         root.optJSONObject("course")?.optJSONArray(key)?.let { return it }
+        root.optJSONObject("data")?.optJSONObject("course")?.optJSONArray(key)?.let { return it }
         return null
     }
 
