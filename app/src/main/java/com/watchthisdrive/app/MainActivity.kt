@@ -291,9 +291,19 @@ private fun WatchThisDriveApp() {
             var resolvedGeometry: CourseGeometry? = null
             var resolvedReconstruction: CourseReconstruction? = null
             val geometryPars = sourceGeometry?.let { source ->
+                val mappingPreferences = context.getSharedPreferences(
+                    "course_mapping_preferences", android.content.Context.MODE_PRIVATE
+                )
+                val expectedHoleCount = mappingPreferences.getInt(
+                    "expected_holes_${course.elementType}_${course.id}",
+                    current.expectedHoleCount ?: course.expectedHoleCount ?: 0
+                ).takeIf { it == 9 || it == 18 }
+                val geometryWithExpectedCount = source.copy(
+                    expectedHoleCount = expectedHoleCount ?: source.expectedHoleCount
+                )
                 val enrichedSource = externalMetadata?.let { metadata ->
-                    enrichGeometryWithScorecard(source, metadata, current.expectedHoleCount)
-                } ?: source
+                    enrichGeometryWithScorecard(geometryWithExpectedCount, metadata, expectedHoleCount)
+                } ?: geometryWithExpectedCount
                 val inferred = CourseFeatureInference.addInferredFeatures(
                     CourseHoleInference.addInferredHoles(enrichedSource)
                 )
