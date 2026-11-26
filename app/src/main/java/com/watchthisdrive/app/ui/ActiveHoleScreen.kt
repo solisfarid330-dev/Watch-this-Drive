@@ -340,6 +340,7 @@ fun ActiveHoleScreen(
                         TextButton(onClick = { target = null }) { Text("Clear", color = Color(0xFFB8F36B)) }
                     }
                 }
+            }
             Surface(color = Color(0xF018231C), shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth()) {
                 Row(Modifier.padding(horizontal = 2.dp, vertical = 0.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                     IconButton(onClick = onExitRound, modifier = Modifier.size(30.dp)) { Icon(Icons.Filled.ArrowBack, contentDescription = "Leave game and return home", tint = Color.White) }
