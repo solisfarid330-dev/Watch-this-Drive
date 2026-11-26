@@ -126,6 +126,8 @@ fun CaddySetupScreen(
                             colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Lime, unfocusedBorderColor = Color(0xFF526257), cursorColor = Lime))
                     }
                 }
+
+            }
             SettingsDetail {
                 Text("TRY YOUR CADDY", color = Lime, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium)
                 Text("Test a target distance without being on a course or using GPS. This preview uses your saved carry distances only; it does not simulate or change your GPS position.", color = Muted, style = MaterialTheme.typography.bodySmall)
@@ -143,7 +145,6 @@ fun CaddySetupScreen(
                     else -> "${preview.carryYards} yd carry · simulated target distance ${testDistance.toInt()} yd"
                 }, color = Muted, style = MaterialTheme.typography.bodySmall)
                 Text("SIMULATED TEST · NOT GPS", color = Color(0xFFFFC857), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
-            }
             }
         }
 
