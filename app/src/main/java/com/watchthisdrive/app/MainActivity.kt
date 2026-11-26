@@ -261,28 +261,92 @@ private fun WatchThisDriveApp() {
     fun enrichRoundWithCourseFacts(course: GolfCourse, expectedRoundStartedAt: Long) {
         if (courseFactsRequestedFor == expectedRoundStartedAt) return
         courseFactsRequestedFor = expectedRoundStartedAt
-        courseFactsStatus = "Looking up published course par and yardage…"
-        OpenGolfApiCourseLoader.load(course) { metadataResult ->
+        courseFactsStatus = "Loading course hole information…"
+
+        // Resolve the same primary par source used by Active Game: reconstructed
+        // OSM hole features. OpenGolfAPI is secondary and fills only missing facts.
+        // A cached course is preferred so Scorecard Only can resolve immediately
+        // without displaying or rebuilding a course map.
+        var geometryReady = false
+        var metadataReady = false
+        var sourceGeometry: CourseGeometry? = CourseGeometryCache.load(context, course.id)
+        var externalMetadata: ExternalCourseMetadata? = null
+
+        fun applyResolvedFacts() {
             val current = roundScorecard
-            if (current == null || current.startedAt != expectedRoundStartedAt) return@load
-            metadataResult.onSuccess { metadata ->
-                if (metadata == null) {
-                    courseFactsStatus = "No matching published course scorecard was found. You can still enter par manually."
-                } else {
-                    val updated = current.withCourseScorecardFacts(metadata)
-                    roundScorecard = updated
-                    RoundScorecardStore.saveActive(context, updated)
-                    val parCount = updated.holePars.values.count { it != null }
-                    val yardageCount = updated.holeYardages.values.count { it != null }
-                    courseFactsStatus = when {
-                        parCount > 0 && yardageCount > 0 -> "Loaded published par for $parCount holes and yardage for $yardageCount holes."
-                        parCount > 0 -> "Loaded par for $parCount holes. Published hole yardage is unavailable for this course."
-                        yardageCount > 0 -> "Loaded yardage for $yardageCount holes. Published par is unavailable for this course."
-                        else -> "Course found, but its published record has no hole-by-hole par or yardage."
-                    }
+            if (current == null || current.startedAt != expectedRoundStartedAt) return
+            if (!geometryReady && !metadataReady) return
+
+            val geometryPars = sourceGeometry?.let { source ->
+                val enrichedSource = externalMetadata?.let { metadata ->
+                    enrichGeometryWithScorecard(source, metadata, current.expectedHoleCount)
+                } ?: source
+                val inferred = CourseFeatureInference.addInferredFeatures(
+                    CourseHoleInference.addInferredHoles(enrichedSource)
+                )
+                CourseReconstructionEngine.reconstruct(inferred).holes
+                    .associate { hole -> hole.number to hole.par }
+            }.orEmpty()
+
+            val publishedPars = externalMetadata?.holes
+                ?.mapNotNull { hole -> hole.par?.let { hole.number to it } }
+                ?.toMap().orEmpty()
+            val publishedYardages = externalMetadata?.holes
+                ?.mapNotNull { hole -> hole.yardage?.let { hole.number.toString() to it } }
+                ?.toMap().orEmpty()
+
+            // Preserve any value already present (including a golfer's manual
+            // correction); mapped geometry wins over the API when filling blanks.
+            val resolved = current.copy(
+                holePars = current.holePars.mapValues { (number, existing) ->
+                    existing ?: geometryPars[number] ?: publishedPars[number.toString()]
+                },
+                holeYardages = current.holeYardages.mapValues { (number, existing) ->
+                    existing ?: publishedYardages[number]
+                } + publishedYardages.filterKeys { it !in current.holeYardages }
+            )
+            roundScorecard = resolved
+            RoundScorecardStore.saveActive(context, resolved)
+
+            if (!geometryReady) {
+                courseFactsStatus = "Checking mapped course hole information…"
+                return
+            }
+            val parCount = resolved.holePars.values.count { it != null }
+            val yardageCount = resolved.holeYardages.values.count { it != null }
+            courseFactsStatus = when {
+                parCount > 0 && yardageCount > 0 -> "Loaded par for $parCount holes and yardage for $yardageCount holes."
+                parCount > 0 -> "Loaded par for $parCount holes. Published hole yardage is unavailable for this course."
+                yardageCount > 0 -> "Loaded yardage for $yardageCount holes. Par is unavailable for some holes; you can enter it manually."
+                else -> "Course par and yardage could not be verified. You can enter par manually."
+            }
+            if (parCount == 0 && yardageCount == 0 && externalMetadata == null && sourceGeometry == null) {
+                courseFactsRequestedFor = null
+            }
+        }
+
+        OpenGolfApiCourseLoader.load(course) { result ->
+            metadataReady = true
+            externalMetadata = result.getOrNull()
+            if (geometryReady) applyResolvedFacts()
+            else if (result.isFailure) courseFactsStatus = "Checking mapped course hole information…"
+        }
+
+        if (sourceGeometry != null) {
+            geometryReady = true
+            applyResolvedFacts()
+        } else {
+            CourseGeometryLoader.load(course) { result ->
+                geometryReady = true
+                result.onSuccess { loaded ->
+                    sourceGeometry = loaded
+                    CourseGeometryCache.save(context, loaded)
                 }
-            }.onFailure { problem ->
-                courseFactsStatus = "Couldn't load course facts: " + (problem.message ?: "Please try again.")
+                applyResolvedFacts()
+                if (result.isFailure && externalMetadata == null) {
+                    courseFactsStatus = "Couldn't load mapped course information. You can still enter par manually."
+                    courseFactsRequestedFor = null
+                }
             }
         }
     }
@@ -463,6 +527,7 @@ private fun WatchThisDriveApp() {
                                 )
                                 roundScorecard = newRound
                                 RoundScorecardStore.saveActive(context, newRound)
+                                enrichRoundWithCourseFacts(selectedCourse!!, newRound.startedAt)
                             } else {
                                 roundScorecard = null
                                 RoundScorecardStore.saveActive(context, null)
