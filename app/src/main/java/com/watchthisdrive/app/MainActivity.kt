@@ -48,6 +48,7 @@ import com.watchthisdrive.app.data.ClubCarryDistances
 import com.watchthisdrive.app.data.RoundPlayer
 import com.watchthisdrive.app.data.RoundScorecard
 import com.watchthisdrive.app.data.RoundScorecardStore
+import com.watchthisdrive.app.data.withCourseScorecardFacts
 import com.watchthisdrive.app.data.CourseGeometry
 import com.watchthisdrive.app.data.CourseGeometryCache
 import com.watchthisdrive.app.data.CourseGeometryLoader
