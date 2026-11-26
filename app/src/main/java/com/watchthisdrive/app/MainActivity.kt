@@ -1,5 +1,6 @@
 package com.watchthisdrive.app
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
@@ -7,6 +8,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import android.Manifest
 import android.content.pm.PackageManager
+import android.content.Intent
+import android.provider.Settings
+import android.net.Uri
 import android.location.Location
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -24,6 +28,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -57,6 +62,7 @@ import com.watchthisdrive.app.ui.CaddySetupScreen
 import com.watchthisdrive.app.ui.ScorecardHubScreen
 import com.watchthisdrive.app.ui.GlobalScorecardScreen
 import com.watchthisdrive.app.ui.GolfTheme
+import com.watchthisdrive.app.ui.ScorecardPdfShare
 import java.util.Locale
 
 class MainActivity : ComponentActivity() {
@@ -87,6 +93,8 @@ private fun WatchThisDriveApp() {
     var activeRound by remember { mutableStateOf(roundScorecard != null) }
     var activeHoleIndex by remember { mutableIntStateOf((roundScorecard?.activeHoleNumber?.toIntOrNull() ?: 1) - 1) }
     var locationMessage by remember { mutableStateOf("Location not checked yet") }
+    var permissionRevision by remember { mutableIntStateOf(0) }
+    var dataRevision by remember { mutableIntStateOf(0) }
 
     val fused = remember { LocationServices.getFusedLocationProviderClient(context) }
     var clubCarries by remember { mutableStateOf(ClubCarryDistances.load(context)) }
@@ -439,7 +447,7 @@ private fun WatchThisDriveApp() {
                     Tab.SCORE -> {
                         val round = roundScorecard
                         if (viewingSavedRound != null) {
-                            GlobalScorecardScreen(round = viewingSavedRound!!.round, onScoreChange = { _, _, _ -> }, onAddPlayer = {}, onRemovePlayer = {}, onFinishRound = {}, readOnly = true, onBack = { viewingSavedRound = null })
+                            GlobalScorecardScreen(round = viewingSavedRound!!.round, onScoreChange = { _, _, _ -> }, onAddPlayer = {}, onRemovePlayer = {}, onFinishRound = {}, readOnly = true, onBack = { viewingSavedRound = null }, onShare = { ScorecardPdfShare.share(context, viewingSavedRound!!.round) })
                         } else if (activeRound && round != null) {
                             GlobalScorecardScreen(
                                 round = round,
@@ -485,10 +493,44 @@ private fun WatchThisDriveApp() {
                         context = context,
                         carryDistances = clubCarries,
                         onChange = { clubCarries = it },
-                        savedRoundSummaries = savedRounds.map { saved ->
-                            "${saved.round.courseName} · ${saved.round.holePars.size} holes"
+                        savedRounds = savedRounds,
+                        cachedCourses = CourseGeometryCache.list(context),
+                        activeRound = roundScorecard,
+                        onDeleteCourse = { id -> CourseGeometryCache.delete(context, id); dataRevision++ },
+                        onDeleteScorecard = { saved ->
+                            RoundScorecardStore.deleteCompleted(context, saved)
+                            savedRounds = RoundScorecardStore.loadCompleted(context)
+                            dataRevision++
                         },
-                        cachedCourses = CourseGeometryCache.list(context)
+                        onDeleteActiveRound = {
+                            RoundScorecardStore.saveActive(context, null)
+                            roundScorecard = null
+                            activeRound = false
+                            CourseGeometryCache.clear(context)
+                            selected = Tab.HOME
+                            dataRevision++
+                        },
+                        onDeleteAll = {
+                            RoundScorecardStore.clearAll(context)
+                            CourseGeometryCache.clearAll(context)
+                            ClubCarryDistances.clear(context)
+                            savedRounds = emptyList()
+                            roundScorecard = null
+                            activeRound = false
+                            clubCarries = ClubCarryDistances.load(context)
+                            selected = Tab.HOME
+                            dataRevision++
+                        },
+                        onRequestLocationPermission = {
+                            val fine = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+                            val coarse = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+                            if (fine || coarse) {
+                                context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", context.packageName, null)))
+                            } else permissionLauncher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
+                        },
+                        onOpenAppSettings = { context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", context.packageName, null))) },
+                        onOpenDeviceLocationSettings = { context.startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)) },
+                        permissionRevision = permissionRevision + dataRevision
                     )
                 }
             }
@@ -499,7 +541,19 @@ private fun WatchThisDriveApp() {
 @Composable
 private fun HomeScreen(hasActiveRound: Boolean, onResumeRound: () -> Unit, onFindCourses: () -> Unit) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(22.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
-        Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Canvas(Modifier.size(width = 48.dp, height = 52.dp)) {
+                val cx = size.width / 2f
+                drawLine(Color(0xFFB8F36B), Offset(cx, 28.dp.toPx()), Offset(cx, 45.dp.toPx()), strokeWidth = 3.dp.toPx())
+                drawLine(Color(0xFFB8F36B), Offset(cx - 7.dp.toPx(), 45.dp.toPx()), Offset(cx + 7.dp.toPx(), 45.dp.toPx()), strokeWidth = 2.dp.toPx())
+                drawCircle(Color(0xFFB8F36B), 11.dp.toPx(), Offset(cx, 16.dp.toPx()))
+                drawCircle(Color(0xFF6D9E38), 1.1.dp.toPx(), Offset(cx - 4.dp.toPx(), 12.dp.toPx()))
+                drawCircle(Color(0xFF6D9E38), 1.1.dp.toPx(), Offset(cx + 3.dp.toPx(), 10.dp.toPx()))
+                drawCircle(Color(0xFF6D9E38), 1.1.dp.toPx(), Offset(cx + 5.dp.toPx(), 17.dp.toPx()))
+                drawCircle(Color(0xFF6D9E38), 1.1.dp.toPx(), Offset(cx - 2.dp.toPx(), 20.dp.toPx()))
+            }
+            Spacer(Modifier.width(10.dp))
+            Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
             Text(
                 "WATCH THIS",
                 color = Color.White,
@@ -523,6 +577,7 @@ private fun HomeScreen(hasActiveRound: Boolean, onResumeRound: () -> Unit, onFin
                 letterSpacing = 2.5.sp,
                 fontWeight = FontWeight.SemiBold
             )
+            }
         }
         Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF1D2A22)), shape = RoundedCornerShape(22.dp)) {
             Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
