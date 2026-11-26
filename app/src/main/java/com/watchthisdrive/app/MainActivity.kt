@@ -107,6 +107,7 @@ private fun WatchThisDriveApp() {
 
     val fused = remember { LocationServices.getFusedLocationProviderClient(context) }
     var clubCarries by remember { mutableStateOf(ClubCarryDistances.load(context)) }
+    var golferName by remember { mutableStateOf(context.getSharedPreferences("golfer_profile", android.content.Context.MODE_PRIVATE).getString("name", "").orEmpty()) }
 
     fun restoreActiveCourse() {
         val savedRound = roundScorecard ?: return
@@ -457,7 +458,7 @@ private fun WatchThisDriveApp() {
                     Tab.SCORE -> {
                         val round = roundScorecard
                         if (viewingSavedRound != null) {
-                            GlobalScorecardScreen(round = viewingSavedRound!!.round, onScoreChange = { _, _, _ -> }, onAddPlayer = {}, onRemovePlayer = {}, onFinishRound = {}, readOnly = true, onBack = { viewingSavedRound = null }, onShare = { ScorecardPdfShare.share(context, viewingSavedRound!!.round) })
+                            GlobalScorecardScreen(round = viewingSavedRound!!.round, onScoreChange = { _, _, _ -> }, onAddPlayer = {}, onRemovePlayer = {}, onFinishRound = {}, readOnly = true, onBack = { viewingSavedRound = null }, onShare = { ScorecardPdfShare.share(context, viewingSavedRound!!.round, golferName) })
                         } else if (activeRound && round != null) {
                             GlobalScorecardScreen(
                                 round = round,
@@ -487,7 +488,7 @@ private fun WatchThisDriveApp() {
                                     viewingSavedRound = null
                                     selected = Tab.HOME
                                 },
-                                onShare = { roundScorecard?.let { ScorecardPdfShare.share(context, it) } }
+                                onShare = { roundScorecard?.let { ScorecardPdfShare.share(context, it, golferName) } }
                             )
                         } else ScorecardHubScreen(savedRounds = savedRounds, onStartScorecardOnly = { count ->
                             val pars = (1..count).associate { it.toString() to 4 }
@@ -504,6 +505,11 @@ private fun WatchThisDriveApp() {
                         context = context,
                         carryDistances = clubCarries,
                         onChange = { clubCarries = it },
+                        golferName = golferName,
+                        onGolferNameChange = { value ->
+                            golferName = value
+                            context.getSharedPreferences("golfer_profile", android.content.Context.MODE_PRIVATE).edit().putString("name", value).apply()
+                        },
                         savedRounds = savedRounds,
                         cachedCourses = CourseGeometryCache.list(context),
                         mappingReports = context.getSharedPreferences("course_mapping_reports", android.content.Context.MODE_PRIVATE).all.mapNotNull { (key, value) ->
@@ -540,6 +546,8 @@ private fun WatchThisDriveApp() {
                             RoundScorecardStore.clearAll(context)
                             CourseGeometryCache.clearAll(context)
                             ClubCarryDistances.clear(context)
+                            context.getSharedPreferences("golfer_profile", android.content.Context.MODE_PRIVATE).edit().clear().commit()
+                            golferName = ""
                             ScorecardPdfShare.clear(context)
                             context.getSharedPreferences("course_mapping_reports", android.content.Context.MODE_PRIVATE).edit().clear().commit()
                             context.getSharedPreferences("course_mapping_preferences", android.content.Context.MODE_PRIVATE).edit().clear().commit()
