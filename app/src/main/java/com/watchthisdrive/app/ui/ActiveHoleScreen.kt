@@ -293,10 +293,17 @@ fun ActiveHoleScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(if (target != null) "TO TARGET" else "TO PIN", color = Color(0xFFB6C1B9), style = MaterialTheme.typography.labelSmall, maxLines = 1, modifier = Modifier.weight(1f))
                             if (!simulationMode) {
-                                Text(displayedGpsMessage, color = Color(0xFFB8F36B), style = MaterialTheme.typography.labelSmall, maxLines = 1)
-                                IconButton(onClick = { refreshGps() }, enabled = !refreshingGps, modifier = Modifier.size(24.dp)) {
-                                    if (refreshingGps) CircularProgressIndicator(Modifier.size(13.dp), strokeWidth = 2.dp, color = Color(0xFFB8F36B))
-                                    else Icon(Icons.Filled.Refresh, contentDescription = "Refresh GPS", tint = Color(0xFFB8F36B), modifier = Modifier.size(16.dp))
+                                Text(displayedGpsMessage, color = Color(0xFFB8F36B), style = MaterialTheme.typography.labelSmall, maxLines = 1, modifier = Modifier.weight(1f))
+                                TextButton(
+                                    onClick = { refreshGps() },
+                                    enabled = !refreshingGps,
+                                    contentPadding = PaddingValues(horizontal = 2.dp, vertical = 0.dp),
+                                    modifier = Modifier.height(24.dp)
+                                ) {
+                                    if (refreshingGps) CircularProgressIndicator(Modifier.size(12.dp), strokeWidth = 2.dp, color = Color(0xFFB8F36B))
+                                    else Icon(Icons.Filled.Refresh, contentDescription = null, tint = Color(0xFFB8F36B), modifier = Modifier.size(13.dp))
+                                    Spacer(Modifier.width(2.dp))
+                                    Text("Refresh", color = Color(0xFFB8F36B), style = MaterialTheme.typography.labelSmall, maxLines = 1)
                                 }
                             }
                         }
