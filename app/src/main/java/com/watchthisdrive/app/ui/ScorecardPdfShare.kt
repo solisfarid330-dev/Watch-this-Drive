@@ -50,6 +50,11 @@ object ScorecardPdfShare {
                 paint.color = dark
                 canvas.drawColor(Color.WHITE)
 
+                paint.color = green
+                paint.strokeWidth = 2.4f
+                canvas.drawCircle(25f, 48f, 7f, paint)
+                canvas.drawLine(25f, 55f, 25f, 70f, paint)
+                canvas.drawLine(20f, 70f, 30f, 70f, paint)
                 paint.typeface = Typeface.create("sans-serif-black", Typeface.BOLD)
                 paint.textSize = 25f
                 canvas.drawText("WATCH THIS", 42f, 54f, paint)
