@@ -221,6 +221,7 @@ private fun WatchThisDriveApp() {
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { result ->
+        permissionRevision++
         val granted =
             result[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
             result[Manifest.permission.ACCESS_COARSE_LOCATION] == true
@@ -476,7 +477,8 @@ private fun WatchThisDriveApp() {
                                     activeRound = false
                                     viewingSavedRound = null
                                     selected = Tab.HOME
-                                }
+                                },
+                                onShare = { roundScorecard?.let { ScorecardPdfShare.share(context, it) } }
                             )
                         } else ScorecardHubScreen(savedRounds = savedRounds, onStartScorecardOnly = { count ->
                             val pars = (1..count).associate { it.toString() to 4 }
