@@ -14,6 +14,9 @@ import android.net.Uri
 import android.location.Location
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -95,6 +98,12 @@ private fun WatchThisDriveApp() {
     var locationMessage by remember { mutableStateOf("Location not checked yet") }
     var permissionRevision by remember { mutableIntStateOf(0) }
     var dataRevision by remember { mutableIntStateOf(0) }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event -> if (event == Lifecycle.Event.ON_RESUME) permissionRevision++ }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     val fused = remember { LocationServices.getFusedLocationProviderClient(context) }
     var clubCarries by remember { mutableStateOf(ClubCarryDistances.load(context)) }
@@ -519,7 +528,7 @@ private fun WatchThisDriveApp() {
                             savedRounds = emptyList()
                             roundScorecard = null
                             activeRound = false
-                            clubCarries = ClubCarryDistances.load(context)
+                            clubCarries = emptyMap()
                             selected = Tab.HOME
                             dataRevision++
                         },
