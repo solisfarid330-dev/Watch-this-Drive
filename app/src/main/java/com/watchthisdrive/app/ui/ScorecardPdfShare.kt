@@ -30,7 +30,7 @@ object ScorecardPdfShare {
             val send = Intent(Intent.ACTION_SEND).apply {
                 type = "application/pdf"
                 putExtra(Intent.EXTRA_STREAM, uri)
-                putExtra(Intent.EXTRA_SUBJECT, "Watch This Drive scorecard — ${round.courseName}")
+                putExtra(Intent.EXTRA_SUBJECT, "Watch This Drive scorecard — ${round.scorecardTitle.ifBlank { round.courseName }}")
                 putExtra(Intent.EXTRA_TEXT, "Scorecard from Watch This Drive at ${round.courseName}.")
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
@@ -80,12 +80,18 @@ object ScorecardPdfShare {
                 paint.typeface = Typeface.create("sans-serif", Typeface.BOLD)
                 paint.textSize = 19f
                 canvas.drawText(round.courseName.take(48), 42f, 143f, paint)
+                if (round.scorecardTitle.isNotBlank()) {
+                    paint.color = Color.rgb(75, 125, 34)
+                    paint.textSize = 12f
+                    canvas.drawText(round.scorecardTitle.take(64), 42f, 160f, paint)
+                }
+                paint.color = dark
                 paint.textSize = 11f
                 paint.typeface = Typeface.create("sans-serif", Typeface.NORMAL)
                 val date = DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(round.startedAt))
-                canvas.drawText("Golfer: ${player.name}     Date: $date", 42f, 165f, paint)
+                canvas.drawText("Golfer: ${player.name}     Date: $date", 42f, if (round.scorecardTitle.isNotBlank()) 180f else 165f, paint)
 
-                val top = 202f
+                val top = if (round.scorecardTitle.isNotBlank()) 217f else 202f
                 val rowHeight = if (holes.size > 9) 24f else 30f
                 val columns = listOf(42f, 125f, 270f, 420f)
                 paint.color = dark
