@@ -69,7 +69,7 @@ The Settings screen provides expandable sections for club carry distances, locat
 ## Scorecard sharing, data controls, and credits
 
 - Active and completed scorecards are stored as JSON in Android private SharedPreferences under `round_scorecards`. The active round and completed-round history are separate entries.
-- Scorecards can be exported as a branded PDF through Android's share sheet. The PDF includes the course, golfer, round date, hole numbers, pars, entered scores, and totals. The export is generated in the app cache and shared through Android's FileProvider; it is not uploaded by WTD.
+- Scorecards can be exported as a branded PDF through Android's share sheet. The PDF includes the course, golfer, round date, hole numbers, pars, entered scores, and totals. The golfer's display name is configurable in Settings. The export is generated in the app cache and shared through Android's FileProvider; it is not uploaded by WTD.
 - Settings provides an inventory of cached course maps and saved scorecards, with individual deletion and a confirmed delete-all action. The delete-all action also clears the active round and club carry settings.
 - Location controls link to Android's app-permission and device-location settings. WTD uses foreground location only; it does not request background location.
 - Credits in Settings identify project roles and third-party services. OpenStreetMap data is provided under ODbL; consult the linked source credits for their respective terms.
