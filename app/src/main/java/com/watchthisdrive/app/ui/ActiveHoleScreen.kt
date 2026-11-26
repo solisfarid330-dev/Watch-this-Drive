@@ -57,7 +57,6 @@ fun ActiveHoleScreen(
 ) {
     val context = LocalContext.current
     var showQuitDialog by remember { mutableStateOf(false) }
-    var showHoleArtwork by remember { mutableStateOf(false) }
     val fused = remember { LocationServices.getFusedLocationProviderClient(context) }
     var player by remember { mutableStateOf<Location?>(null) }
     var gpsMessage by remember { mutableStateOf("Waiting for GPS") }
@@ -325,11 +324,10 @@ fun ActiveHoleScreen(
                     Surface(color = Color(0xFF263B2A), shape = RoundedCornerShape(10.dp), modifier = Modifier.weight(1.08f)) {
                         Column(Modifier.fillMaxWidth().padding(horizontal = 7.dp, vertical = 4.dp), verticalArrangement = Arrangement.Center) {
                             Row(
-                                Modifier.fillMaxWidth().clickable { showHoleArtwork = true },
+                                Modifier.fillMaxWidth(),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text("CADDY RECOMMENDS", color = Color(0xFFB8F36B), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, maxLines = 1, modifier = Modifier.weight(1f))
-                                Icon(Icons.Filled.Image, contentDescription = "View illustrated hole", tint = Color(0xFFB8F36B), modifier = Modifier.size(13.dp))
                             }
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                                 Text(recommendedClub?.name ?: "Set carry distances", color = Color.White, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall, maxLines = 1, modifier = Modifier.weight(1f))
@@ -364,7 +362,6 @@ fun ActiveHoleScreen(
             }
         }
     }
-    if (showHoleArtwork) CourseHoleArtworkDialog(hole = hole, geometry = geometry) { showHoleArtwork = false }
     if (showQuitDialog) AlertDialog(
         onDismissRequest = { showQuitDialog = false },
         title = { Text("Quit without saving?") },
