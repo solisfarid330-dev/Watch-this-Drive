@@ -9,6 +9,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -43,7 +44,7 @@ fun GlobalScorecardScreen(round: RoundScorecard, onScoreChange: (String, String,
             Icon(Icons.Filled.Share, contentDescription = null); Spacer(Modifier.width(8.dp)); Text("SHARE SCORECARD PDF", fontWeight = FontWeight.Bold)
         }
         OutlinedButton(onClick = onDownload, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFB8F36B))) {
-            Icon(Icons.Filled.FileDownload, contentDescription = null); Spacer(Modifier.width(8.dp)); Text("SAVE PDF TO DEVICE", fontWeight = FontWeight.Bold)
+            Icon(Icons.Filled.Download, contentDescription = null); Spacer(Modifier.width(8.dp)); Text("SAVE PDF TO DEVICE", fontWeight = FontWeight.Bold)
         }
         if (readOnly) TextButton(onClick = onBack) { Text("BACK TO SAVED GAMES", color = Color(0xFFB8F36B)) }
         Text(if (readOnly) "Saved scorecard · read-only" else "Scores entered here update the live game automatically.", color = Color(0xFFB6C1B9))
