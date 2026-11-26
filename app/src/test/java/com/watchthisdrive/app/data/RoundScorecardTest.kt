@@ -32,6 +32,19 @@ class RoundScorecardTest {
     }
 
     @Test
+    fun scorecardOnlyRoundCanHaveTitleAndUnknownPars() {
+        val round = RoundScorecard.new(
+            "South Padre Island Golf Club",
+            (1..9).associate { it.toString() to null }
+        ).copy(scorecardOnly = true, scorecardTitle = "Saturday morning")
+
+        assertEquals(true, round.scorecardOnly)
+        assertEquals("Saturday morning", round.scorecardTitle)
+        assertNull(round.holePars["1"])
+        assertEquals(9, round.holePars.size)
+    }
+
+    @Test
     fun relativeScoreUsesOnlyHolesWithKnownPar() {
         val round = RoundScorecard.new("Test Course", mapOf("1" to 4, "2" to null, "3" to 5))
         val player = round.user.copy(scores = mapOf("1" to 5, "2" to 7, "3" to 4))
