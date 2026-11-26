@@ -13,6 +13,6 @@ fun RoundScorecard.withCourseScorecardFacts(metadata: ExternalCourseMetadata): R
     }.toMap()
     return copy(
         holePars = holePars.mapValues { (number, existing) -> existing ?: parsByHole[number] },
-        holeYardages = holeYardages + yardagesByHole
+        holeYardages = holeYardages.mapValues { (number, existing) -> existing ?: yardagesByHole[number] } + yardagesByHole.filterKeys { it !in holeYardages }
     )
 }
