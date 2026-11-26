@@ -330,6 +330,11 @@ private fun WatchThisDriveApp() {
         if (sourceGeometry != null) {
             geometryReady = true
             applyResolvedFacts()
+        } else if (!roundScorecard?.scorecardOnly.orFalse()) {
+            // A restored Active Game already has its own course-restore request;
+            // don't launch a duplicate Overpass download just to enrich its scorecard.
+            geometryReady = true
+            applyResolvedFacts()
         } else {
             CourseGeometryLoader.load(course) { result ->
                 geometryReady = true
