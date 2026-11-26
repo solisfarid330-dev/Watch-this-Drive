@@ -160,6 +160,15 @@ private fun WatchThisDriveApp() {
                 CourseHoleInference.addInferredHoles(withRoundPars)
             )
             val rebuilt = CourseReconstructionEngine.reconstruct(reconstructed)
+            val currentRound = roundScorecard
+            if (currentRound != null && currentRound.startedAt == savedRound.startedAt && !currentRound.scorecardOnly) {
+                val resolvedRound = currentRound.withResolvedCourseFacts(
+                    rebuilt.holes.associate { it.number to it.par },
+                    null
+                )
+                roundScorecard = resolvedRound
+                RoundScorecardStore.saveActive(context, resolvedRound)
+            }
             mapGeometry = reconstructed
             mapReconstruction = rebuilt
             mapTarget = Location("restored-course").apply {
