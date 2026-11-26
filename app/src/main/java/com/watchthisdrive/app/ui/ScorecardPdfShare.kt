@@ -7,6 +7,7 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Typeface
 import android.graphics.pdf.PdfDocument
+import android.widget.Toast
 import androidx.core.content.FileProvider
 import com.watchthisdrive.app.data.RoundScorecard
 import java.io.File
@@ -16,7 +17,7 @@ import java.util.Date
 
 object ScorecardPdfShare {
     fun share(context: Context, round: RoundScorecard) {
-        runCatching {
+        try {
             val directory = File(context.cacheDir, "shared_scorecards").apply { mkdirs() }
             val safeName = round.courseName.replace(Regex("[^A-Za-z0-9_-]"), "_").take(36)
             val file = File(directory, "WTD_${safeName}_${round.startedAt}.pdf")
@@ -30,7 +31,13 @@ object ScorecardPdfShare {
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
             context.startActivity(Intent.createChooser(send, "Share scorecard"))
+        } catch (problem: Exception) {
+            Toast.makeText(context, "Couldn't prepare the scorecard PDF: ${problem.localizedMessage ?: "please try again"}", Toast.LENGTH_LONG).show()
         }
+    }
+
+    fun clear(context: Context) {
+        runCatching { File(context.cacheDir, "shared_scorecards").deleteRecursively() }
     }
 
     private fun createPdf(file: File, round: RoundScorecard) {
