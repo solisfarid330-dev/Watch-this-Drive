@@ -525,6 +525,10 @@ private fun WatchThisDriveApp() {
                             RoundScorecardStore.clearAll(context)
                             CourseGeometryCache.clearAll(context)
                             ClubCarryDistances.clear(context)
+                            ScorecardPdfShare.clear(context)
+                            mapGeometry = null
+                            mapReconstruction = null
+                            mapTarget = null
                             savedRounds = emptyList()
                             roundScorecard = null
                             activeRound = false
