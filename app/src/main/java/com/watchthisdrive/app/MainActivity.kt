@@ -265,7 +265,7 @@ private fun WatchThisDriveApp() {
 
         if (granted) {
             try {
-                fused.lastLocation.addOnSuccessListener { found ->
+                fused.getCurrentLocation(com.google.android.gms.location.Priority.PRIORITY_HIGH_ACCURACY, null).addOnSuccessListener { found ->
                     location = found
                     locationMessage = if (found != null) {
                         "GPS fix received"
@@ -299,7 +299,7 @@ private fun WatchThisDriveApp() {
             )
         } else {
             try {
-                fused.lastLocation.addOnSuccessListener { found ->
+                fused.getCurrentLocation(com.google.android.gms.location.Priority.PRIORITY_HIGH_ACCURACY, null).addOnSuccessListener { found ->
                     location = found
                     locationMessage = if (found != null) {
                         "GPS fix received"
