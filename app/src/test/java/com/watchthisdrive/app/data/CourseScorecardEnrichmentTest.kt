@@ -41,7 +41,7 @@ class CourseScorecardEnrichmentTest {
     }
 
     @Test fun reconstructedGeometryParWinsOverPublishedApiParInBothModes() {
-        val activeRound = RoundScorecard.new("Test Golf Club", mapOf("1" to 4, "2" to null))
+        val activeRound = RoundScorecard.new("Test Golf Club", mapOf("1" to null, "2" to null))
         val scorecardOnlyRound = RoundScorecard.new("Test Golf Club", mapOf("1" to null, "2" to null))
             .copy(scorecardOnly = true)
         val geometryPars = mapOf("1" to 5, "2" to 4)
@@ -50,7 +50,7 @@ class CourseScorecardEnrichmentTest {
         val scorecardResolved = scorecardOnlyRound.withResolvedCourseFacts(geometryPars, metadata)
 
         assertEquals(activeResolved.holePars, scorecardResolved.holePars)
-        assertEquals(4, scorecardResolved.holePars["1"])
+        assertEquals(5, scorecardResolved.holePars["1"])
         assertEquals(4, scorecardResolved.holePars["2"])
     }
 
