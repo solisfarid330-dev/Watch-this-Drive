@@ -182,7 +182,7 @@ object OpenGolfApiCourseLoader {
         val teesDetail = runCatching { getJson("$BASE_URL/${URLEncoder.encode(id, "UTF-8")}/tees") }.getOrNull()
         val enrichedDetail = JSONObject(detail.toString())
         holesDetail?.let { response ->
-            (findArray(response, "holes") ?: findArray(response, "scorecard"))?.let {
+            (findArray(response, "holes") ?: findArray(response, "scorecard") ?: findArray(response, "data"))?.let {
                 enrichedDetail.put("holes", it)
             }
         }
