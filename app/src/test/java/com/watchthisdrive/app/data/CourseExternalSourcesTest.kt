@@ -130,6 +130,20 @@ class CourseExternalSourcesTest {
     }
 
     @Test
+    fun parsesDedicatedHoleEndpointAliasesAndMeterYardage() {
+        val detail = JSONObject(
+            """{"data":{"holes":[
+              {"hole_number":1,"par":4,"meters":350},
+              {"hole_number":2,"par":3,"yardage_yards":145}
+            ]}}"""
+        )
+        val metadata = OpenGolfApiCourseLoader.parseMetadata(detail, JSONObject())
+        assertEquals(2, metadata.holes.size)
+        assertEquals(4, metadata.holes[0].par)
+        assertEquals(383, metadata.holes[0].yardage)
+        assertEquals(145, metadata.holes[1].yardage)
+    }
+    @Test
     fun nationalNaipUrlRequestsGeoreferencedImageForCourseCenter() {
         val url = NaipImageryLoader.buildExportUrl(26.1, -97.2)
         assertTrue(url.startsWith("https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer/exportImage?"))
