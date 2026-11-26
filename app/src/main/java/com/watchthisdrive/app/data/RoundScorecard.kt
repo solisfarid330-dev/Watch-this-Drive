@@ -23,7 +23,8 @@ data class RoundScorecard(
     val courseLatitude: Double? = null,
     val courseLongitude: Double? = null,
     val expectedHoleCount: Int? = null,
-    val scorecardOnly: Boolean = false
+    val scorecardOnly: Boolean = false,
+    val scorecardTitle: String = ""
 ) {
     val user: RoundPlayer get() = players.first { it.id == userPlayerId }
     fun totalFor(player: RoundPlayer): Int = player.scores.values.sum()
@@ -110,6 +111,7 @@ object RoundScorecardStore {
         put("courseLongitude", round.courseLongitude ?: JSONObject.NULL)
         put("expectedHoleCount", round.expectedHoleCount ?: JSONObject.NULL)
         put("scorecardOnly", round.scorecardOnly)
+        put("scorecardTitle", round.scorecardTitle)
         put("userPlayerId", round.userPlayerId)
         put("holePars", JSONObject().apply {
             round.holePars.forEach { (hole, par) -> put(hole.toString(), par ?: JSONObject.NULL) }
@@ -161,7 +163,8 @@ object RoundScorecardStore {
             courseLatitude = if (json.isNull("courseLatitude")) null else json.optDouble("courseLatitude"),
             courseLongitude = if (json.isNull("courseLongitude")) null else json.optDouble("courseLongitude"),
             expectedHoleCount = if (json.isNull("expectedHoleCount")) null else json.optInt("expectedHoleCount"),
-            scorecardOnly = json.optBoolean("scorecardOnly", false)
+            scorecardOnly = json.optBoolean("scorecardOnly", false),
+            scorecardTitle = json.optString("scorecardTitle", "")
         )
     }
 }
