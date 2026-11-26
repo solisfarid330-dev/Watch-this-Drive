@@ -96,6 +96,8 @@ private fun WatchThisDriveApp() {
     var scorecardCoursePicker by remember { mutableStateOf(false) }
     var pendingScorecardTitle by remember { mutableStateOf("") }
     var pendingScorecardHoles by remember { mutableIntStateOf(18) }
+    var courseFactsStatus by remember { mutableStateOf<String?>(null) }
+    var courseFactsRequestedFor by remember { mutableStateOf<Long?>(null) }
     var activeRound by remember { mutableStateOf(roundScorecard != null) }
     var activeHoleIndex by remember { mutableIntStateOf((roundScorecard?.activeHoleNumber?.toIntOrNull() ?: 1) - 1) }
     var locationMessage by remember { mutableStateOf("Location not checked yet") }
@@ -251,16 +253,30 @@ private fun WatchThisDriveApp() {
     }
 
     fun enrichRoundWithCourseFacts(course: GolfCourse, expectedRoundStartedAt: Long) {
+        if (courseFactsRequestedFor == expectedRoundStartedAt) return
+        courseFactsRequestedFor = expectedRoundStartedAt
+        courseFactsStatus = "Looking up published course par and yardage…"
         OpenGolfApiCourseLoader.load(course) { metadataResult ->
+            val current = roundScorecard
+            if (current == null || current.startedAt != expectedRoundStartedAt) return@load
             metadataResult.onSuccess { metadata ->
-                if (metadata != null) {
-                    val current = roundScorecard
-                    if (current != null && current.startedAt == expectedRoundStartedAt) {
-                        val updated = current.withCourseScorecardFacts(metadata)
-                        roundScorecard = updated
-                        RoundScorecardStore.saveActive(context, updated)
+                if (metadata == null) {
+                    courseFactsStatus = "No matching published course scorecard was found. You can still enter par manually."
+                } else {
+                    val updated = current.withCourseScorecardFacts(metadata)
+                    roundScorecard = updated
+                    RoundScorecardStore.saveActive(context, updated)
+                    val parCount = updated.holePars.values.count { it != null }
+                    val yardageCount = updated.holeYardages.values.count { it != null }
+                    courseFactsStatus = when {
+                        parCount > 0 && yardageCount > 0 -> "Loaded published par for $parCount holes and yardage for $yardageCount holes."
+                        parCount > 0 -> "Loaded par for $parCount holes. Published hole yardage is unavailable for this course."
+                        yardageCount > 0 -> "Loaded yardage for $yardageCount holes. Published par is unavailable for this course."
+                        else -> "Course found, but its published record has no hole-by-hole par or yardage."
                     }
                 }
+            }.onFailure { problem ->
+                courseFactsStatus = "Couldn't load course facts: " + (problem.message ?: "Please try again.")
             }
         }
     }
@@ -547,6 +563,8 @@ private fun WatchThisDriveApp() {
                                     ).copy(scorecardOnly = true, scorecardTitle = pendingScorecardTitle)
                                     roundScorecard = newRound
                                     RoundScorecardStore.saveActive(context, newRound)
+                                    courseFactsStatus = "Looking up published course par and yardage…"
+                                    enrichRoundWithCourseFacts(course, newRound.startedAt)
                                     // Use the same factual course-scorecard enrichment as a
                                     // mapped game, without building or displaying course geometry.
                                     activeRound = true
@@ -586,6 +604,7 @@ private fun WatchThisDriveApp() {
                                 },
                                 onShare = { roundScorecard?.let { ScorecardPdfShare.share(context, it, golferName) } },
                                 onDownload = { roundScorecard?.let { downloadScorecard(it) } },
+                                courseFactsStatus = courseFactsStatus,
                                 onQuitRound = { discardActiveRound() },
                                 onParChange = { holeNumber, par -> updateRoundPar(holeNumber, par) },
                                 onTitleChange = { value ->
