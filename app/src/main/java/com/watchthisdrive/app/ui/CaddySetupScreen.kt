@@ -95,7 +95,19 @@ fun CaddySetupScreen(
 
         SettingsActionCard("Club Distances", "${carryDistances.size} clubs configured · carry in yards", { Icon(Icons.Filled.SportsGolf, null, tint = Lime) }, showCarries) { showCarries = !showCarries }
         if (showCarries) {
-            Text("Carry distance means yards through the air to first landing, before bounce and roll.", color = Muted, style = MaterialTheme.typography.bodySmall)
+            SettingsDetail {
+                Text("PERSONALIZE YOUR CADDY", color = Lime, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium)
+                Text(
+                    "The starter distances are general estimates, not measurements of your game. For more useful club recommendations, calibrate these numbers to your own swing.",
+                    color = Color.White, style = MaterialTheme.typography.bodyMedium
+                )
+                Text("1. Visit a driving range. Warm up first, then hit several shots with each club you use.", color = Color.White, style = MaterialTheme.typography.bodySmall)
+                Text("2. Measure carry, not total distance. Use a launch monitor or reliable carry-distance markers where available. Carry is where the ball first lands; ignore bounce and roll.", color = Color.White, style = MaterialTheme.typography.bodySmall)
+                Text("3. Use about 5–10 reasonably solid shots per club. Ignore obvious mishits, then average the remaining carry distances. Record your normal, repeatable shot—not your longest-ever hit.", color = Color.White, style = MaterialTheme.typography.bodySmall)
+                Text("4. Enter that average in the matching club below. Repeat for the clubs you carry, and update the numbers as your swing or equipment changes.", color = Color.White, style = MaterialTheme.typography.bodySmall)
+                Text("Tip: use the same units (yards) throughout. If the range only shows total distance and you cannot estimate carry reliably, don't treat that number as carry—leave the starter value until you can measure it.", color = Muted, style = MaterialTheme.typography.bodySmall)
+            }
+            Text("CARRY DISTANCE (YD) · THROUGH THE AIR TO FIRST LANDING", color = Lime, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
             ClubCarryDistances.clubNames.forEach { club ->
                 var value by remember(club, carryDistances[club]) { mutableStateOf(carryDistances[club]?.toString().orEmpty()) }
                 Surface(color = Panel, shape = RoundedCornerShape(12.dp)) {
