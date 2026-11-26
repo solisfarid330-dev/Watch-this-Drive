@@ -582,18 +582,7 @@ private fun WatchThisDriveApp() {
 private fun HomeScreen(hasActiveRound: Boolean, onResumeRound: () -> Unit, onFindCourses: () -> Unit) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(22.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Canvas(Modifier.size(width = 48.dp, height = 52.dp)) {
-                val cx = size.width / 2f
-                drawLine(Color(0xFFB8F36B), Offset(cx, 28.dp.toPx()), Offset(cx, 45.dp.toPx()), strokeWidth = 3.dp.toPx())
-                drawLine(Color(0xFFB8F36B), Offset(cx - 7.dp.toPx(), 45.dp.toPx()), Offset(cx + 7.dp.toPx(), 45.dp.toPx()), strokeWidth = 2.dp.toPx())
-                drawCircle(Color(0xFFB8F36B), 11.dp.toPx(), Offset(cx, 16.dp.toPx()))
-                drawCircle(Color(0xFF6D9E38), 1.1.dp.toPx(), Offset(cx - 4.dp.toPx(), 12.dp.toPx()))
-                drawCircle(Color(0xFF6D9E38), 1.1.dp.toPx(), Offset(cx + 3.dp.toPx(), 10.dp.toPx()))
-                drawCircle(Color(0xFF6D9E38), 1.1.dp.toPx(), Offset(cx + 5.dp.toPx(), 17.dp.toPx()))
-                drawCircle(Color(0xFF6D9E38), 1.1.dp.toPx(), Offset(cx - 2.dp.toPx(), 20.dp.toPx()))
-            }
-            Spacer(Modifier.width(10.dp))
-            Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(0.dp)) {
             Text(
                 "WATCH THIS",
                 color = Color.White,
@@ -618,6 +607,13 @@ private fun HomeScreen(hasActiveRound: Boolean, onResumeRound: () -> Unit, onFin
                 fontWeight = FontWeight.SemiBold
             )
             }
+            Spacer(Modifier.width(12.dp))
+            Icon(
+                Icons.Filled.GolfCourse,
+                contentDescription = "Watch This Drive golf course mark",
+                tint = Color(0xFFB8F36B),
+                modifier = Modifier.size(52.dp)
+            )
         }
         Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF1D2A22)), shape = RoundedCornerShape(22.dp)) {
             Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -1095,6 +1091,37 @@ private fun CourseDetailScreen(
     var externalMetadataMessage by remember(course.id) { mutableStateOf("Checking OpenGolfAPI course records…") }
     var naipBitmap by remember(course.id) { mutableStateOf<android.graphics.Bitmap?>(null) }
     var naipMessage by remember(course.id) { mutableStateOf("Loading public aerial imagery…") }
+
+    // These evidence sources are independent of OSM mapping: a slow or missing
+    // third-party response must never hold up the playable course geometry.
+    LaunchedEffect(course.id) {
+        OpenGolfApiCourseLoader.load(course) { result ->
+            result.fold(
+                onSuccess = { metadata ->
+                    externalMetadata = metadata
+                    externalMetadataMessage = if (metadata == null) {
+                        "No matching OpenGolfAPI course record was found. OpenStreetMap remains the primary mapping source."
+                    } else {
+                        "Additional course scorecard evidence loaded from OpenGolfAPI."
+                    }
+                },
+                onFailure = { problem ->
+                    externalMetadataMessage = "OpenGolfAPI is unavailable: ${problem.message ?: "request failed"}"
+                }
+            )
+        }
+        NaipImageryLoader.load(course) { result ->
+            result.fold(
+                onSuccess = { bitmap ->
+                    naipBitmap = bitmap
+                    naipMessage = "Public aerial imagery loaded."
+                },
+                onFailure = { problem ->
+                    naipMessage = "Aerial imagery is unavailable here: ${problem.message ?: "request failed"}"
+                }
+            )
+        }
+    }
     var recoveryLoading by remember(course.id) { mutableStateOf(false) }
     var recoveryMessage by remember(course.id) { mutableStateOf<String?>(null) }
     var showMissingFeatureDialog by remember(course.id) { mutableStateOf(false) }
