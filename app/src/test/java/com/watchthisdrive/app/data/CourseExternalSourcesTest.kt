@@ -184,4 +184,54 @@ class CourseExternalSourcesTest {
         assertEquals(CourseFeatureOrigin.SOURCE, enriched.features.single().origin)
     }
 
+    @Test
+    fun parsesTopLevelArrayHoleEndpointAndMeterYardage() {
+        val response = OpenGolfApiCourseLoader.parseJsonResponse(
+            """[{"hole_number":1,"par":4,"meters":350},{"hole_number":2,"par":3,"yards":145}]"""
+        )
+        val metadata = OpenGolfApiCourseLoader.parseMetadata(response, JSONObject())
+        assertEquals(2, metadata.holes.size)
+        assertEquals(383, metadata.holes[0].yardage)
+        assertEquals(145, metadata.holes[1].yardage)
+    }
+
+    @Test
+    fun acceptsSearchResultsInsideDataArrayEnvelope() {
+        val response = JSONObject(
+            """{"data":[{"id":"course-7","course_name":"Test Golf Club","latitude":26.0,"longitude":-97.0}]}"""
+        )
+        val candidates = OpenGolfApiCourseLoader.findArray(response, "courses")
+        assertNotNull(candidates)
+        assertEquals("course-7", candidates!!.getJSONObject(0).getString("id"))
+    }
+
+    @Test
+    fun scorecardOnlyRoundReceivesPublishedParAndYardageWithoutReplacingManualPar() {
+        val round = RoundScorecard.new(
+            courseName = "Test Golf Club",
+            holePars = mapOf("1" to 5, "2" to null, "3" to null)
+        ).copy(scorecardOnly = true)
+        val metadata = ExternalCourseMetadata(
+            sourceId = "api-7",
+            name = "Test Golf Club",
+            city = null,
+            state = null,
+            holeCount = 3,
+            totalPar = 12,
+            totalYardage = 900,
+            holes = listOf(
+                CourseScorecardHole(1, 4, null, 350),
+                CourseScorecardHole(2, 3, null, 145)
+            ),
+            tees = emptyList()
+        )
+        val enriched = round.withCourseScorecardFacts(metadata)
+        assertEquals(5, enriched.holePars["1"])
+        assertEquals(3, enriched.holePars["2"])
+        assertNull(enriched.holePars["3"])
+        assertEquals(350, enriched.holeYardages["1"])
+        assertEquals(145, enriched.holeYardages["2"])
+        assertTrue(enriched.scorecardOnly)
+    }
+
 }
