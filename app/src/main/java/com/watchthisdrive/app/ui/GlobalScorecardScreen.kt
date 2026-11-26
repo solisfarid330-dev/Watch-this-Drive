@@ -20,8 +20,9 @@ import com.watchthisdrive.app.data.RoundPlayer
 import com.watchthisdrive.app.data.RoundScorecard
 
 @Composable
-fun GlobalScorecardScreen(round: RoundScorecard, onScoreChange: (String, String, Int) -> Unit, onAddPlayer: (String) -> Unit, onRemovePlayer: (String) -> Unit, onFinishRound: () -> Unit, readOnly: Boolean = false, onBack: () -> Unit = {}, onShare: () -> Unit = {}) {
+fun GlobalScorecardScreen(round: RoundScorecard, onScoreChange: (String, String, Int) -> Unit, onAddPlayer: (String) -> Unit, onRemovePlayer: (String) -> Unit, onFinishRound: () -> Unit, readOnly: Boolean = false, onBack: () -> Unit = {}, onShare: () -> Unit = {}, onTitleChange: (String) -> Unit = {}) {
     var newPlayerName by remember { mutableStateOf("") }
+    var titleDraft by remember(round.startedAt, round.scorecardTitle) { mutableStateOf(round.scorecardTitle) }
     var showFinishDialog by remember { mutableStateOf(false) }
     val holes = round.holePars.keys.sortedWith(compareBy<String> { it.toIntOrNull() ?: Int.MAX_VALUE }.thenBy { it })
     val userComplete = holes.isNotEmpty() && holes.all { (round.user.scores[it] ?: 0) > 0 }
@@ -29,6 +30,9 @@ fun GlobalScorecardScreen(round: RoundScorecard, onScoreChange: (String, String,
     Column(Modifier.fillMaxSize().background(Color(0xFF101713)).verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("GLOBAL SCORECARD", color = Color(0xFFB8F36B), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
         Text(round.courseName, color = Color.White, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        if (!readOnly) {
+            OutlinedTextField(value = titleDraft, onValueChange = { value -> titleDraft = value.take(48); onTitleChange(titleDraft) }, modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text("Scorecard title (optional)") }, placeholder = { Text("e.g. Saturday morning round") }, colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, focusedBorderColor = Color(0xFFB8F36B), unfocusedBorderColor = Color(0xFF526257), cursorColor = Color(0xFFB8F36B)))
+        } else if (round.scorecardTitle.isNotBlank()) Text(round.scorecardTitle, color = Color(0xFFB8F36B), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
         OutlinedButton(onClick = onShare, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFB8F36B))) {
             Icon(Icons.Filled.Share, contentDescription = null); Spacer(Modifier.width(8.dp)); Text("SHARE SCORECARD PDF", fontWeight = FontWeight.Bold)
         }
