@@ -549,7 +549,7 @@ private fun WatchThisDriveApp() {
                             savedRounds = emptyList()
                             roundScorecard = null
                             activeRound = false
-                            clubCarries = emptyMap()
+                            clubCarries = ClubCarryDistances.load(context)
                             selected = Tab.HOME
                             dataRevision++
                         },
