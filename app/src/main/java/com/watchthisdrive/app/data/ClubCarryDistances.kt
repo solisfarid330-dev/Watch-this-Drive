@@ -20,6 +20,10 @@ object ClubCarryDistances {
         "Gap Wedge" to 90, "Sand Wedge" to 75, "Lob Wedge" to 60
     )
 
+    fun clear(context: Context) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().clear().commit()
+    }
+
     fun load(context: Context): Map<String, Int> {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         if (!prefs.getBoolean(DEFAULTS_INITIALIZED, false)) {
