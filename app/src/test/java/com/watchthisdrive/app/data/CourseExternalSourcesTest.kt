@@ -27,7 +27,7 @@ class CourseExternalSourcesTest {
     }
 
     @Test
-    fun matchingRequiresExactNormalizedNameAndNearbyCoordinates() {
+    fun matchingPrefersExactNameAndNearbyCoordinates() {
         val candidates = JSONArray().put(
             JSONObject().put("id", "far").put("course_name", "South Padre Island Golf Club")
                 .put("latitude", 29.0).put("longitude", -97.0)
@@ -111,6 +111,22 @@ class CourseExternalSourcesTest {
         assertEquals("Blue", metadata.tees.single().name)
         assertEquals(128, metadata.tees.single().slopeRating)
         assertEquals(6800, metadata.totalYardage)
+    }
+
+    @Test
+    fun parsesNestedCourseDetailScorecardArrays() {
+        val detail = JSONObject(
+            """{
+              "data":{"course":{
+                "id":"nested-course",
+                "holes":[{"hole":1,"par":4,"yardage":390}]
+              }}
+            }"""
+        )
+        val metadata = OpenGolfApiCourseLoader.parseMetadata(detail, JSONObject())
+        assertEquals(1, metadata.holes.size)
+        assertEquals(4, metadata.holes.single().par)
+        assertEquals(390, metadata.holes.single().yardage)
     }
 
     @Test
