@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.location.Location
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -323,11 +324,12 @@ fun ActiveHoleScreen(
                     }
                     Surface(color = Color(0xFF263B2A), shape = RoundedCornerShape(10.dp), modifier = Modifier.weight(1.08f)) {
                         Column(Modifier.fillMaxWidth().padding(horizontal = 7.dp, vertical = 4.dp), verticalArrangement = Arrangement.Center) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
+                            Row(
+                                Modifier.fillMaxWidth().clickable { showHoleArtwork = true },
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
                                 Text("CADDY RECOMMENDS", color = Color(0xFFB8F36B), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, maxLines = 1, modifier = Modifier.weight(1f))
-                                IconButton(onClick = { showHoleArtwork = true }, modifier = Modifier.size(22.dp)) {
-                                    Icon(Icons.Filled.Image, contentDescription = "View illustrated hole", tint = Color(0xFFB8F36B), modifier = Modifier.size(16.dp))
-                                }
+                                Icon(Icons.Filled.Image, contentDescription = "View illustrated hole", tint = Color(0xFFB8F36B), modifier = Modifier.size(13.dp))
                             }
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                                 Text(recommendedClub?.name ?: "Set carry distances", color = Color.White, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall, maxLines = 1, modifier = Modifier.weight(1f))
