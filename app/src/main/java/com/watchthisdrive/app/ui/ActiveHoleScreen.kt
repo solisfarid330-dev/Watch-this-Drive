@@ -14,6 +14,7 @@ import androidx.compose.material.icons.filled.Explore
 import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
+import androidx.compose.material3.Slider
 import androidx.compose.runtime.*
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -49,7 +50,8 @@ fun ActiveHoleScreen(
     onPreviousHole: () -> Unit,
     onNextHole: () -> Unit,
     onExitRound: () -> Unit,
-    onQuitRound: () -> Unit = {}
+    onQuitRound: () -> Unit = {},
+    simulationMode: Boolean = false
 ) {
     val context = LocalContext.current
     var showQuitDialog by remember { mutableStateOf(false) }
@@ -58,6 +60,8 @@ fun ActiveHoleScreen(
     var gpsMessage by remember { mutableStateOf("Waiting for GPS") }
     var refreshingGps by remember { mutableStateOf(false) }
     var target by remember { mutableStateOf<GeoPoint?>(null) }
+    var simulationProgress by remember(hole.number) { mutableFloatStateOf(0f) }
+    val simulationPath = remember(hole.number, hole.centerline, hole.tee) { simulationPathFor(hole) }
     LaunchedEffect(hole.number) { target = null }
     var northUp by remember { mutableStateOf(false) }
     var hasLocationPermission by remember {
@@ -98,7 +102,7 @@ fun ActiveHoleScreen(
         }
     }
     LaunchedEffect(Unit) {
-        if (!hasLocationPermission) {
+        if (!simulationMode && !hasLocationPermission) {
             permissionLauncher.launch(arrayOf(
                 Manifest.permission.ACCESS_FINE_LOCATION,
                 Manifest.permission.ACCESS_COARSE_LOCATION
@@ -139,7 +143,7 @@ fun ActiveHoleScreen(
         val fine = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
         val coarse = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
         var callback: LocationCallback? = null
-        if (hasLocationPermission && (fine || coarse)) {
+        if (!simulationMode && hasLocationPermission && (fine || coarse)) {
             callback = object : LocationCallback() {
                 override fun onLocationResult(result: LocationResult) {
                     val candidate = result.lastLocation ?: return
@@ -186,8 +190,14 @@ fun ActiveHoleScreen(
         onDispose { callback?.let { fused.removeLocationUpdates(it) } }
     }
 
+    // Simulated positions stay inside WTD and never register an Android mock provider.
+    val simulatedPlayer = if (simulationMode && simulationPath.size >= 2) {
+        pointAlongPolyline(simulationPath, simulationProgress)?.let { point ->
+            Location("wtd-simulation").apply { latitude = point.latitude; longitude = point.longitude; accuracy = 1f; time = System.currentTimeMillis() }
+        }
+    } else null
     // A cached fix from home must not drag the course map away from the selected hole.
-    val playerOnHole = player?.takeIf {
+    val playerOnHole = if (simulationMode) simulatedPlayer else player?.takeIf {
         distanceToPolylineMeters(it.latitude, it.longitude, hole.centerline) <= 250.0
     }
     val displayedGpsMessage = if (player != null && playerOnHole == null) {
@@ -267,6 +277,11 @@ fun ActiveHoleScreen(
                 Icon(if (northUp) Icons.Filled.Explore else Icons.Filled.Navigation, contentDescription = "Toggle map orientation", tint = Color.White)
             }
         }
+        if (simulationMode) {
+            Surface(color = Color(0xF0A65A00), shape = RoundedCornerShape(10.dp), modifier = Modifier.align(Alignment.TopCenter).padding(top = 75.dp)) {
+                Text("SIMULATION MODE · NOT REAL GPS", color = Color.White, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.ExtraBold, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
+            }
+        }
         Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(horizontal = 3.dp, vertical = 2.dp), verticalArrangement = Arrangement.spacedBy(1.dp)) {
             Surface(color = Color(0xE91A251E), shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth()) {
                 Row(
@@ -283,18 +298,19 @@ fun ActiveHoleScreen(
                             (yardsToTarget ?: yardsToPin)?.let { "$it yd" } ?: "— yd",
                             color = Color.White, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold
                         )
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                displayedGpsMessage, color = Color(0xFFB8F36B),
-                                style = MaterialTheme.typography.labelSmall, maxLines = 1,
-                                modifier = Modifier.weight(1f, fill = false)
-                            )
-                            IconButton(
-                                onClick = { refreshGps() }, enabled = !refreshingGps,
-                                modifier = Modifier.size(28.dp)
-                            ) {
-                                if (refreshingGps) CircularProgressIndicator(Modifier.size(14.dp), strokeWidth = 2.dp, color = Color(0xFFB8F36B))
-                                else Icon(Icons.Filled.Refresh, contentDescription = "Refresh GPS", tint = Color(0xFFB8F36B), modifier = Modifier.size(18.dp))
+                        if (simulationMode && simulationPath.size >= 2) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text("MOVE", color = Color(0xFFFFD166), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                Slider(value = simulationProgress, onValueChange = { simulationProgress = it }, valueRange = 0f..1f, modifier = Modifier.weight(1f).height(24.dp))
+                                Text("${(simulationProgress * 100).roundToInt()}%", color = Color.White, style = MaterialTheme.typography.labelSmall)
+                            }
+                        } else {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(displayedGpsMessage, color = Color(0xFFB8F36B), style = MaterialTheme.typography.labelSmall, maxLines = 1, modifier = Modifier.weight(1f, fill = false))
+                                IconButton(onClick = { refreshGps() }, enabled = !refreshingGps, modifier = Modifier.size(28.dp)) {
+                                    if (refreshingGps) CircularProgressIndicator(Modifier.size(14.dp), strokeWidth = 2.dp, color = Color(0xFFB8F36B))
+                                    else Icon(Icons.Filled.Refresh, contentDescription = "Refresh GPS", tint = Color(0xFFB8F36B), modifier = Modifier.size(18.dp))
+                                }
                             }
                         }
                         if (hole.pinSource == com.watchthisdrive.app.data.PinSource.ESTIMATED_GREEN_CENTER) {
@@ -388,4 +404,42 @@ private fun distanceToPolylineMeters(latitude: Double, longitude: Double, points
         minimum = minOf(minimum, kotlin.math.hypot(px - nearestX, py - nearestY))
     }
     return minimum
+}
+
+private fun simulationPathFor(hole: ReconstructedHole): List<GeoPoint> {
+    val line = hole.centerline
+    if (line.size < 2) return emptyList()
+    val teePoints = hole.tee?.let { feature -> feature.points.takeIf { it.isNotEmpty() } ?: feature.rings.firstOrNull()?.dropLast(1).orEmpty() }.orEmpty()
+    if (teePoints.isEmpty()) return line
+    val tee = GeoPoint(teePoints.map { it.latitude }.average(), teePoints.map { it.longitude }.average())
+    fun meters(a: GeoPoint, b: GeoPoint): Double {
+        val lat = Math.toRadians((a.latitude + b.latitude) / 2.0)
+        val dx = Math.toRadians(b.longitude - a.longitude) * 6_371_008.8 * kotlin.math.cos(lat)
+        val dy = Math.toRadians(b.latitude - a.latitude) * 6_371_008.8
+        return kotlin.math.hypot(dx, dy)
+    }
+    return if (meters(tee, line.last()) < meters(tee, line.first())) line.reversed() else line
+}
+
+private fun pointAlongPolyline(points: List<GeoPoint>, fraction: Float): GeoPoint? {
+    if (points.size < 2) return points.firstOrNull()
+    fun segmentLength(a: GeoPoint, b: GeoPoint): Double {
+        val lat = Math.toRadians((a.latitude + b.latitude) / 2.0)
+        val dx = Math.toRadians(b.longitude - a.longitude) * 6_371_008.8 * kotlin.math.cos(lat)
+        val dy = Math.toRadians(b.latitude - a.latitude) * 6_371_008.8
+        return kotlin.math.hypot(dx, dy)
+    }
+    val lengths = points.zipWithNext { a, b -> segmentLength(a, b) }
+    val total = lengths.sum()
+    if (total <= 0.0) return points.first()
+    var remaining = total * fraction.coerceIn(0f, 1f)
+    lengths.forEachIndexed { index, length ->
+        if (remaining <= length || index == lengths.lastIndex) {
+            val t = if (length <= 0.0) 0.0 else (remaining / length).coerceIn(0.0, 1.0)
+            val a = points[index]; val b = points[index + 1]
+            return GeoPoint(a.latitude + (b.latitude - a.latitude) * t, a.longitude + (b.longitude - a.longitude) * t)
+        }
+        remaining -= length
+    }
+    return points.last()
 }
