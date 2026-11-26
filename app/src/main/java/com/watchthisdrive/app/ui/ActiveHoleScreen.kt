@@ -267,12 +267,12 @@ fun ActiveHoleScreen(
                 Icon(if (northUp) Icons.Filled.Explore else Icons.Filled.Navigation, contentDescription = "Toggle map orientation", tint = Color.White)
             }
         }
-        Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(horizontal = 3.dp, vertical = 2.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(horizontal = 3.dp, vertical = 2.dp), verticalArrangement = Arrangement.spacedBy(1.dp)) {
             Surface(color = Color(0xE91A251E), shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth()) {
                 Row(
-                    Modifier.fillMaxWidth().padding(7.dp),
+                    Modifier.fillMaxWidth().padding(horizontal = 5.dp, vertical = 3.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(7.dp)
+                    horizontalArrangement = Arrangement.spacedBy(5.dp)
                 ) {
                     Column(Modifier.weight(0.92f), verticalArrangement = Arrangement.Center) {
                         Text(
@@ -281,7 +281,7 @@ fun ActiveHoleScreen(
                         )
                         Text(
                             (yardsToTarget ?: yardsToPin)?.let { "$it yd" } ?: "— yd",
-                            color = Color.White, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold
+                            color = Color.White, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold
                         )
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
@@ -306,7 +306,7 @@ fun ActiveHoleScreen(
                         modifier = Modifier.weight(1.08f)
                     ) {
                         Column(
-                            Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 7.dp),
+                            Modifier.fillMaxWidth().padding(horizontal = 7.dp, vertical = 4.dp),
                             verticalArrangement = Arrangement.Center
                         ) {
                             Text(
@@ -317,7 +317,7 @@ fun ActiveHoleScreen(
                             Text(
                                 recommendedClub?.name ?: "Set carry distances",
                                 color = Color.White, fontWeight = FontWeight.Bold,
-                                style = MaterialTheme.typography.titleMedium, maxLines = 1
+                                style = MaterialTheme.typography.titleSmall, maxLines = 1
                             )
                             Text(
                                 when {
@@ -340,7 +340,6 @@ fun ActiveHoleScreen(
                         TextButton(onClick = { target = null }) { Text("Clear", color = Color(0xFFB8F36B)) }
                     }
                 }
-            } else Text("Tap the map to measure to any target", color = Color.White, modifier = Modifier.align(Alignment.CenterHorizontally), style = MaterialTheme.typography.labelMedium)
             Surface(color = Color(0xF018231C), shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth()) {
                 Row(Modifier.padding(horizontal = 2.dp, vertical = 0.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                     IconButton(onClick = onExitRound, modifier = Modifier.size(30.dp)) { Icon(Icons.Filled.ArrowBack, contentDescription = "Leave game and return home", tint = Color.White) }
