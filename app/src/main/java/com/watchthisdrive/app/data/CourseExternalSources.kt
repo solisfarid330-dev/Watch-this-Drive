@@ -137,6 +137,8 @@ object OpenGolfApiCourseLoader {
                 handicap = firstInt(item, "handicap", "handicap_index", "stroke_index", "mens_handicap"),
                 yardage = firstInt(item, "yardage", "yards", "length_yards", "distance_yards", "yardage_yards")
                     ?: firstInt(item, "meters", "length_meters")?.let { (it * 1.0936133).roundToInt() }
+                    ?: yardageFromTeeMap(item.optJSONObject("yardages"))
+                    ?: yardageFromTeeArray(item.optJSONArray("yardages"))
             )
         }.distinctBy { it.number }.sortedBy { it.number }
 
@@ -268,6 +270,38 @@ object OpenGolfApiCourseLoader {
         val h = sin(deltaLat / 2).pow(2) +
             cos(lat1) * cos(lat2) * sin(deltaLon / 2).pow(2)
         return 2.0 * earthRadius * asin(sqrt(h.coerceIn(0.0, 1.0)))
+    }
+
+    private fun yardageFromTeeMap(values: JSONObject?): Int? {
+        if (values == null) return null
+        val yardages = values.keys().asSequence().mapNotNull { key ->
+            val value = values.opt(key)
+            when (value) {
+                is Number -> value.toInt()
+                is String -> value.toIntOrNull()
+                is JSONObject -> firstInt(value, "yardage", "yards", "meters")?.let {
+                    if (value.has("meters") && !value.has("yardage") && !value.has("yards")) (it * 1.0936133).roundToInt() else it
+                }
+                else -> null
+            }
+        }.filter { it in 1..900 }.toList()
+        // The scorecard UI has one yardage column. When the source publishes
+        // multiple tee sets, use the longest published tee distance rather than
+        // silently mixing tee colors from hole to hole.
+        return yardages.maxOrNull()
+    }
+
+    private fun yardageFromTeeArray(values: JSONArray?): Int? {
+        if (values == null) return null
+        val yardages = (0 until values.length()).mapNotNull { index ->
+            when (val value = values.opt(index)) {
+                is Number -> value.toInt()
+                is JSONObject -> firstInt(value, "yardage", "yards", "length_yards")
+                    ?: firstInt(value, "meters", "length_meters")?.let { (it * 1.0936133).roundToInt() }
+                else -> null
+            }
+        }.filter { it in 1..900 }
+        return yardages.maxOrNull()
     }
 
     private fun firstInt(obj: JSONObject, vararg keys: String): Int? =
