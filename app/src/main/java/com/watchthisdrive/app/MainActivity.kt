@@ -273,9 +273,33 @@ private fun WatchThisDriveApp() {
         }
     }
 
-    LaunchedEffect(activeRound) {
-        if (activeRound && mapReconstruction == null && roundScorecard != null && !roundScorecard!!.scorecardOnly) {
-            restoreActiveCourse()
+    LaunchedEffect(activeRound, roundScorecard?.startedAt) {
+        val currentRound = roundScorecard
+        if (activeRound && currentRound != null) {
+            // Retry scorecard facts when a round is restored after process death.
+            // This is a lightweight metadata request; scorecard-only mode never
+            // downloads or reconstructs the playable course map.
+            val courseId = currentRound.courseId
+            val elementType = currentRound.courseElementType
+            val latitude = currentRound.courseLatitude
+            val longitude = currentRound.courseLongitude
+            if (courseId != null && elementType != null && latitude != null && longitude != null) {
+                enrichRoundWithCourseFacts(
+                    GolfCourse(
+                        id = courseId,
+                        elementType = elementType,
+                        name = currentRound.courseName,
+                        latitude = latitude,
+                        longitude = longitude,
+                        distanceMeters = 0f,
+                        expectedHoleCount = currentRound.expectedHoleCount
+                    ),
+                    currentRound.startedAt
+                )
+            }
+            if (!currentRound.scorecardOnly && mapReconstruction == null) {
+                restoreActiveCourse()
+            }
         }
     }
 
@@ -405,7 +429,6 @@ private fun WatchThisDriveApp() {
                                 )
                                 roundScorecard = newRound
                                 RoundScorecardStore.saveActive(context, newRound)
-                                enrichRoundWithCourseFacts(selectedCourse!!, newRound.startedAt)
                             } else {
                                 roundScorecard = null
                                 RoundScorecardStore.saveActive(context, null)
@@ -534,7 +557,6 @@ private fun WatchThisDriveApp() {
                                     RoundScorecardStore.saveActive(context, newRound)
                                     // Use the same factual course-scorecard enrichment as a
                                     // mapped game, without building or displaying course geometry.
-                                    enrichRoundWithCourseFacts(course, newRound.startedAt)
                                     activeRound = true
                                     activeHoleIndex = 0
                                     viewingSavedRound = null
