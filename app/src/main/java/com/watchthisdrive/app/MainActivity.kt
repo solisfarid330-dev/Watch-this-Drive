@@ -287,6 +287,23 @@ private fun WatchThisDriveApp() {
         }
     }
 
+    fun retryCourseFacts() {
+        val current = roundScorecard ?: return
+        val id = current.courseId ?: return
+        val elementType = current.courseElementType ?: return
+        val latitude = current.courseLatitude ?: return
+        val longitude = current.courseLongitude ?: return
+        courseFactsRequestedFor = null
+        enrichRoundWithCourseFacts(
+            GolfCourse(
+                id = id, elementType = elementType, name = current.courseName,
+                latitude = latitude, longitude = longitude, distanceMeters = 0f,
+                expectedHoleCount = current.expectedHoleCount
+            ),
+            current.startedAt
+        )
+    }
+
     LaunchedEffect(activeRound, roundScorecard?.startedAt) {
         val currentRound = roundScorecard
         if (activeRound && currentRound != null) {
@@ -458,7 +475,7 @@ private fun WatchThisDriveApp() {
                     NearbyCoursesScreen(
                         location = location,
                         onLocate = { locate() },
-                        onBack = { showNearbyCourses = false },
+                        onBack = { showNearbyCourses = false; simulationRequested = false },
                         onCourseSelected = { course -> selectedCourse = course }
                     )
                 }
@@ -617,6 +634,7 @@ private fun WatchThisDriveApp() {
                                 onShare = { roundScorecard?.let { ScorecardPdfShare.share(context, it, golferName) } },
                                 onDownload = { roundScorecard?.let { downloadScorecard(it) } },
                                 courseFactsStatus = courseFactsStatus,
+                                onRetryCourseFacts = { retryCourseFacts() },
                                 onQuitRound = { discardActiveRound() },
                                 onParChange = { holeNumber, par -> updateRoundPar(holeNumber, par) },
                                 onTitleChange = { value ->
