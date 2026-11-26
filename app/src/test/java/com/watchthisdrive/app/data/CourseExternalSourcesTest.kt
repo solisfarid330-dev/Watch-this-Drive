@@ -46,6 +46,21 @@ class CourseExternalSourcesTest {
     }
 
     @Test
+    fun matchingAllowsStrongCourseNameVariantOnlyWhenGeographicallyNearby() {
+        val candidates = JSONArray().put(
+            JSONObject().put("id", "near-variant").put("course_name", "South Padre Island Golf Course")
+                .put("latitude", 26.1).put("longitude", -97.2)
+        ).put(
+            JSONObject().put("id", "far-variant").put("course_name", "South Padre Island Golf Course")
+                .put("latitude", 30.0).put("longitude", -97.2)
+        )
+        val selected = OpenGolfApiCourseLoader.chooseMatch(
+            candidates, "South Padre Island Golf Club", 26.1, -97.2, 123L
+        )
+        assertEquals("near-variant", selected?.optString("id"))
+    }
+
+    @Test
     fun matchingRejectsSameNameWhenLocationIsTooFarAway() {
         val candidates = JSONArray().put(
             JSONObject().put("id", "far").put("course_name", "Pine Valley Golf Club")
