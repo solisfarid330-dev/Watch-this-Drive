@@ -110,6 +110,24 @@ private fun WatchThisDriveApp() {
     val fused = remember { LocationServices.getFusedLocationProviderClient(context) }
     var clubCarries by remember { mutableStateOf(ClubCarryDistances.load(context)) }
     var golferName by remember { mutableStateOf(context.getSharedPreferences("golfer_profile", android.content.Context.MODE_PRIVATE).getString("name", "").orEmpty()) }
+    var pendingPdfRound by remember { mutableStateOf<RoundScorecard?>(null) }
+    val pdfSaveLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/pdf")) { uri ->
+        val pending = pendingPdfRound
+        if (uri != null && pending != null) ScorecardPdfShare.saveToUri(context, pending, golferName, uri)
+        pendingPdfRound = null
+    }
+    fun downloadScorecard(round: RoundScorecard) { pendingPdfRound = round; pdfSaveLauncher.launch(ScorecardPdfShare.suggestedFileName(round)) }
+    fun discardActiveRound() {
+        RoundScorecardStore.saveActive(context, null)
+        roundScorecard = null
+        activeRound = false
+        mapGeometry = null
+        mapReconstruction = null
+        mapTarget = null
+        CourseGeometryCache.clear(context)
+        viewingSavedRound = null
+        selected = Tab.HOME
+    }
 
     fun restoreActiveCourse() {
         val savedRound = roundScorecard ?: return
@@ -434,7 +452,8 @@ private fun WatchThisDriveApp() {
                                         RoundScorecardStore.saveActive(context, updated)
                                     }
                                 } },
-                                onExitRound = { selected = Tab.HOME }
+                                onExitRound = { selected = Tab.HOME },
+                                onQuitRound = { discardActiveRound() }
                             )
                         } else if (activeRound && mapReconstruction == null) {
                             Column(
@@ -467,11 +486,11 @@ private fun WatchThisDriveApp() {
                     Tab.SCORE -> {
                         val round = roundScorecard
                         if (viewingSavedRound != null) {
-                            GlobalScorecardScreen(round = viewingSavedRound!!.round, onScoreChange = { _, _, _ -> }, onAddPlayer = {}, onRemovePlayer = {}, onFinishRound = {}, readOnly = true, onBack = { viewingSavedRound = null }, onShare = { ScorecardPdfShare.share(context, viewingSavedRound!!.round, golferName) })
+                            GlobalScorecardScreen(round = viewingSavedRound!!.round, onScoreChange = { _, _, _ -> }, onAddPlayer = {}, onRemovePlayer = {}, onFinishRound = {}, readOnly = true, onBack = { viewingSavedRound = null }, onShare = { ScorecardPdfShare.share(context, viewingSavedRound!!.round, golferName) }, onDownload = { downloadScorecard(viewingSavedRound!!.round) })
                         } else if (scorecardCoursePicker) {
                             NearbyCoursesScreen(
-                                location = null,
-                                onLocate = {},
+                                location = location,
+                                onLocate = { locate() },
                                 onBack = { scorecardCoursePicker = false },
                                 onCourseSelected = { course ->
                                     val count = course.expectedHoleCount ?: pendingScorecardHoles
@@ -497,9 +516,8 @@ private fun WatchThisDriveApp() {
                                                     val parsByHole = metadata.holes.mapNotNull { hole ->
                                                         hole.par?.let { hole.number.toString() to it }
                                                     }.toMap()
-                                                    val updated = current.copy(holePars = current.holePars.mapValues { (hole, existingPar) ->
-                                                        existingPar ?: parsByHole[hole]
-                                                    })
+                                                    val yardagesByHole = metadata.holes.mapNotNull { hole -> hole.yardage?.let { hole.number.toString() to it } }.toMap()
+                                                    val updated = current.copy(holePars = current.holePars.mapValues { (hole, existingPar) -> existingPar ?: parsByHole[hole] }, holeYardages = current.holeYardages + yardagesByHole)
                                                     roundScorecard = updated
                                                     RoundScorecardStore.saveActive(context, updated)
                                                 }
@@ -542,6 +560,8 @@ private fun WatchThisDriveApp() {
                                     selected = Tab.HOME
                                 },
                                 onShare = { roundScorecard?.let { ScorecardPdfShare.share(context, it, golferName) } },
+                                onDownload = { roundScorecard?.let { downloadScorecard(it) } },
+                                onQuitRound = { discardActiveRound() },
                                 onParChange = { holeNumber, par -> updateRoundPar(holeNumber, par) },
                                 onTitleChange = { value ->
                                     roundScorecard?.let { current ->
@@ -567,7 +587,9 @@ private fun WatchThisDriveApp() {
                             pendingScorecardHoles = count
                             scorecardCoursePicker = true
                         },
-                        onOpenSavedRound = { viewingSavedRound = it }
+                        onOpenSavedRound = { viewingSavedRound = it },
+                        onRenameSavedRound = { saved, title -> RoundScorecardStore.renameCompleted(context, saved, title); savedRounds = RoundScorecardStore.loadCompleted(context) },
+                        onDeleteSavedRound = { saved -> RoundScorecardStore.deleteCompleted(context, saved); savedRounds = RoundScorecardStore.loadCompleted(context) }
                         )
                     }
 
@@ -604,14 +626,7 @@ private fun WatchThisDriveApp() {
                             context.getSharedPreferences("course_mapping_preferences", android.content.Context.MODE_PRIVATE).edit().remove(key).apply()
                             dataRevision++
                         },
-                        onDeleteActiveRound = {
-                            RoundScorecardStore.saveActive(context, null)
-                            roundScorecard = null
-                            activeRound = false
-                            CourseGeometryCache.clear(context)
-                            selected = Tab.HOME
-                            dataRevision++
-                        },
+                        onDeleteActiveRound = { discardActiveRound(); dataRevision++ },
                         onDeleteAll = {
                             RoundScorecardStore.clearAll(context)
                             CourseGeometryCache.clearAll(context)
@@ -696,9 +711,6 @@ private fun HomeScreen(hasActiveRound: Boolean, onResumeRound: () -> Unit, onFin
                     Icon(Icons.Filled.Search, null); Spacer(Modifier.width(8.dp)); Text("FIND NEARBY COURSES", fontWeight = FontWeight.Bold)
                 }
             }
-        }
-        if (!hasActiveRound) OutlinedButton(onClick = onFindCourses, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFB8F36B))) {
-            Icon(Icons.Filled.Search, null); Spacer(Modifier.width(8.dp)); Text("BROWSE COURSES")
         }
         if (!hasActiveRound) Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF18231C)), shape = RoundedCornerShape(16.dp)) {
             Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(11.dp)) {
