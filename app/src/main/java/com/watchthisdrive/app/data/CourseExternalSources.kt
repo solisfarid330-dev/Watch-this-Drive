@@ -117,13 +117,14 @@ object OpenGolfApiCourseLoader {
             ?: JSONArray()
         val holes = (0 until holesArray.length()).mapNotNull { index ->
             val item = holesArray.optJSONObject(index) ?: return@mapNotNull null
-            val number = item.optInt("hole", item.optInt("number", 0))
+            val number = item.optInt("hole", item.optInt("hole_number", item.optInt("number", 0)))
             if (number !in 1..36) return@mapNotNull null
             CourseScorecardHole(
                 number = number,
                 par = item.optIntOrNull("par")?.takeIf { it in 3..6 },
                 handicap = firstInt(item, "handicap", "handicap_index", "stroke_index", "mens_handicap"),
-                yardage = firstInt(item, "yardage", "yards", "length_yards", "distance_yards")
+                yardage = firstInt(item, "yardage", "yards", "length_yards", "distance_yards", "yardage_yards")
+                    ?: firstInt(item, "meters", "length_meters")?.let { (it * 1.0936133).roundToInt() }
             )
         }.distinctBy { it.number }.sortedBy { it.number }
 
@@ -175,7 +176,22 @@ object OpenGolfApiCourseLoader {
         val id = match.optString("id")
         if (id.isBlank()) return null
         val detail = getJson("$BASE_URL/${URLEncoder.encode(id, "UTF-8")}")
-        return parseMetadata(detail, match).takeIf { it.hasUsefulScorecard }
+        // The course detail response includes a compact scorecard, while the
+        // dedicated holes endpoint carries richer per-hole facts such as yardage.
+        val holesDetail = runCatching { getJson("$BASE_URL/${URLEncoder.encode(id, "UTF-8")}/holes") }.getOrNull()
+        val teesDetail = runCatching { getJson("$BASE_URL/${URLEncoder.encode(id, "UTF-8")}/tees") }.getOrNull()
+        val enrichedDetail = JSONObject(detail.toString())
+        holesDetail?.let { response ->
+            (findArray(response, "holes") ?: findArray(response, "scorecard"))?.let {
+                enrichedDetail.put("holes", it)
+            }
+        }
+        teesDetail?.let { response ->
+            (findArray(response, "tees") ?: findArray(response, "data"))?.let {
+                enrichedDetail.put("tees", it)
+            }
+        }
+        return parseMetadata(enrichedDetail, match).takeIf { it.hasUsefulScorecard }
     }
 
     private fun getJson(url: String): JSONObject {
@@ -197,6 +213,7 @@ object OpenGolfApiCourseLoader {
 
     private fun findArray(root: JSONObject, key: String): JSONArray? {
         root.optJSONArray(key)?.let { return it }
+        root.optJSONArray("data")?.let { if (key == "data") return it }
         root.optJSONObject("data")?.optJSONArray(key)?.let { return it }
         root.optJSONObject("course")?.optJSONArray(key)?.let { return it }
         root.optJSONObject("data")?.optJSONObject("course")?.optJSONArray(key)?.let { return it }
