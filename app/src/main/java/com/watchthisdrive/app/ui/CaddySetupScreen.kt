@@ -187,6 +187,8 @@ fun CaddySetupScreen(
             Text("Course maps: ${context.filesDir.absolutePath}/mapped_courses/", color = Color.White, style = MaterialTheme.typography.bodySmall)
             Text("Active map recovery snapshot: ${context.filesDir.absolutePath}/active_course_geometry.json (when an active course map is cached)", color = Muted, style = MaterialTheme.typography.bodySmall)
             Text("Scorecards: ${context.applicationInfo.dataDir}/shared_prefs/round_scorecards.xml (${formatBytes(scorecardStorageBytes)})", color = Color.White, style = MaterialTheme.typography.bodySmall)
+            Text("Course mapping reports: ${context.applicationInfo.dataDir}/shared_prefs/course_mapping_reports.xml", color = Muted, style = MaterialTheme.typography.bodySmall)
+            Text("Manual hole-count preferences: ${context.applicationInfo.dataDir}/shared_prefs/course_mapping_preferences.xml", color = Muted, style = MaterialTheme.typography.bodySmall)
             Text("Android normally hides this private folder from the Files app. This inventory is the in-app view of those files. Clearing app storage or uninstalling WTD also removes them.", color = Muted, style = MaterialTheme.typography.bodySmall)
             TextButton(onClick = { confirmDeleteAll = true }, modifier = Modifier.fillMaxWidth()) {
                 Icon(Icons.Filled.Delete, null, tint = Color(0xFFFFB4AB)); Spacer(Modifier.width(8.dp)); Text("DELETE ALL ON-DEVICE DATA", color = Color(0xFFFFB4AB), fontWeight = FontWeight.Bold)
