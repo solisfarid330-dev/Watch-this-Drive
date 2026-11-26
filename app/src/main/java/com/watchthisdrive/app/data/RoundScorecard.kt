@@ -77,7 +77,11 @@ object RoundScorecardStore {
             val history = JSONArray(raw)
             (0 until history.length()).mapNotNull { index ->
                 val item = history.optJSONObject(index) ?: return@mapNotNull null
-                runCatching { SavedRound(decode(item), item.optLong("completedAt", item.optLong("startedAt"))) }.getOrNull()
+                runCatching {
+                    val completedAt = item.optLong("completedAt", item.optLong("startedAt"))
+                    val round = decode(item)
+                    SavedRound(round.copy(endedAt = round.endedAt ?: completedAt), completedAt)
+                }.getOrNull()
             }.sortedByDescending { it.completedAt }
         }.getOrDefault(emptyList())
     }
