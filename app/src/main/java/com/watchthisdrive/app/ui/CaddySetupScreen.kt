@@ -43,9 +43,13 @@ fun CaddySetupScreen(
     onChange: (Map<String, Int>) -> Unit,
     savedRounds: List<RoundScorecardStore.SavedRound>,
     cachedCourses: List<CourseCacheSummary>,
+    mappingReports: List<Pair<String, List<String>>>,
+    mappingPreferences: List<Pair<String, Int>>,
     activeRound: RoundScorecard?,
     onDeleteCourse: (Long) -> Unit,
     onDeleteScorecard: (RoundScorecardStore.SavedRound) -> Unit,
+    onDeleteMappingReport: (String) -> Unit,
+    onDeleteMappingPreference: (String) -> Unit,
     onDeleteActiveRound: () -> Unit,
     onDeleteAll: () -> Unit,
     onRequestLocationPermission: () -> Unit,
@@ -144,6 +148,30 @@ fun CaddySetupScreen(
                 }
                 HorizontalDivider(color = Color(0xFF344238))
             }
+            Text("COURSE MAPPING NOTES", color = Lime, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium)
+            if (mappingReports.isEmpty() && mappingPreferences.isEmpty()) {
+                Text("No missing-feature reports or manual hole-count preferences saved.", color = Muted, style = MaterialTheme.typography.bodySmall)
+            }
+            mappingReports.forEach { (key, features) ->
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(key.removePrefix("course_"), color = Color.White, fontWeight = FontWeight.SemiBold)
+                        Text("Reported missing: ${features.joinToString()}", color = Muted, style = MaterialTheme.typography.bodySmall)
+                        Text("shared_prefs/course_mapping_reports.xml", color = Muted, style = MaterialTheme.typography.labelSmall)
+                    }
+                    IconButton(onClick = { onDeleteMappingReport(key) }) { Icon(Icons.Filled.Delete, "Delete mapping report", tint = Color(0xFFFFB4AB)) }
+                }
+            }
+            mappingPreferences.forEach { (key, holeCount) ->
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(key.removePrefix("expected_holes_"), color = Color.White, fontWeight = FontWeight.SemiBold)
+                        Text("Manual target: $holeCount holes · shared_prefs/course_mapping_preferences.xml", color = Muted, style = MaterialTheme.typography.bodySmall)
+                    }
+                    IconButton(onClick = { onDeleteMappingPreference(key) }) { Icon(Icons.Filled.Delete, "Delete hole-count preference", tint = Color(0xFFFFB4AB)) }
+                }
+            }
+
             if (activeRound != null) {
                 Text("ACTIVE ROUND", color = Lime, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium)
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -189,7 +217,7 @@ fun CaddySetupScreen(
     if (pendingCourse != null) AlertDialog(onDismissRequest = { pendingCourse = null }, title = { Text("Delete saved course map?") }, text = { Text("Remove the local map for ${pendingCourse!!.courseName}? This does not delete scorecards. If an active round uses this course, its map will need to be downloaded again to resume the map view.") }, confirmButton = { TextButton(onClick = { val id = pendingCourse!!.courseId; pendingCourse = null; onDeleteCourse(id) }) { Text("DELETE", color = Color(0xFFFFB4AB)) } }, dismissButton = { TextButton(onClick = { pendingCourse = null }) { Text("CANCEL") } })
     if (pendingRound != null) AlertDialog(onDismissRequest = { pendingRound = null }, title = { Text("Delete saved scorecard?") }, text = { Text("Permanently remove the saved round at ${pendingRound!!.round.courseName}?") }, confirmButton = { TextButton(onClick = { val item = pendingRound!!; pendingRound = null; onDeleteScorecard(item) }) { Text("DELETE", color = Color(0xFFFFB4AB)) } }, dismissButton = { TextButton(onClick = { pendingRound = null }) { Text("CANCEL") } })
     if (confirmDeleteActive) AlertDialog(onDismissRequest = { confirmDeleteActive = false }, title = { Text("Delete active round?") }, text = { Text("This removes the in-progress scorecard and ends the active game.") }, confirmButton = { TextButton(onClick = { confirmDeleteActive = false; onDeleteActiveRound() }) { Text("DELETE", color = Color(0xFFFFB4AB)) } }, dismissButton = { TextButton(onClick = { confirmDeleteActive = false }) { Text("CANCEL") } })
-    if (confirmDeleteAll) AlertDialog(onDismissRequest = { confirmDeleteAll = false }, title = { Text("Delete all on-device data?") }, text = { Text("This permanently deletes saved course maps, completed and active scorecards, and club carry settings. This cannot be undone.") }, confirmButton = { TextButton(onClick = { confirmDeleteAll = false; onDeleteAll() }) { Text("DELETE EVERYTHING", color = Color(0xFFFFB4AB)) } }, dismissButton = { TextButton(onClick = { confirmDeleteAll = false }) { Text("CANCEL") } })
+    if (confirmDeleteAll) AlertDialog(onDismissRequest = { confirmDeleteAll = false }, title = { Text("Delete all on-device data?") }, text = { Text("This permanently deletes saved course maps, completed and active scorecards, course-mapping reports and preferences, temporary scorecard exports, and club carry settings. This cannot be undone.") }, confirmButton = { TextButton(onClick = { confirmDeleteAll = false; onDeleteAll() }) { Text("DELETE EVERYTHING", color = Color(0xFFFFB4AB)) } }, dismissButton = { TextButton(onClick = { confirmDeleteAll = false }) { Text("CANCEL") } })
 }
 
 private val Lime = Color(0xFFB8F36B)
