@@ -54,7 +54,6 @@ import com.watchthisdrive.app.data.CourseGeometryLoader
 import com.watchthisdrive.app.data.CourseFeatureInference
 import com.watchthisdrive.app.data.CourseHoleInference
 import com.watchthisdrive.app.data.CourseMappingQuality
-import com.watchthisdrive.app.data.MissingCourseFeature
 import com.watchthisdrive.app.data.CourseReconstruction
 import com.watchthisdrive.app.data.CourseReconstructionEngine
 import com.watchthisdrive.app.data.GolfCourse
@@ -221,6 +220,13 @@ private fun WatchThisDriveApp() {
             if (player.id != playerId) player else player.copy(scores =
                 if (strokes <= 0) player.scores - holeNumber else player.scores + (holeNumber to strokes.coerceAtMost(20)))
         })
+        roundScorecard = updated
+        RoundScorecardStore.saveActive(context, updated)
+    }
+
+    fun updateRoundPar(holeNumber: String, par: Int?) {
+        val current = roundScorecard ?: return
+        val updated = current.copy(holePars = current.holePars + (holeNumber to par?.coerceIn(1, 10)))
         roundScorecard = updated
         RoundScorecardStore.saveActive(context, updated)
     }
@@ -491,8 +497,8 @@ private fun WatchThisDriveApp() {
                                                     val parsByHole = metadata.holes.mapNotNull { hole ->
                                                         hole.par?.let { hole.number.toString() to it }
                                                     }.toMap()
-                                                    val updated = current.copy(holePars = current.holePars.mapValues { (hole, _) ->
-                                                        parsByHole[hole]
+                                                    val updated = current.copy(holePars = current.holePars.mapValues { (hole, existingPar) ->
+                                                        existingPar ?: parsByHole[hole]
                                                     })
                                                     roundScorecard = updated
                                                     RoundScorecardStore.saveActive(context, updated)
@@ -536,6 +542,7 @@ private fun WatchThisDriveApp() {
                                     selected = Tab.HOME
                                 },
                                 onShare = { roundScorecard?.let { ScorecardPdfShare.share(context, it, golferName) } },
+                                onParChange = { holeNumber, par -> updateRoundPar(holeNumber, par) },
                                 onTitleChange = { value ->
                                     roundScorecard?.let { current ->
                                         val updated = current.copy(scorecardTitle = value)
@@ -1187,15 +1194,6 @@ private fun CourseDetailScreen(
     }
     var recoveryLoading by remember(course.id) { mutableStateOf(false) }
     var recoveryMessage by remember(course.id) { mutableStateOf<String?>(null) }
-    var showMissingFeatureDialog by remember(course.id) { mutableStateOf(false) }
-    var reportedFeatures by remember(course.id) {
-        mutableStateOf(
-            appContext.getSharedPreferences("course_mapping_reports", android.content.Context.MODE_PRIVATE)
-                .getStringSet("course_${course.elementType}_${course.id}", emptySet())
-                .orEmpty()
-        )
-    }
-
     val mappingPreferences = remember(course.id) {
         appContext.getSharedPreferences("course_mapping_preferences", android.content.Context.MODE_PRIVATE)
     }
@@ -1281,18 +1279,6 @@ private fun CourseDetailScreen(
             }
             recoveryLoading = false
         }
-    }
-
-    fun reportMissingFeature(feature: MissingCourseFeature) {
-        val updated = reportedFeatures + feature.name
-        reportedFeatures = updated
-        appContext.getSharedPreferences("course_mapping_reports", android.content.Context.MODE_PRIVATE)
-            .edit()
-            .putStringSet("course_${course.elementType}_${course.id}", updated)
-            .apply()
-        recoveryMessage = "${feature.label} marked as missing. Checking for additional mapped data now…"
-        showMissingFeatureDialog = false
-        improveMapping(feature.osmTag)
     }
 
     LaunchedEffect(course.id) {
@@ -1670,53 +1656,13 @@ private fun CourseDetailScreen(
                             }
                             Text(if (recoveryLoading) "IMPROVING MAPPING…" else "IMPROVE COURSE MAPPING")
                         }
-                        OutlinedButton(
-                            onClick = { showMissingFeatureDialog = true },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFB8F36B))
-                        ) {
-                            Icon(Icons.Filled.Flag, contentDescription = null)
-                            Spacer(Modifier.width(8.dp))
-                            Text("REPORT A MISSING FEATURE")
-                        }
                         recoveryMessage?.let {
                             Text(it, color = Color(0xFFB6C1B9), style = MaterialTheme.typography.bodySmall)
                         }
-                        if (reportedFeatures.isNotEmpty()) {
-                            Text(
-                                "Reported missing on this device: " +
-                                    reportedFeatures.mapNotNull { name ->
-                                        MissingCourseFeature.entries.firstOrNull { it.name == name }?.label
-                                    }.joinToString(),
-                                color = Color(0xFFFFC857),
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        }
+
                     }
                 }
             }
-        }
-
-        if (showMissingFeatureDialog) {
-            AlertDialog(
-                onDismissRequest = { showMissingFeatureDialog = false },
-                title = { Text("What is missing?") },
-                text = {
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        MissingCourseFeature.entries.forEach { feature ->
-                            TextButton(
-                                onClick = { reportMissingFeature(feature) },
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text(feature.label, modifier = Modifier.fillMaxWidth())
-                            }
-                        }
-                    }
-                },
-                confirmButton = {
-                    TextButton(onClick = { showMissingFeatureDialog = false }) { Text("Cancel") }
-                }
-            )
         }
 
         Button(

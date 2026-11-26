@@ -220,43 +220,43 @@ fun ActiveHoleScreen(
             targetPoint = target, onMapTap = { target = it }, northUp = northUp
         )
         Row(
-            Modifier.align(Alignment.TopCenter).fillMaxWidth().padding(horizontal = 7.dp, vertical = 5.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Top
+            Modifier.align(Alignment.TopCenter).fillMaxWidth().padding(horizontal = 4.dp, vertical = 3.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.Top
         ) {
-            Surface(color = Color(0xE91A251E), shape = RoundedCornerShape(16.dp), modifier = Modifier.weight(1f)) {
-                Column(Modifier.padding(horizontal = 10.dp, vertical = 6.dp)) {
+            Surface(color = Color(0xE91A251E), shape = RoundedCornerShape(12.dp), modifier = Modifier.weight(1f)) {
+                Column(Modifier.padding(horizontal = 7.dp, vertical = 4.dp)) {
                     Text(courseName, color = Color.White, style = MaterialTheme.typography.labelMedium, maxLines = 1)
-                    Text("HOLE ${hole.number}", color = Color(0xFFB8F36B), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    Text(hole.par?.let { "PAR $it" } ?: "PAR —", color = Color.White, style = MaterialTheme.typography.labelMedium)
+                    Text("HOLE ${hole.number}", color = Color(0xFFB8F36B), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                    Text(hole.par?.let { "PAR $it" } ?: "PAR —", color = Color.White, style = MaterialTheme.typography.labelSmall)
                     if (!hole.teeToGreenOriented) Text("Hole direction uncertain", color = Color(0xFFFFC857), style = MaterialTheme.typography.labelSmall)
                 }
             }
-            Surface(color = Color(0xE91A251E), shape = RoundedCornerShape(16.dp)) {
-                Column(Modifier.padding(horizontal = 9.dp, vertical = 6.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Surface(color = Color(0xE91A251E), shape = RoundedCornerShape(12.dp)) {
+                Column(Modifier.padding(horizontal = 6.dp, vertical = 4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("THIS HOLE", color = Color(0xFFB6C1B9), style = MaterialTheme.typography.labelSmall)
-                    Text(relativeLabel, color = Color.White, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Text(relativeLabel, color = Color.White, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     Text("Strokes $strokes", color = Color(0xFFB8F36B), style = MaterialTheme.typography.labelMedium)
-                    Spacer(Modifier.height(4.dp))
+                    Spacer(Modifier.height(1.dp))
                     Text("ROUND", color = Color(0xFFB6C1B9), style = MaterialTheme.typography.labelSmall)
-                    Text("$overallStrokes · ${overallRelativeToPar?.let { if (it == 0) "E" else if (it > 0) "+$it" else it.toString() } ?: "—"}", color = Color.White, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                    Text("$overallStrokes · ${overallRelativeToPar?.let { if (it == 0) "E" else if (it > 0) "+$it" else it.toString() } ?: "—"}", color = Color.White, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
                 }
             }
             IconButton(onClick = { northUp = !northUp }, modifier = Modifier.background(Color(0xE91A251E), RoundedCornerShape(14.dp))) {
                 Icon(if (northUp) Icons.Filled.Explore else Icons.Filled.Navigation, contentDescription = "Toggle map orientation", tint = Color.White)
             }
         }
-        Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(horizontal = 5.dp, vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Surface(color = Color(0xE91A251E), shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth()) {
-                Row(Modifier.padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(horizontal = 3.dp, vertical = 2.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Surface(color = Color(0xE91A251E), shape = RoundedCornerShape(11.dp), modifier = Modifier.fillMaxWidth()) {
+                Row(Modifier.padding(horizontal = 6.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text(if (target != null) "DISTANCE TO TARGET" else "DISTANCE TO PIN", color = Color(0xFFB6C1B9), style = MaterialTheme.typography.labelSmall)
-                        Text((yardsToTarget ?: yardsToPin)?.let { "$it yd" } ?: "— yd", color = Color.White, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Text((yardsToTarget ?: yardsToPin)?.let { "$it yd" } ?: "— yd", color = Color.White, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(displayedGpsMessage, color = Color(0xFFB8F36B), style = MaterialTheme.typography.labelSmall, maxLines = 1)
                             Spacer(Modifier.width(4.dp))
-                            TextButton(onClick = { refreshGps() }, enabled = !refreshingGps, contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp)) {
+                            TextButton(onClick = { refreshGps() }, enabled = !refreshingGps, contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp)) {
                                 if (refreshingGps) CircularProgressIndicator(Modifier.size(13.dp), strokeWidth = 2.dp, color = Color(0xFFB8F36B))
-                                else Icon(Icons.Filled.Refresh, contentDescription = "Refresh GPS", tint = Color(0xFFB8F36B), modifier = Modifier.size(16.dp))
+                                else Icon(Icons.Filled.Refresh, contentDescription = "Refresh GPS", tint = Color(0xFFB8F36B), modifier = Modifier.size(13.dp))
                                 Spacer(Modifier.width(3.dp))
                                 Text("GPS", color = Color(0xFFB8F36B), style = MaterialTheme.typography.labelSmall)
                             }
@@ -284,21 +284,21 @@ fun ActiveHoleScreen(
                 }
             }
             if (target != null) {
-                Surface(color = Color(0xE91A251E), shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth()) {
-                    Row(Modifier.padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Surface(color = Color(0xE91A251E), shape = RoundedCornerShape(11.dp), modifier = Modifier.fillMaxWidth()) {
+                    Row(Modifier.padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text(yardsToTarget?.let { "Selected target · $it yd" } ?: "Target selected", color = Color.White, modifier = Modifier.weight(1f))
                         TextButton(onClick = { target = null }) { Text("Clear", color = Color(0xFFB8F36B)) }
                     }
                 }
             } else Text("Tap the map to measure to any target", color = Color.White, modifier = Modifier.align(Alignment.CenterHorizontally), style = MaterialTheme.typography.labelMedium)
-            Surface(color = Color(0xF018231C), shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
-                Row(Modifier.padding(horizontal = 4.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                    IconButton(onClick = onExitRound, modifier = Modifier.size(36.dp)) { Icon(Icons.Filled.ArrowBack, contentDescription = "Leave game and return home", tint = Color.White) }
+            Surface(color = Color(0xF018231C), shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth()) {
+                Row(Modifier.padding(horizontal = 2.dp, vertical = 0.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                    IconButton(onClick = onExitRound, modifier = Modifier.size(30.dp)) { Icon(Icons.Filled.ArrowBack, contentDescription = "Leave game and return home", tint = Color.White) }
                     TextButton(onClick = onPreviousHole, enabled = holeIndex > 0) { Text("Previous", color = Color.White) }
                     Text("${holeIndex + 1} / $holeCount", color = Color(0xFFB8F36B), fontWeight = FontWeight.Bold)
                     TextButton(onClick = onNextHole, enabled = holeIndex < holeCount - 1) { Text("Next", color = Color.White) }
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(onClick = { onStrokesChange(strokes - 1) }, enabled = strokes > 0, modifier = Modifier.size(34.dp)) { Icon(Icons.Filled.Remove, contentDescription = "Remove stroke", tint = Color.White) }
+                        IconButton(onClick = { onStrokesChange(strokes - 1) }, enabled = strokes > 0, modifier = Modifier.size(28.dp)) { Icon(Icons.Filled.Remove, contentDescription = "Remove stroke", tint = Color.White) }
                         Text("$strokes", color = Color.White, fontWeight = FontWeight.Bold)
                         IconButton(onClick = { onStrokesChange(strokes + 1) }, modifier = Modifier.size(34.dp)) { Icon(Icons.Filled.Add, contentDescription = "Add stroke", tint = Color(0xFFB8F36B)) }
                     }

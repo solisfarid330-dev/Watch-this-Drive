@@ -16,11 +16,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import com.watchthisdrive.app.data.RoundPlayer
 import com.watchthisdrive.app.data.RoundScorecard
 
 @Composable
-fun GlobalScorecardScreen(round: RoundScorecard, onScoreChange: (String, String, Int) -> Unit, onAddPlayer: (String) -> Unit, onRemovePlayer: (String) -> Unit, onFinishRound: () -> Unit, readOnly: Boolean = false, onBack: () -> Unit = {}, onShare: () -> Unit = {}, onTitleChange: (String) -> Unit = {}) {
+fun GlobalScorecardScreen(round: RoundScorecard, onScoreChange: (String, String, Int) -> Unit, onAddPlayer: (String) -> Unit, onRemovePlayer: (String) -> Unit, onFinishRound: () -> Unit, readOnly: Boolean = false, onBack: () -> Unit = {}, onShare: () -> Unit = {}, onTitleChange: (String) -> Unit = {}, onParChange: (String, Int?) -> Unit = { _, _ -> }) {
     var newPlayerName by remember { mutableStateOf("") }
     var titleDraft by remember(round.startedAt, round.scorecardTitle) { mutableStateOf(round.scorecardTitle) }
     var showFinishDialog by remember { mutableStateOf(false) }
@@ -41,7 +43,7 @@ fun GlobalScorecardScreen(round: RoundScorecard, onScoreChange: (String, String,
         round.players.forEach { player ->
             PlayerScorecard(player, player.id == round.userPlayerId, holes, round.holePars,
                 { hole, strokes -> onScoreChange(player.id, hole, strokes) },
-                { onRemovePlayer(player.id) }, readOnly)
+                { onRemovePlayer(player.id) }, readOnly, onParChange)
         }
         if (!readOnly) Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF1B2921)), shape = RoundedCornerShape(16.dp)) {
             Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -83,7 +85,7 @@ fun GlobalScorecardScreen(round: RoundScorecard, onScoreChange: (String, String,
 }
 
 @Composable
-private fun PlayerScorecard(player: RoundPlayer, isUser: Boolean, holes: List<String>, pars: Map<String, Int?>, onScoreChange: (String, Int) -> Unit, onRemove: () -> Unit, readOnly: Boolean) {
+private fun PlayerScorecard(player: RoundPlayer, isUser: Boolean, holes: List<String>, pars: Map<String, Int?>, onScoreChange: (String, Int) -> Unit, onRemove: () -> Unit, readOnly: Boolean, onParChange: (String, Int?) -> Unit) {
     val total = player.scores.values.sum()
     val scoredWithPar = player.scores.filterKeys { pars[it] != null }
     val relative = if (scoredWithPar.isEmpty()) null else scoredWithPar.entries.sumOf { (hole, strokes) -> strokes - (pars[hole] ?: 0) }
@@ -101,7 +103,27 @@ private fun PlayerScorecard(player: RoundPlayer, isUser: Boolean, holes: List<St
                 Row(Modifier.fillMaxWidth().background(Color(0xFF111A15), RoundedCornerShape(10.dp)).padding(horizontal = 10.dp, vertical = 5.dp), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text("Hole $hole", color = Color.White, fontWeight = FontWeight.SemiBold)
-                        Text("Par ${pars[hole] ?: "—"}", color = Color(0xFFB6C1B9), style = MaterialTheme.typography.labelSmall)
+                        if (readOnly) {
+                            Text("Par ${pars[hole] ?: "—"}", color = Color(0xFFB6C1B9), style = MaterialTheme.typography.labelSmall)
+                        } else {
+                            OutlinedTextField(
+                                value = pars[hole]?.toString().orEmpty(),
+                                onValueChange = { raw ->
+                                    if (raw.isBlank()) onParChange(hole, null)
+                                    else raw.toIntOrNull()?.takeIf { it in 1..10 }?.let { onParChange(hole, it) }
+                                },
+                                modifier = Modifier.width(76.dp),
+                                singleLine = true,
+                                label = { Text("Par") },
+                                placeholder = { Text("—") },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedTextColor = Color.White, unfocusedTextColor = Color.White,
+                                    focusedBorderColor = Color(0xFFB8F36B), unfocusedBorderColor = Color(0xFF526257),
+                                    cursorColor = Color(0xFFB8F36B)
+                                )
+                            )
+                        }
                     }
                     if (!readOnly) IconButton(onClick = { onScoreChange(hole, (strokes - 1).coerceAtLeast(0)) }, enabled = strokes > 0) { Icon(Icons.Filled.Remove, contentDescription = "Remove stroke", tint = Color.White) }
                     Text(if (strokes == 0) "—" else strokes.toString(), color = Color.White, fontWeight = FontWeight.Bold)
