@@ -118,7 +118,7 @@ fun CaddySetupScreen(
 
         SettingsActionCard("On-Device Data", "${cachedCourses.size} course maps · ${savedRounds.size} saved scorecards${if (activeRound != null) " · active round saved" else ""}", { Icon(Icons.Filled.Folder, null, tint = Lime) }, showData) { showData = !showData }
         if (showData) SettingsDetail {
-            Text("Everything listed here is stored locally in WTD's private app storage. Nothing is uploaded or synced to a cloud account.", color = Color.White, style = MaterialTheme.typography.bodyMedium)
+            Text("Everything listed here is stored in WTD's private app storage. WTD does not upload it to a WTD cloud account; Android may back up app data according to your device's backup settings.", color = Color.White, style = MaterialTheme.typography.bodyMedium)
             Text("Total saved course-map storage: ${formatBytes(cachedCourses.sumOf { it.fileSizeBytes })}", color = Muted, style = MaterialTheme.typography.bodySmall)
             Text("SAVED COURSE MAPS", color = Lime, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium)
             if (cachedCourses.isEmpty()) Text("No saved course maps.", color = Muted, style = MaterialTheme.typography.bodySmall)
@@ -189,7 +189,7 @@ fun CaddySetupScreen(
             Text("Scorecards: ${context.applicationInfo.dataDir}/shared_prefs/round_scorecards.xml (${formatBytes(scorecardStorageBytes)})", color = Color.White, style = MaterialTheme.typography.bodySmall)
             Text("Course mapping reports: ${context.applicationInfo.dataDir}/shared_prefs/course_mapping_reports.xml", color = Muted, style = MaterialTheme.typography.bodySmall)
             Text("Manual hole-count preferences: ${context.applicationInfo.dataDir}/shared_prefs/course_mapping_preferences.xml", color = Muted, style = MaterialTheme.typography.bodySmall)
-            Text("Android normally hides this private folder from the Files app. This inventory is the in-app view of those files. Clearing app storage or uninstalling WTD also removes them.", color = Muted, style = MaterialTheme.typography.bodySmall)
+            Text("Android normally hides this private folder from the Files app. This inventory is the in-app view of those files. Clearing app storage or uninstalling WTD removes local files; Android backup and restore behavior depends on your device settings.", color = Muted, style = MaterialTheme.typography.bodySmall)
             TextButton(onClick = { confirmDeleteAll = true }, modifier = Modifier.fillMaxWidth()) {
                 Icon(Icons.Filled.Delete, null, tint = Color(0xFFFFB4AB)); Spacer(Modifier.width(8.dp)); Text("DELETE ALL ON-DEVICE DATA", color = Color(0xFFFFB4AB), fontWeight = FontWeight.Bold)
             }
