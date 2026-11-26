@@ -60,6 +60,7 @@ import com.watchthisdrive.app.data.CourseReconstruction
 import com.watchthisdrive.app.data.CourseReconstructionEngine
 import com.watchthisdrive.app.data.GolfCourse
 import com.watchthisdrive.app.ui.CourseGeometryPreview
+import com.watchthisdrive.app.ui.CourseHoleArtworkPanel
 import com.watchthisdrive.app.ui.GolfMap
 import com.watchthisdrive.app.ui.ActiveHoleScreen
 import com.watchthisdrive.app.ui.CaddySetupScreen
@@ -1600,6 +1601,8 @@ private fun CourseDetailScreen(
                 }
             }
         }
+
+        CourseHoleArtworkPanel(geometry = geometry, reconstruction = reconstruction)
 
         Card(
             colors = CardDefaults.cardColors(
