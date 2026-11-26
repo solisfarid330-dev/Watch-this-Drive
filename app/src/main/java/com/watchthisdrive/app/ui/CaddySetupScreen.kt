@@ -115,6 +115,7 @@ fun CaddySetupScreen(
         SettingsActionCard("On-Device Data", "${cachedCourses.size} course maps · ${savedRounds.size} saved scorecards${if (activeRound != null) " · active round saved" else ""}", { Icon(Icons.Filled.Folder, null, tint = Lime) }, showData) { showData = !showData }
         if (showData) SettingsDetail {
             Text("Everything listed here is stored locally in WTD's private app storage. Nothing is uploaded or synced to a cloud account.", color = Color.White, style = MaterialTheme.typography.bodyMedium)
+            Text("Total saved course-map storage: ${formatBytes(cachedCourses.sumOf { it.fileSizeBytes })}", color = Muted, style = MaterialTheme.typography.bodySmall)
             Text("SAVED COURSE MAPS", color = Lime, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium)
             if (cachedCourses.isEmpty()) Text("No saved course maps.", color = Muted, style = MaterialTheme.typography.bodySmall)
             cachedCourses.forEach { course ->
@@ -136,7 +137,7 @@ fun CaddySetupScreen(
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(round.courseName, color = Color.White, fontWeight = FontWeight.SemiBold)
-                        Text("${round.players.joinToString { it.name }} · ${round.holePars.size} holes · $date", color = Muted, style = MaterialTheme.typography.bodySmall)
+                        Text("${round.players.joinToString { player -> "${player.name}: ${player.scores.values.sum()} strokes" }} · ${round.holePars.size} holes · $date", color = Muted, style = MaterialTheme.typography.bodySmall)
                         Text("shared_prefs/round_scorecards.xml", color = Muted, style = MaterialTheme.typography.labelSmall)
                     }
                     IconButton(onClick = { pendingRound = saved }) { Icon(Icons.Filled.Delete, "Delete scorecard", tint = Color(0xFFFFB4AB)) }
@@ -156,6 +157,7 @@ fun CaddySetupScreen(
             HorizontalDivider(color = Color(0xFF344238))
             Text("STORAGE LOCATION", color = Lime, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium)
             Text("Course maps: ${context.filesDir.absolutePath}/mapped_courses/", color = Color.White, style = MaterialTheme.typography.bodySmall)
+            Text("Active map recovery snapshot: ${context.filesDir.absolutePath}/active_course_geometry.json (when an active course map is cached)", color = Muted, style = MaterialTheme.typography.bodySmall)
             Text("Scorecards: ${context.applicationInfo.dataDir}/shared_prefs/round_scorecards.xml (${formatBytes(scorecardStorageBytes)})", color = Color.White, style = MaterialTheme.typography.bodySmall)
             Text("Android normally hides this private folder from the Files app. This inventory is the in-app view of those files. Clearing app storage or uninstalling WTD also removes them.", color = Muted, style = MaterialTheme.typography.bodySmall)
             TextButton(onClick = { confirmDeleteAll = true }, modifier = Modifier.fillMaxWidth()) {
@@ -184,7 +186,7 @@ fun CaddySetupScreen(
         Spacer(Modifier.height(12.dp))
     }
 
-    if (pendingCourse != null) AlertDialog(onDismissRequest = { pendingCourse = null }, title = { Text("Delete saved course map?") }, text = { Text("Remove the local map for ${pendingCourse!!.courseName}? This does not delete scorecards.") }, confirmButton = { TextButton(onClick = { val id = pendingCourse!!.courseId; pendingCourse = null; onDeleteCourse(id) }) { Text("DELETE", color = Color(0xFFFFB4AB)) } }, dismissButton = { TextButton(onClick = { pendingCourse = null }) { Text("CANCEL") } })
+    if (pendingCourse != null) AlertDialog(onDismissRequest = { pendingCourse = null }, title = { Text("Delete saved course map?") }, text = { Text("Remove the local map for ${pendingCourse!!.courseName}? This does not delete scorecards. If an active round uses this course, its map will need to be downloaded again to resume the map view.") }, confirmButton = { TextButton(onClick = { val id = pendingCourse!!.courseId; pendingCourse = null; onDeleteCourse(id) }) { Text("DELETE", color = Color(0xFFFFB4AB)) } }, dismissButton = { TextButton(onClick = { pendingCourse = null }) { Text("CANCEL") } })
     if (pendingRound != null) AlertDialog(onDismissRequest = { pendingRound = null }, title = { Text("Delete saved scorecard?") }, text = { Text("Permanently remove the saved round at ${pendingRound!!.round.courseName}?") }, confirmButton = { TextButton(onClick = { val item = pendingRound!!; pendingRound = null; onDeleteScorecard(item) }) { Text("DELETE", color = Color(0xFFFFB4AB)) } }, dismissButton = { TextButton(onClick = { pendingRound = null }) { Text("CANCEL") } })
     if (confirmDeleteActive) AlertDialog(onDismissRequest = { confirmDeleteActive = false }, title = { Text("Delete active round?") }, text = { Text("This removes the in-progress scorecard and ends the active game.") }, confirmButton = { TextButton(onClick = { confirmDeleteActive = false; onDeleteActiveRound() }) { Text("DELETE", color = Color(0xFFFFB4AB)) } }, dismissButton = { TextButton(onClick = { confirmDeleteActive = false }) { Text("CANCEL") } })
     if (confirmDeleteAll) AlertDialog(onDismissRequest = { confirmDeleteAll = false }, title = { Text("Delete all on-device data?") }, text = { Text("This permanently deletes saved course maps, completed and active scorecards, and club carry settings. This cannot be undone.") }, confirmButton = { TextButton(onClick = { confirmDeleteAll = false; onDeleteAll() }) { Text("DELETE EVERYTHING", color = Color(0xFFFFB4AB)) } }, dismissButton = { TextButton(onClick = { confirmDeleteAll = false }) { Text("CANCEL") } })
