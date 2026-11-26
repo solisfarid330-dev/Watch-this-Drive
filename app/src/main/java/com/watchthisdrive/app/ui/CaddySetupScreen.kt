@@ -41,6 +41,8 @@ fun CaddySetupScreen(
     context: Context,
     carryDistances: Map<String, Int>,
     onChange: (Map<String, Int>) -> Unit,
+    golferName: String,
+    onGolferNameChange: (String) -> Unit,
     savedRounds: List<RoundScorecardStore.SavedRound>,
     cachedCourses: List<CourseCacheSummary>,
     mappingReports: List<Pair<String, List<String>>>,
@@ -76,6 +78,20 @@ fun CaddySetupScreen(
         Text("SETTINGS", color = Lime, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
         Text("Make WTD yours.", color = Color.White, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
         Text("Control location access, manage what is saved on this phone, and see the services behind WTD.", color = Muted, style = MaterialTheme.typography.bodyMedium)
+        OutlinedTextField(
+            value = golferName,
+            onValueChange = { onGolferNameChange(it.take(28)) },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            label = { Text("Golfer name for shared scorecards") },
+            placeholder = { Text("Enter your name") },
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = Color.White, unfocusedTextColor = Color.White,
+                focusedBorderColor = Lime, unfocusedBorderColor = Color(0xFF526257),
+                focusedLabelColor = Lime, unfocusedLabelColor = Muted, cursorColor = Lime
+            )
+        )
+        Text("This name appears on your page when you export a scorecard. Other players keep their own names.", color = Muted, style = MaterialTheme.typography.bodySmall)
 
         SettingsActionCard("Club Distances", "${carryDistances.size} clubs configured · carry in yards", { Icon(Icons.Filled.SportsGolf, null, tint = Lime) }, showCarries) { showCarries = !showCarries }
         if (showCarries) {
@@ -219,7 +235,7 @@ fun CaddySetupScreen(
     if (pendingCourse != null) AlertDialog(onDismissRequest = { pendingCourse = null }, title = { Text("Delete saved course map?") }, text = { Text("Remove the local map for ${pendingCourse!!.courseName}? This does not delete scorecards. If an active round uses this course, its map will need to be downloaded again to resume the map view.") }, confirmButton = { TextButton(onClick = { val id = pendingCourse!!.courseId; pendingCourse = null; onDeleteCourse(id) }) { Text("DELETE", color = Color(0xFFFFB4AB)) } }, dismissButton = { TextButton(onClick = { pendingCourse = null }) { Text("CANCEL") } })
     if (pendingRound != null) AlertDialog(onDismissRequest = { pendingRound = null }, title = { Text("Delete saved scorecard?") }, text = { Text("Permanently remove the saved round at ${pendingRound!!.round.courseName}?") }, confirmButton = { TextButton(onClick = { val item = pendingRound!!; pendingRound = null; onDeleteScorecard(item) }) { Text("DELETE", color = Color(0xFFFFB4AB)) } }, dismissButton = { TextButton(onClick = { pendingRound = null }) { Text("CANCEL") } })
     if (confirmDeleteActive) AlertDialog(onDismissRequest = { confirmDeleteActive = false }, title = { Text("Delete active round?") }, text = { Text("This removes the in-progress scorecard and ends the active game.") }, confirmButton = { TextButton(onClick = { confirmDeleteActive = false; onDeleteActiveRound() }) { Text("DELETE", color = Color(0xFFFFB4AB)) } }, dismissButton = { TextButton(onClick = { confirmDeleteActive = false }) { Text("CANCEL") } })
-    if (confirmDeleteAll) AlertDialog(onDismissRequest = { confirmDeleteAll = false }, title = { Text("Delete all on-device data?") }, text = { Text("This permanently deletes saved course maps, completed and active scorecards, course-mapping reports and preferences, temporary scorecard exports, and custom club carry settings (starter defaults will be restored). This cannot be undone.") }, confirmButton = { TextButton(onClick = { confirmDeleteAll = false; onDeleteAll() }) { Text("DELETE EVERYTHING", color = Color(0xFFFFB4AB)) } }, dismissButton = { TextButton(onClick = { confirmDeleteAll = false }) { Text("CANCEL") } })
+    if (confirmDeleteAll) AlertDialog(onDismissRequest = { confirmDeleteAll = false }, title = { Text("Delete all on-device data?") }, text = { Text("This permanently deletes saved course maps, completed and active scorecards, course-mapping reports and preferences, temporary scorecard exports, and custom club carry settings (starter defaults will be restored) and your saved golfer name. This cannot be undone.") }, confirmButton = { TextButton(onClick = { confirmDeleteAll = false; onDeleteAll() }) { Text("DELETE EVERYTHING", color = Color(0xFFFFB4AB)) } }, dismissButton = { TextButton(onClick = { confirmDeleteAll = false }) { Text("CANCEL") } })
 }
 
 private val Lime = Color(0xFFB8F36B)
