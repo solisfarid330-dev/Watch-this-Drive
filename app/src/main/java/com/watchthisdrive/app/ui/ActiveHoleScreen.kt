@@ -47,9 +47,11 @@ fun ActiveHoleScreen(
     onStrokesChange: (Int) -> Unit,
     onPreviousHole: () -> Unit,
     onNextHole: () -> Unit,
-    onExitRound: () -> Unit
+    onExitRound: () -> Unit,
+    onQuitRound: () -> Unit = {}
 ) {
     val context = LocalContext.current
+    var showQuitDialog by remember { mutableStateOf(false) }
     val fused = remember { LocationServices.getFusedLocationProviderClient(context) }
     var player by remember { mutableStateOf<Location?>(null) }
     var gpsMessage by remember { mutableStateOf("Waiting for GPS") }
@@ -294,6 +296,7 @@ fun ActiveHoleScreen(
             Surface(color = Color(0xF018231C), shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth()) {
                 Row(Modifier.padding(horizontal = 2.dp, vertical = 0.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                     IconButton(onClick = onExitRound, modifier = Modifier.size(30.dp)) { Icon(Icons.Filled.ArrowBack, contentDescription = "Leave game and return home", tint = Color.White) }
+                    TextButton(onClick = { showQuitDialog = true }, contentPadding = PaddingValues(horizontal = 2.dp, vertical = 0.dp)) { Text("QUIT", color = Color(0xFFFFB4AB), style = MaterialTheme.typography.labelSmall) }
                     TextButton(onClick = onPreviousHole, enabled = holeIndex > 0) { Text("Previous", color = Color.White) }
                     Text("${holeIndex + 1} / $holeCount", color = Color(0xFFB8F36B), fontWeight = FontWeight.Bold)
                     TextButton(onClick = onNextHole, enabled = holeIndex < holeCount - 1) { Text("Next", color = Color.White) }
@@ -306,6 +309,13 @@ fun ActiveHoleScreen(
             }
         }
     }
+    if (showQuitDialog) AlertDialog(
+        onDismissRequest = { showQuitDialog = false },
+        title = { Text("Quit without saving?") },
+        text = { Text("This discards the active round and all scores entered in it. It will not appear in saved games.") },
+        confirmButton = { TextButton(onClick = { showQuitDialog = false; onQuitRound() }) { Text("QUIT & DISCARD", color = Color(0xFFFFB4AB)) } },
+        dismissButton = { TextButton(onClick = { showQuitDialog = false }) { Text("KEEP PLAYING") } }
+    )
 }
 
 private fun distanceToPolylineMeters(latitude: Double, longitude: Double, points: List<GeoPoint>): Double {
