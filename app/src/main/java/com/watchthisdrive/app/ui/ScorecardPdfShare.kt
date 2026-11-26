@@ -2,6 +2,7 @@ package com.watchthisdrive.app.ui
 
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
@@ -16,11 +17,31 @@ import java.text.DateFormat
 import java.util.Date
 
 object ScorecardPdfShare {
+    fun suggestedFileName(round: RoundScorecard): String {
+        val safeName = (round.scorecardTitle.ifBlank { round.courseName }).replace(Regex("[^A-Za-z0-9_-]"), "_").take(40)
+        return "WTD_${safeName}_${round.startedAt}.pdf"
+    }
+
+    fun saveToUri(context: Context, round: RoundScorecard, golferName: String = "", destination: Uri) {
+        try {
+            val directory = File(context.cacheDir, "shared_scorecards").apply { mkdirs() }
+            val file = File(directory, suggestedFileName(round))
+            val displayName = golferName.trim().takeIf { it.isNotEmpty() }
+            val exportRound = if (displayName == null) round else round.copy(players = round.players.map { player -> if (player.id == round.userPlayerId) player.copy(name = displayName) else player })
+            createPdf(file, exportRound)
+            val output = context.contentResolver.openOutputStream(destination) ?: throw Exception("The selected file could not be opened")
+            output.use { stream -> file.inputStream().use { it.copyTo(stream) } }
+            Toast.makeText(context, "Scorecard PDF saved.", Toast.LENGTH_LONG).show()
+        } catch (problem: Exception) {
+            Toast.makeText(context, "Could not save the scorecard PDF: " + (problem.localizedMessage ?: "please try again"), Toast.LENGTH_LONG).show()
+        }
+    }
+
     fun share(context: Context, round: RoundScorecard, golferName: String = "") {
         try {
             val directory = File(context.cacheDir, "shared_scorecards").apply { mkdirs() }
             val safeName = round.courseName.replace(Regex("[^A-Za-z0-9_-]"), "_").take(36)
-            val file = File(directory, "WTD_${safeName}_${round.startedAt}.pdf")
+            val file = File(directory, suggestedFileName(round))
             val displayName = golferName.trim().takeIf { it.isNotEmpty() }
             val exportRound = if (displayName == null) round else round.copy(players = round.players.map { player ->
                 if (player.id == round.userPlayerId) player.copy(name = displayName) else player
@@ -89,9 +110,14 @@ object ScorecardPdfShare {
                 paint.textSize = 11f
                 paint.typeface = Typeface.create("sans-serif", Typeface.NORMAL)
                 val date = DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(round.startedAt))
-                canvas.drawText("Golfer: ${player.name}     Date: $date", 42f, if (round.scorecardTitle.isNotBlank()) 180f else 165f, paint)
+                val infoY = if (round.scorecardTitle.isNotBlank()) 180f else 165f
+                canvas.drawText("Golfer: ${player.name}     Date: $date", 42f, infoY, paint)
+                paint.textSize = 9f
+                val startTime = DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(round.startedAt))
+                val endTime = round.endedAt?.let { DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(it)) } ?: "In progress"
+                canvas.drawText("Started: $startTime     Finished: $endTime", 42f, infoY + 14f, paint)
 
-                val top = if (round.scorecardTitle.isNotBlank()) 217f else 202f
+                val top = if (round.scorecardTitle.isNotBlank()) 231f else 216f
                 val rowHeight = if (holes.size > 9) 24f else 30f
                 val columns = listOf(42f, 125f, 270f, 420f)
                 paint.color = dark
@@ -101,6 +127,7 @@ object ScorecardPdfShare {
                 paint.textSize = 10f
                 canvas.drawText("HOLE", columns[0] + 8, top + 17, paint)
                 canvas.drawText("PAR", columns[1] + 8, top + 17, paint)
+                canvas.drawText("YARDS", columns[1] + 42, top + 17, paint)
                 canvas.drawText("SCORE", columns[2] + 8, top + 17, paint)
                 canvas.drawText("TO PAR", columns[3] + 8, top + 17, paint)
 
@@ -120,6 +147,7 @@ object ScorecardPdfShare {
                     paint.textSize = 11f
                     canvas.drawText(hole, columns[0] + 8, y + rowHeight * .68f, paint)
                     canvas.drawText(par?.toString() ?: "—", columns[1] + 8, y + rowHeight * .68f, paint)
+                    canvas.drawText(round.holeYardages[hole]?.toString() ?: "—", columns[1] + 42, y + rowHeight * .68f, paint)
                     canvas.drawText(score?.takeIf { it > 0 }?.toString() ?: "—", columns[2] + 8, y + rowHeight * .68f, paint)
                     val relative = if (score != null && par != null) score - par else null
                     canvas.drawText(relative?.let { if (it > 0) "+$it" else it.toString() } ?: "—", columns[3] + 8, y + rowHeight * .68f, paint)
