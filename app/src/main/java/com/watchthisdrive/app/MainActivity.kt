@@ -93,6 +93,9 @@ private fun WatchThisDriveApp() {
     var roundScorecard by remember { mutableStateOf(RoundScorecardStore.loadActive(context)) }
     var savedRounds by remember { mutableStateOf(RoundScorecardStore.loadCompleted(context)) }
     var viewingSavedRound by remember { mutableStateOf<RoundScorecardStore.SavedRound?>(null) }
+    var scorecardCoursePicker by remember { mutableStateOf(false) }
+    var pendingScorecardTitle by remember { mutableStateOf("") }
+    var pendingScorecardHoles by remember { mutableIntStateOf(18) }
     var activeRound by remember { mutableStateOf(roundScorecard != null) }
     var activeHoleIndex by remember { mutableIntStateOf((roundScorecard?.activeHoleNumber?.toIntOrNull() ?: 1) - 1) }
     var locationMessage by remember { mutableStateOf("Location not checked yet") }
@@ -459,6 +462,31 @@ private fun WatchThisDriveApp() {
                         val round = roundScorecard
                         if (viewingSavedRound != null) {
                             GlobalScorecardScreen(round = viewingSavedRound!!.round, onScoreChange = { _, _, _ -> }, onAddPlayer = {}, onRemovePlayer = {}, onFinishRound = {}, readOnly = true, onBack = { viewingSavedRound = null }, onShare = { ScorecardPdfShare.share(context, viewingSavedRound!!.round, golferName) })
+                        } else if (scorecardCoursePicker) {
+                            NearbyCoursesScreen(
+                                location = null,
+                                onLocate = {},
+                                onBack = { scorecardCoursePicker = false },
+                                onCourseSelected = { course ->
+                                    val count = course.expectedHoleCount ?: pendingScorecardHoles
+                                    val pars = (1..count).associate { it.toString() to null }
+                                    val newRound = RoundScorecard.new(
+                                        courseName = course.name,
+                                        holePars = pars,
+                                        courseId = course.id,
+                                        courseElementType = course.elementType,
+                                        courseLatitude = course.latitude,
+                                        courseLongitude = course.longitude,
+                                        expectedHoleCount = count
+                                    ).copy(scorecardOnly = true, scorecardTitle = pendingScorecardTitle)
+                                    roundScorecard = newRound
+                                    RoundScorecardStore.saveActive(context, newRound)
+                                    activeRound = true
+                                    activeHoleIndex = 0
+                                    viewingSavedRound = null
+                                    scorecardCoursePicker = false
+                                }
+                            )
                         } else if (activeRound && round != null) {
                             GlobalScorecardScreen(
                                 round = round,
@@ -488,17 +516,33 @@ private fun WatchThisDriveApp() {
                                     viewingSavedRound = null
                                     selected = Tab.HOME
                                 },
-                                onShare = { roundScorecard?.let { ScorecardPdfShare.share(context, it, golferName) } }
+                                onShare = { roundScorecard?.let { ScorecardPdfShare.share(context, it, golferName) } },
+                                onTitleChange = { value ->
+                                    roundScorecard?.let { current ->
+                                        val updated = current.copy(scorecardTitle = value)
+                                        roundScorecard = updated
+                                        RoundScorecardStore.saveActive(context, updated)
+                                    }
+                                }
                             )
-                        } else ScorecardHubScreen(savedRounds = savedRounds, onStartScorecardOnly = { count ->
-                            val pars = (1..count).associate { it.toString() to 4 }
-                            val newRound = RoundScorecard.new("Scorecard-only round", pars).copy(scorecardOnly = true)
+                        } else ScorecardHubScreen(
+                            savedRounds = savedRounds,
+                            onStartScorecardOnly = { title, count ->
+                            val pars = (1..count).associate { it.toString() to null }
+                            val newRound = RoundScorecard.new("Course not selected", pars).copy(scorecardOnly = true, scorecardTitle = title)
                             roundScorecard = newRound
                             RoundScorecardStore.saveActive(context, newRound)
                             activeRound = true
                             activeHoleIndex = 0
                             viewingSavedRound = null
-                        }, onOpenSavedRound = { viewingSavedRound = it })
+                        },
+                        onChooseCourse = { title, count ->
+                            pendingScorecardTitle = title
+                            pendingScorecardHoles = count
+                            scorecardCoursePicker = true
+                        },
+                        onOpenSavedRound = { viewingSavedRound = it }
+                        )
                     }
 
                     Tab.CADDY -> CaddySetupScreen(
