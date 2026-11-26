@@ -487,7 +487,7 @@ private fun WatchThisDriveApp() {
                                         metadataResult.onSuccess { metadata ->
                                             if (metadata != null) {
                                                 val current = roundScorecard
-                                                if (current?.startedAt == newRound.startedAt && current.scorecardOnly) {
+                                                if (current != null && current.startedAt == newRound.startedAt && current.scorecardOnly) {
                                                     val parsByHole = metadata.holes.mapNotNull { hole ->
                                                         hole.par?.let { hole.number.toString() to it }
                                                     }.toMap()
