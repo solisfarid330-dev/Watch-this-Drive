@@ -48,7 +48,11 @@ data class ExternalCourseMetadata(
  * substitutes OSM boundary IDs, and a weak name/location match is rejected.
  */
 object OpenGolfApiCourseLoader {
-    private const val BASE_URL = "https://api.opengolfapi.org/api/v1/courses"
+    // OpenGolf's published quickstart and deployed route source use /v1;
+    // its current OpenAPI document also advertises /api/v1. Prefer /v1 and
+    // fall back only on a 404 so either deployment alias is supported.
+    private const val PRIMARY_BASE_URL = "https://api.opengolfapi.org/v1/courses"
+    private const val COMPAT_BASE_URL = "https://api.opengolfapi.org/api/v1/courses"
     private const val MAX_MATCH_DISTANCE_METERS = 5000.0
 
     fun load(course: GolfCourse, onResult: (Result<ExternalCourseMetadata?>) -> Unit) {
@@ -59,8 +63,12 @@ object OpenGolfApiCourseLoader {
     }
 
     internal fun buildSearchUrl(course: GolfCourse): String =
-        "$BASE_URL/search?q=${URLEncoder.encode(course.name.trim(), "UTF-8")}" +
+        buildSearchUrls(course).first()
+
+    internal fun buildSearchUrls(course: GolfCourse): List<String> = listOf(PRIMARY_BASE_URL, COMPAT_BASE_URL).map { base ->
+        "$base/search?q=${URLEncoder.encode(course.name.trim(), "UTF-8")}" +
             "&lat=${course.latitude}&lng=${course.longitude}&radius_mi=10&limit=20"
+    }
 
     internal fun chooseMatch(
         candidates: JSONArray,
@@ -170,7 +178,7 @@ object OpenGolfApiCourseLoader {
     }
 
     private fun loadBlocking(course: GolfCourse): ExternalCourseMetadata? {
-        val search = getJson(buildSearchUrl(course))
+        val search = getCourseJson(course, "/search")
         val candidates = findArray(search, "courses")
             ?: findArray(search, "results")
             ?: JSONArray()
@@ -179,11 +187,12 @@ object OpenGolfApiCourseLoader {
         ) ?: return null
         val id = match.optString("id")
         if (id.isBlank()) return null
-        val detail = getJson("$BASE_URL/${URLEncoder.encode(id, "UTF-8")}")
+        val encodedId = URLEncoder.encode(id, "UTF-8")
+        val detail = getCourseJson(course, "/$encodedId")
         // The course detail response includes a compact scorecard, while the
         // dedicated holes endpoint carries richer per-hole facts such as yardage.
-        val holesDetail = runCatching { getJson("$BASE_URL/${URLEncoder.encode(id, "UTF-8")}/holes") }.getOrNull()
-        val teesDetail = runCatching { getJson("$BASE_URL/${URLEncoder.encode(id, "UTF-8")}/tees") }.getOrNull()
+        val holesDetail = runCatching { getCourseJson(course, "/$encodedId/holes") }.getOrNull()
+        val teesDetail = runCatching { getCourseJson(course, "/$encodedId/tees") }.getOrNull()
         val enrichedDetail = JSONObject(detail.toString())
         holesDetail?.let { response ->
             (findArray(response, "holes") ?: findArray(response, "scorecard") ?: findArray(response, "data"))?.let {
@@ -196,6 +205,24 @@ object OpenGolfApiCourseLoader {
             }
         }
         return parseMetadata(enrichedDetail, match).takeIf { it.hasUsefulScorecard }
+    }
+
+    private fun getCourseJson(course: GolfCourse, suffix: String): JSONObject {
+        var lastFailure: Throwable? = null
+        listOf(PRIMARY_BASE_URL, COMPAT_BASE_URL).forEachIndexed { index, base ->
+            try {
+                val query = if (suffix == "/search") {
+                    "q=${URLEncoder.encode(course.name.trim(), "UTF-8")}&lat=${course.latitude}&lng=${course.longitude}&radius_mi=10&limit=20"
+                } else null
+                val url = if (query != null) "$base/search?$query" else "$base$suffix"
+                return getJson(url)
+            } catch (problem: Throwable) {
+                lastFailure = problem
+                val isNotFound = problem.message?.contains("HTTP 404") == true
+                if (!isNotFound || index == 1) throw problem
+            }
+        }
+        throw lastFailure ?: IllegalStateException("OpenGolfAPI course endpoint is unavailable")
     }
 
     private fun getJson(url: String): JSONObject {
