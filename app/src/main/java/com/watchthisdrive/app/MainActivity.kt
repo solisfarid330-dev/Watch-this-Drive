@@ -278,6 +278,8 @@ private fun WatchThisDriveApp() {
             if (current == null || current.startedAt != expectedRoundStartedAt) return
             if (!geometryReady && !metadataReady) return
 
+            var resolvedGeometry: CourseGeometry? = null
+            var resolvedReconstruction: CourseReconstruction? = null
             val geometryPars = sourceGeometry?.let { source ->
                 val enrichedSource = externalMetadata?.let { metadata ->
                     enrichGeometryWithScorecard(source, metadata, current.expectedHoleCount)
@@ -285,14 +287,21 @@ private fun WatchThisDriveApp() {
                 val inferred = CourseFeatureInference.addInferredFeatures(
                     CourseHoleInference.addInferredHoles(enrichedSource)
                 )
-                CourseReconstructionEngine.reconstruct(inferred).holes
-                    .associate { hole -> hole.number to hole.par }
+                val reconstructed = CourseReconstructionEngine.reconstruct(inferred)
+                resolvedGeometry = inferred
+                resolvedReconstruction = reconstructed
+                CourseGeometryCache.save(context, inferred)
+                reconstructed.holes.associate { hole -> hole.number to hole.par }
             }.orEmpty()
 
             // One shared merge rule keeps Active Game and Scorecard Only in sync.
             val resolved = current.withResolvedCourseFacts(geometryPars, externalMetadata)
             roundScorecard = resolved
             RoundScorecardStore.saveActive(context, resolved)
+            if (!resolved.scorecardOnly && resolvedGeometry != null && resolvedReconstruction != null) {
+                mapGeometry = resolvedGeometry
+                mapReconstruction = resolvedReconstruction
+            }
 
             if (!geometryReady) {
                 courseFactsStatus = "Checking mapped course hole information…"
