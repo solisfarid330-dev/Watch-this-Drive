@@ -136,9 +136,9 @@ object OpenGolfApiCourseLoader {
                 par = item.optIntOrNull("par")?.takeIf { it in 3..6 },
                 handicap = firstInt(item, "handicap", "handicap_index", "stroke_index", "mens_handicap"),
                 yardage = firstInt(item, "yardage", "yards", "length_yards", "distance_yards", "yardage_yards")
-                    ?: firstInt(item, "meters", "length_meters")?.let { (it * 1.0936133).roundToInt() }
                     ?: yardageFromTeeMap(item.optJSONObject("yardages"))
                     ?: yardageFromTeeArray(item.optJSONArray("yardages"))
+                    ?: firstInt(item, "meters", "length_meters")?.let { (it * 1.0936133).roundToInt() }
             )
         }.distinctBy { it.number }.sortedBy { it.number }
 
