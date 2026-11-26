@@ -1,6 +1,8 @@
 # Watch this Drive
 
-An Android-first golf companion focused on selecting a real golf course, reconstructing its mapped hole geometry, and providing on-course distances and carry-based club guidance.
+**Current version: 1.0.0**
+
+Watch This Drive is an Android-first golf companion focused on selecting a real golf course, reconstructing its mapped hole geometry, and providing on-course distances and carry-based club guidance.
 
 ## Current app foundation
 
