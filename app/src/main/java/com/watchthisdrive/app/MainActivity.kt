@@ -103,6 +103,10 @@ private fun WatchThisDriveApp() {
     var locationMessage by remember { mutableStateOf("Location not checked yet") }
     var permissionRevision by remember { mutableIntStateOf(0) }
     var dataRevision by remember { mutableIntStateOf(0) }
+    val developerPreferences = remember { context.getSharedPreferences("developer_options", android.content.Context.MODE_PRIVATE) }
+    var developerSimulationEnabled by remember { mutableStateOf(developerPreferences.getBoolean("course_simulation_enabled", false)) }
+    var simulationMode by remember { mutableStateOf(developerPreferences.getBoolean("course_simulation_active", false)) }
+    var simulationRequested by remember { mutableStateOf(false) }
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event -> if (event == Lifecycle.Event.ON_RESUME) permissionRevision++ }
@@ -124,6 +128,8 @@ private fun WatchThisDriveApp() {
         RoundScorecardStore.saveActive(context, null)
         roundScorecard = null
         activeRound = false
+        simulationMode = false
+        developerPreferences.edit().putBoolean("course_simulation_active", false).apply()
         mapGeometry = null
         mapReconstruction = null
         mapTarget = null
@@ -424,6 +430,9 @@ private fun WatchThisDriveApp() {
                             }
                             showNearbyCourses = false
                             activeRound = loadedReconstruction?.holes?.isNotEmpty() == true
+                            simulationMode = simulationRequested && developerSimulationEnabled && activeRound
+                            developerPreferences.edit().putBoolean("course_simulation_active", simulationMode).apply()
+                            simulationRequested = false
                             activeHoleIndex = 0
                             val holes = loadedReconstruction?.holes.orEmpty()
                             if (holes.isNotEmpty()) {
@@ -510,7 +519,8 @@ private fun WatchThisDriveApp() {
                                     }
                                 } },
                                 onExitRound = { selected = Tab.HOME },
-                                onQuitRound = { discardActiveRound() }
+                                onQuitRound = { discardActiveRound() },
+                                simulationMode = simulationMode
                             )
                         } else if (activeRound && mapReconstruction == null) {
                             Column(
@@ -676,6 +686,10 @@ private fun WatchThisDriveApp() {
                             CourseGeometryCache.clearAll(context)
                             ClubCarryDistances.clear(context)
                             context.getSharedPreferences("golfer_profile", android.content.Context.MODE_PRIVATE).edit().clear().commit()
+                            developerPreferences.edit().clear().commit()
+                            developerSimulationEnabled = false
+                            simulationMode = false
+                            simulationRequested = false
                             golferName = ""
                             ScorecardPdfShare.clear(context)
                             context.getSharedPreferences("course_mapping_reports", android.content.Context.MODE_PRIVATE).edit().clear().commit()
@@ -699,7 +713,17 @@ private fun WatchThisDriveApp() {
                         },
                         onOpenAppSettings = { context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", context.packageName, null))) },
                         onOpenDeviceLocationSettings = { context.startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)) },
-                        permissionRevision = permissionRevision + dataRevision
+                        permissionRevision = permissionRevision + dataRevision,
+                        simulationEnabled = developerSimulationEnabled,
+                        onSimulationEnabledChange = { enabled ->
+                            developerSimulationEnabled = enabled
+                            developerPreferences.edit().putBoolean("course_simulation_enabled", enabled).apply()
+                        },
+                        onStartSimulation = {
+                            simulationRequested = true
+                            selectedCourse = null
+                            showNearbyCourses = true
+                        }
                     )
                 }
             }
