@@ -49,6 +49,7 @@ import com.watchthisdrive.app.data.RoundPlayer
 import com.watchthisdrive.app.data.RoundScorecard
 import com.watchthisdrive.app.data.RoundScorecardStore
 import com.watchthisdrive.app.data.withCourseScorecardFacts
+import com.watchthisdrive.app.data.withResolvedCourseFacts
 import com.watchthisdrive.app.data.CourseGeometry
 import com.watchthisdrive.app.data.CourseGeometryCache
 import com.watchthisdrive.app.data.CourseGeometryLoader
@@ -288,23 +289,8 @@ private fun WatchThisDriveApp() {
                     .associate { hole -> hole.number to hole.par }
             }.orEmpty()
 
-            val publishedPars = externalMetadata?.holes
-                ?.mapNotNull { hole -> hole.par?.let { hole.number.toString() to it } }
-                ?.toMap().orEmpty()
-            val publishedYardages = externalMetadata?.holes
-                ?.mapNotNull { hole -> hole.yardage?.let { hole.number.toString() to it } }
-                ?.toMap().orEmpty()
-
-            // Preserve any value already present (including a golfer's manual
-            // correction); mapped geometry wins over the API when filling blanks.
-            val resolved = current.copy(
-                holePars = current.holePars.mapValues { (number, existing) ->
-                    existing ?: geometryPars[number] ?: publishedPars[number]
-                },
-                holeYardages = current.holeYardages.mapValues { (number, existing) ->
-                    existing ?: publishedYardages[number]
-                } + publishedYardages.filterKeys { it !in current.holeYardages }
-            )
+            // One shared merge rule keeps Active Game and Scorecard Only in sync.
+            val resolved = current.withResolvedCourseFacts(geometryPars, externalMetadata)
             roundScorecard = resolved
             RoundScorecardStore.saveActive(context, resolved)
 
