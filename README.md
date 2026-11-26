@@ -21,6 +21,14 @@ Fairway, bunker, and water overlays use available mapped geometry. Satellite-ima
 
 Club distances are **carry only**: yards through the air to first landing, before bounce and roll. The Caddy uses those carry values consistently.
 
+## Shared course facts and illustrated holes
+
+- Active Game and Scorecard Only use the same hole-par source priority: reconstructed mapped course geometry first, published OpenGolfAPI facts only to fill missing values, and golfer-entered par corrections always take precedence.
+- Scorecard Only starts immediately. It reuses cached geometry when available and resolves missing course facts in the background; it does not display or require a course map.
+- Hole illustrations are generated on-device from the selected course's current reconstructed geometry. The same renderer and cache are used in the course's **Illustrated holes** section and the in-game Caddy view. There are no per-course production images or course-specific constants.
+- The artwork frames the full tee-to-green hole with the tee at the bottom. Mapped fairways, greens, bunkers, and water retain their source geometry. Inferred details are visually distinguished and described as approximate; if the mapped data is insufficient, the app reports that rather than inventing a complete hole.
+- The illustrated view is an additional Caddy detail; the approved GPS distance and recommendation panel layout remains unchanged.
+
 ## Map imagery
 
 The app uses MapLibre Native with MapTiler satellite tiles. Configure a GitHub Actions repository secret named MAPTILER_API_KEY to provide the client-side map key during CI builds. Restrict the key in MapTiler Cloud to the extent supported by your plan. The key is compiled into the APK and should be treated as a public client key, not as a server secret.
@@ -51,11 +59,10 @@ GitHub Actions runs unit tests and builds the debug APK on pushes to main, featu
 
 ## In-app mapping diagnostics and recovery
 
-The course detail screen now includes a source-data coverage summary, an **Improve course mapping** action, and a **Report a missing feature** action.
+The course detail screen includes a source-data coverage summary and an **Improve course mapping** action.
 
 - Diagnostics count usable OSM hole lines, tees, greens, fairways, bunkers, and water features; numbered-hole gaps are reported only when the source itself supplies enough numbering evidence.
 - The improvement action performs a second, broader Overpass query for golf-tagged features and `golf:hole` tags within the selected course area. It merges newly retrieved features with the existing set by OSM element identity, retains existing usable geometry, and reconstructs the course again.
-- Missing-feature reports are currently stored locally on the device for that selected OSM course boundary. They are not uploaded to a server and do not create map geometry; they are groundwork for more targeted recovery and later opt-in feedback.
 - A broader query can only recover information that exists in the queried OSM data. It cannot fill genuinely unmapped fairways/greens or replace satellite-image recognition.
 
 These controls are an initial recovery framework, not a claim that imagery recognition or full automatic repair is complete.
@@ -69,7 +76,7 @@ The Settings screen provides expandable sections for club carry distances, locat
 ## Scorecard sharing, data controls, and credits
 
 - Active and completed scorecards are stored as JSON in Android private SharedPreferences under `round_scorecards`. The active round and completed-round history are separate entries.
-- Active scorecards can be given a custom title, and scorecard-only rounds can optionally select a course through name/location search without enabling GPS or loading a course map. Unknown pars are left blank rather than assumed. Scorecards can be exported as a branded PDF through Android's share sheet; the PDF includes the scorecard title (when set), course, golfer, round date, hole numbers, known pars, entered scores, and totals. The golfer's display name is configurable in Settings. The export is generated in the app cache and shared through Android's FileProvider; it is not uploaded by WTD.
+- Active scorecards can be given a custom title, and scorecard-only rounds can optionally select a course through name/location search without enabling GPS or displaying a course map. Hole pars are resolved in the background from the same reconstructed OSM course geometry used by Active Game, with OpenGolfAPI filling gaps; golfers can still edit pars manually, and unavailable values remain blank rather than guessed. Scorecards can be exported as a branded PDF through Android's share sheet; the PDF includes the scorecard title (when set), course, golfer, round date, hole numbers, known pars, entered scores, and totals. The golfer's display name is configurable in Settings. The export is generated in the app cache and shared through Android's FileProvider; it is not uploaded by WTD.
 - Settings provides an inventory of cached course maps and saved scorecards, with individual deletion and a confirmed delete-all action. The delete-all action also clears the active round and club carry settings.
 - Location controls link to Android's app-permission and device-location settings. WTD uses foreground location only; it does not request background location.
 - Credits in Settings identify project roles and third-party services. OpenStreetMap data is provided under ODbL; consult the linked source credits for their respective terms.
