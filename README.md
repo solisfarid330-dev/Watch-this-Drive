@@ -21,13 +21,10 @@ Fairway, bunker, and water overlays use available mapped geometry. Satellite-ima
 
 Club distances are **carry only**: yards through the air to first landing, before bounce and roll. The Caddy uses those carry values consistently.
 
-## Shared course facts and illustrated holes
+## Shared course facts
 
 - Active Game and Scorecard Only use the same hole-par source priority: reconstructed mapped course geometry first, published OpenGolfAPI facts only to fill missing values, and golfer-entered par corrections always take precedence.
 - Scorecard Only starts immediately. It reuses cached geometry when available and resolves missing course facts in the background; it does not display or require a course map.
-- Hole illustrations are generated on-device from the selected course's current reconstructed geometry. The same renderer and cache are used in the course's **Illustrated holes** section and the in-game Caddy view. There are no per-course production images or course-specific constants.
-- The artwork frames the full tee-to-green hole with the tee at the bottom. Mapped fairways, greens, bunkers, and water retain their source geometry. Inferred details are visually distinguished and described as approximate; if the mapped data is insufficient, the app reports that rather than inventing a complete hole.
-- The illustrated view is an additional Caddy detail; the approved GPS distance and recommendation panel layout remains unchanged.
 
 ## Map imagery
 
