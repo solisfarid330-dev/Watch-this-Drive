@@ -194,7 +194,7 @@ private fun CourseHoleArtworkImage(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val artworkHole = remember(hole, geometry.courseId) { hole.toArtworkHole(geometry) }
+    val artworkHole = remember(hole, geometry) { hole.toArtworkHole(geometry) }
     var bitmap by remember(geometry.courseId, hole.number) { mutableStateOf<Bitmap?>(null) }
     var failed by remember(geometry.courseId, hole.number) { mutableStateOf(false) }
     LaunchedEffect(artworkHole, geometry.courseId) {
