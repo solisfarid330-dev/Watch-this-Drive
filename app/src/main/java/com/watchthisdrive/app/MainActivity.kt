@@ -481,6 +481,25 @@ private fun WatchThisDriveApp() {
                                     ).copy(scorecardOnly = true, scorecardTitle = pendingScorecardTitle)
                                     roundScorecard = newRound
                                     RoundScorecardStore.saveActive(context, newRound)
+                                    // Fetch published scorecard facts in the background. The
+                                    // scorecard starts immediately; unavailable pars stay blank.
+                                    OpenGolfApiCourseLoader.load(course) { metadataResult ->
+                                        metadataResult.onSuccess { metadata ->
+                                            if (metadata != null) {
+                                                val current = roundScorecard
+                                                if (current?.startedAt == newRound.startedAt && current.scorecardOnly) {
+                                                    val parsByHole = metadata.holes.mapNotNull { hole ->
+                                                        hole.par?.let { hole.number.toString() to it }
+                                                    }.toMap()
+                                                    val updated = current.copy(holePars = current.holePars.mapValues { (hole, _) ->
+                                                        parsByHole[hole]
+                                                    })
+                                                    roundScorecard = updated
+                                                    RoundScorecardStore.saveActive(context, updated)
+                                                }
+                                            }
+                                        }
+                                    }
                                     activeRound = true
                                     activeHoleIndex = 0
                                     viewingSavedRound = null
