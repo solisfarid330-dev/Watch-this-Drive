@@ -63,7 +63,7 @@ These controls are an initial recovery framework, not a claim that imagery recog
 
 ## Local data and settings
 
-The Settings screen provides expandable sections for club carry distances, location permissions, and on-device data. Saved course-map inventory is read from the app's private `filesDir/mapped_courses/` cache. Completed scorecards remain in app-private local storage; Android's Files app does not normally expose these private files. Clearing app storage or uninstalling the app removes this local data; there is no cloud sync.
+The Settings screen provides expandable sections for club carry distances, location permissions, and on-device data. Saved course-map inventory is read from the app's private `filesDir/mapped_courses/` cache. Completed scorecards remain in app-private local storage; Android's Files app does not normally expose these private files. Clearing app storage or uninstalling the app removes the local files. WTD does not implement its own cloud sync; Android system backup and restore behavior is governed by device settings.
 
 
 ## Scorecard sharing, data controls, and credits
