@@ -13,6 +13,7 @@ import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Explore
 import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material3.*
 import androidx.compose.material3.Slider
 import androidx.compose.runtime.*
@@ -55,6 +56,7 @@ fun ActiveHoleScreen(
 ) {
     val context = LocalContext.current
     var showQuitDialog by remember { mutableStateOf(false) }
+    var showHoleArtwork by remember { mutableStateOf(false) }
     val fused = remember { LocationServices.getFusedLocationProviderClient(context) }
     var player by remember { mutableStateOf<Location?>(null) }
     var gpsMessage by remember { mutableStateOf("Waiting for GPS") }
@@ -321,7 +323,12 @@ fun ActiveHoleScreen(
                     }
                     Surface(color = Color(0xFF263B2A), shape = RoundedCornerShape(10.dp), modifier = Modifier.weight(1.08f)) {
                         Column(Modifier.fillMaxWidth().padding(horizontal = 7.dp, vertical = 4.dp), verticalArrangement = Arrangement.Center) {
-                            Text("CADDY RECOMMENDS", color = Color(0xFFB8F36B), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, maxLines = 1)
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text("CADDY RECOMMENDS", color = Color(0xFFB8F36B), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, maxLines = 1, modifier = Modifier.weight(1f))
+                                IconButton(onClick = { showHoleArtwork = true }, modifier = Modifier.size(22.dp)) {
+                                    Icon(Icons.Filled.Image, contentDescription = "View illustrated hole", tint = Color(0xFFB8F36B), modifier = Modifier.size(16.dp))
+                                }
+                            }
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                                 Text(recommendedClub?.name ?: "Set carry distances", color = Color.White, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall, maxLines = 1, modifier = Modifier.weight(1f))
                                 Text(recommendedClub?.let { "${it.carryYards} yd" } ?: "—", color = Color(0xFFD5E2D8), style = MaterialTheme.typography.labelSmall, maxLines = 1)
@@ -355,6 +362,7 @@ fun ActiveHoleScreen(
             }
         }
     }
+    if (showHoleArtwork) CourseHoleArtworkDialog(hole = hole, geometry = geometry) { showHoleArtwork = false }
     if (showQuitDialog) AlertDialog(
         onDismissRequest = { showQuitDialog = false },
         title = { Text("Quit without saving?") },
