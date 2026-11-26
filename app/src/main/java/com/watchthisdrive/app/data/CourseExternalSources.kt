@@ -108,12 +108,16 @@ object OpenGolfApiCourseLoader {
         detail: JSONObject,
         fallback: JSONObject
     ): ExternalCourseMetadata {
-        val sourceId = detail.optString("id").ifBlank { fallback.optString("id") }
-        val name = detail.optString("course_name")
-            .ifBlank { detail.optString("name") }
+        // The API has returned both flat objects and {data:{course:{...}}}
+        // envelopes. Normalize the course object before reading scalar fields.
+        val payload = detail.optJSONObject("data") ?: detail
+        val courseDetail = payload.optJSONObject("course") ?: payload
+        val sourceId = courseDetail.optString("id").ifBlank { fallback.optString("id") }
+        val name = courseDetail.optString("course_name")
+            .ifBlank { courseDetail.optString("name") }
             .ifBlank { fallback.optString("course_name", fallback.optString("name")) }
-        val holesArray = findArray(detail, "holes")
-            ?: findArray(detail, "scorecard")
+        val holesArray = findArray(courseDetail, "holes")
+            ?: findArray(courseDetail, "scorecard")
             ?: JSONArray()
         val holes = (0 until holesArray.length()).mapNotNull { index ->
             val item = holesArray.optJSONObject(index) ?: return@mapNotNull null
@@ -128,7 +132,7 @@ object OpenGolfApiCourseLoader {
             )
         }.distinctBy { it.number }.sortedBy { it.number }
 
-        val teesArray = findArray(detail, "tees") ?: JSONArray()
+        val teesArray = findArray(courseDetail, "tees") ?: JSONArray()
         val tees = (0 until teesArray.length()).mapNotNull { index ->
             val item = teesArray.optJSONObject(index) ?: return@mapNotNull null
             val name = item.optString("name")
@@ -148,16 +152,16 @@ object OpenGolfApiCourseLoader {
         return ExternalCourseMetadata(
             sourceId = sourceId,
             name = name,
-            city = detail.optString("city").ifBlank { fallback.optString("city") }.takeIf { it.isNotBlank() },
-            state = detail.optString("state").ifBlank { fallback.optString("state") }.takeIf { it.isNotBlank() },
-            holeCount = detail.optIntOrNull("hole_count")
-                ?: detail.optIntOrNull("holes_count")
+            city = courseDetail.optString("city").ifBlank { fallback.optString("city") }.takeIf { it.isNotBlank() },
+            state = courseDetail.optString("state").ifBlank { fallback.optString("state") }.takeIf { it.isNotBlank() },
+            holeCount = courseDetail.optIntOrNull("hole_count")
+                ?: courseDetail.optIntOrNull("holes_count")
                 ?: fallbackHoleCount
                 ?: holes.size.takeIf { it in 1..36 },
-            totalPar = detail.optIntOrNull("par_total")
-                ?: detail.optIntOrNull("total_par")
+            totalPar = courseDetail.optIntOrNull("par_total")
+                ?: courseDetail.optIntOrNull("total_par")
                 ?: fallback.optIntOrNull("par_total"),
-            totalYardage = detail.optIntOrNull("total_yardage")
+            totalYardage = courseDetail.optIntOrNull("total_yardage")
                 ?: fallback.optIntOrNull("total_yardage")
                 ?: tees.mapNotNull { it.totalYardage }.maxOrNull(),
             holes = holes,
@@ -205,7 +209,8 @@ object OpenGolfApiCourseLoader {
             val code = connection.responseCode
             if (code !in 200..299) throw Exception("OpenGolfAPI returned HTTP $code")
             val body = connection.inputStream.bufferedReader().use { it.readText() }
-            return JSONObject(body)
+            val trimmed = body.trimStart()
+            return if (trimmed.startsWith("[")) JSONObject().put("data", JSONArray(body)) else JSONObject(body)
         } finally {
             connection.disconnect()
         }
@@ -213,7 +218,7 @@ object OpenGolfApiCourseLoader {
 
     private fun findArray(root: JSONObject, key: String): JSONArray? {
         root.optJSONArray(key)?.let { return it }
-        root.optJSONArray("data")?.let { if (key == "data") return it }
+        root.optJSONArray("data")?.let { if (key == "data" || key in setOf("courses", "results", "holes", "scorecard", "tees")) return it }
         root.optJSONObject("data")?.optJSONArray(key)?.let { return it }
         root.optJSONObject("course")?.optJSONArray(key)?.let { return it }
         root.optJSONObject("data")?.optJSONObject("course")?.optJSONArray(key)?.let { return it }
