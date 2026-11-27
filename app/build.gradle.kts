@@ -15,7 +15,7 @@ android {
         versionCode = 1
         versionName = "1.0.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        buildConfigField("String", "MAPTILER_API_KEY", "\"\${providers.gradleProperty("MAPTILER_API_KEY").orElse(providers.environmentVariable("MAPTILER_API_KEY")).getOrElse("")}\"")
+        buildConfigField("String", "MAPTILER_API_KEY", "\"${providers.gradleProperty("MAPTILER_API_KEY").orElse(providers.environmentVariable("MAPTILER_API_KEY")).getOrElse("")}\"")
     }
 
     signingConfigs {
