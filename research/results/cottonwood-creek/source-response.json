@@ -1,0 +1,418 @@
+{
+  "metadata": {
+    "requested_course": "Cottonwood Creek Country Club",
+    "requested_location": "Harlingen, Texas, USA",
+    "discovered_course": {
+      "osm_type": "way",
+      "osm_id": 1337838568,
+      "name": "Cottonwood Creek Country Club",
+      "display_name": "Cottonwood Creek Country Club, 1001, South Ed Carey Drive, Harlingen, Cameron County, Texas, 78552, United States",
+      "lat": 26.1471385,
+      "lon": -97.6890337,
+      "score": 2.15,
+      "alternatives": []
+    },
+    "nominatim_result": {
+      "place_id": 315818140,
+      "licence": "Data \u00a9 OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+      "osm_type": "way",
+      "osm_id": 1337838568,
+      "lat": "26.1471385",
+      "lon": "-97.6890337",
+      "category": "leisure",
+      "type": "golf_course",
+      "place_rank": 30,
+      "importance": 5.4788281071137825e-05,
+      "addresstype": "leisure",
+      "name": "Cottonwood Creek Country Club",
+      "display_name": "Cottonwood Creek Country Club, 1001, South Ed Carey Drive, Harlingen, Cameron County, Texas, 78552, United States",
+      "address": {
+        "leisure": "Cottonwood Creek Country Club",
+        "house_number": "1001",
+        "road": "South Ed Carey Drive",
+        "city": "Harlingen",
+        "county": "Cameron County",
+        "state": "Texas",
+        "ISO3166-2-lvl4": "US-TX",
+        "postcode": "78552",
+        "country": "United States",
+        "country_code": "us"
+      },
+      "extratags": {
+        "website": "https://www.cottonwoodcreekcountryclub.com/"
+      },
+      "namedetails": {
+        "name": "Cottonwood Creek Country Club"
+      },
+      "boundingbox": [
+        "26.1448891",
+        "26.1517332",
+        "-97.6910770",
+        "-97.6856747"
+      ]
+    },
+    "overpass_endpoint": "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
+    "overpass_query": "[out:json][timeout:75];\nway(1337838568);\nmap_to_area -> .courseArea;\n(\n  nwr(area.courseArea)[\"golf\"];\n);\nout body geom;\n",
+    "retrieved_at_utc": "2026-11-24T01:11:03Z",
+    "osm_copyright": "\u00a9 OpenStreetMap contributors; data available under ODbL"
+  },
+  "overpass": {
+    "version": 0.6,
+    "generator": "Overpass API 0.7.62.4 2390de5a",
+    "osm3s": {
+      "timestamp_osm_base": "2026-11-24T01:09:37Z",
+      "timestamp_areas_base": "2026-11-23T22:58:08Z",
+      "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL."
+    },
+    "elements": [
+      {
+        "type": "node",
+        "id": 12374869535,
+        "lat": 26.1498889,
+        "lon": -97.6866157,
+        "tags": {
+          "golf": "pin"
+        }
+      },
+      {
+        "type": "node",
+        "id": 12374869538,
+        "lat": 26.1485247,
+        "lon": -97.6876692,
+        "tags": {
+          "golf": "pin"
+        }
+      },
+      {
+        "type": "node",
+        "id": 12374869540,
+        "lat": 26.1474983,
+        "lon": -97.6884905,
+        "tags": {
+          "golf": "pin"
+        }
+      },
+      {
+        "type": "node",
+        "id": 12374869542,
+        "lat": 26.1464777,
+        "lon": -97.6893118,
+        "tags": {
+          "golf": "pin"
+        }
+      },
+      {
+        "type": "node",
+        "id": 12374869544,
+        "lat": 26.1453638,
+        "lon": -97.6906298,
+        "tags": {
+          "golf": "pin"
+        }
+      },
+      {
+        "type": "node",
+        "id": 12374869546,
+        "lat": 26.1472894,
+        "lon": -97.6893466,
+        "tags": {
+          "golf": "pin"
+        }
+      },
+      {
+        "type": "node",
+        "id": 12374869548,
+        "lat": 26.1508382,
+        "lon": -97.6869691,
+        "tags": {
+          "golf": "pin"
+        }
+      },
+      {
+        "type": "node",
+        "id": 12374869551,
+        "lat": 26.1500316,
+        "lon": -97.6874458,
+        "tags": {
+          "golf": "pin"
+        }
+      },
+      {
+        "type": "node",
+        "id": 12374869553,
+        "lat": 26.1484014,
+        "lon": -97.6885832,
+        "tags": {
+          "golf": "pin"
+        }
+      },
+      {
+        "type": "way",
+        "id": 1337838559,
+        "bounds": {
+          "minlat": 26.1498889,
+          "minlon": -97.6866157,
+          "maxlat": 26.1507801,
+          "maxlon": -97.6865277
+        },
+        "nodes": [
+          12374869533,
+          12374869534,
+          12374869535
+        ],
+        "geometry": [
+          {
+            "lat": 26.1507801,
+            "lon": -97.6866019
+          },
+          {
+            "lat": 26.1502074,
+            "lon": -97.6865277
+          },
+          {
+            "lat": 26.1498889,
+            "lon": -97.6866157
+          }
+        ],
+        "tags": {
+          "golf": "hole",
+          "ref": "1"
+        }
+      },
+      {
+        "type": "way",
+        "id": 1337838560,
+        "bounds": {
+          "minlat": 26.1485247,
+          "minlon": -97.6876692,
+          "maxlat": 26.1493487,
+          "maxlon": -97.6866868
+        },
+        "nodes": [
+          12374869536,
+          12374869537,
+          12374869538
+        ],
+        "geometry": [
+          {
+            "lat": 26.1493487,
+            "lon": -97.6866868
+          },
+          {
+            "lat": 26.1488601,
+            "lon": -97.6872344
+          },
+          {
+            "lat": 26.1485247,
+            "lon": -97.6876692
+          }
+        ],
+        "tags": {
+          "golf": "hole",
+          "ref": "2"
+        }
+      },
+      {
+        "type": "way",
+        "id": 1337838561,
+        "bounds": {
+          "minlat": 26.1474983,
+          "minlon": -97.6884905,
+          "maxlat": 26.1482067,
+          "maxlon": -97.6877787
+        },
+        "nodes": [
+          12374869539,
+          12374869540
+        ],
+        "geometry": [
+          {
+            "lat": 26.1482067,
+            "lon": -97.6877787
+          },
+          {
+            "lat": 26.1474983,
+            "lon": -97.6884905
+          }
+        ],
+        "tags": {
+          "golf": "hole",
+          "ref": "3"
+        }
+      },
+      {
+        "type": "way",
+        "id": 1337838562,
+        "bounds": {
+          "minlat": 26.1464777,
+          "minlon": -97.6893118,
+          "maxlat": 26.1470791,
+          "maxlon": -97.6886483
+        },
+        "nodes": [
+          12374869541,
+          12374869542
+        ],
+        "geometry": [
+          {
+            "lat": 26.1470791,
+            "lon": -97.6886483
+          },
+          {
+            "lat": 26.1464777,
+            "lon": -97.6893118
+          }
+        ],
+        "tags": {
+          "golf": "hole",
+          "ref": "4"
+        }
+      },
+      {
+        "type": "way",
+        "id": 1337838563,
+        "bounds": {
+          "minlat": 26.1453638,
+          "minlon": -97.6906298,
+          "maxlat": 26.1461816,
+          "maxlon": -97.689423
+        },
+        "nodes": [
+          12374869543,
+          12374869544
+        ],
+        "geometry": [
+          {
+            "lat": 26.1461816,
+            "lon": -97.689423
+          },
+          {
+            "lat": 26.1453638,
+            "lon": -97.6906298
+          }
+        ],
+        "tags": {
+          "golf": "hole",
+          "ref": "5"
+        }
+      },
+      {
+        "type": "way",
+        "id": 1337838564,
+        "bounds": {
+          "minlat": 26.145598,
+          "minlon": -97.690475,
+          "maxlat": 26.1472894,
+          "maxlon": -97.6893466
+        },
+        "nodes": [
+          12374869545,
+          12374869546
+        ],
+        "geometry": [
+          {
+            "lat": 26.145598,
+            "lon": -97.690475
+          },
+          {
+            "lat": 26.1472894,
+            "lon": -97.6893466
+          }
+        ],
+        "tags": {
+          "golf": "hole",
+          "ref": "6"
+        }
+      },
+      {
+        "type": "way",
+        "id": 1337838565,
+        "bounds": {
+          "minlat": 26.1498784,
+          "minlon": -97.6869691,
+          "maxlat": 26.1508382,
+          "maxlon": -97.686953
+        },
+        "nodes": [
+          12374869547,
+          12374869548
+        ],
+        "geometry": [
+          {
+            "lat": 26.1498784,
+            "lon": -97.686953
+          },
+          {
+            "lat": 26.1508382,
+            "lon": -97.6869691
+          }
+        ],
+        "tags": {
+          "golf": "hole",
+          "ref": "9"
+        }
+      },
+      {
+        "type": "way",
+        "id": 1337838566,
+        "bounds": {
+          "minlat": 26.1486323,
+          "minlon": -97.6886117,
+          "maxlat": 26.1500316,
+          "maxlon": -97.6874458
+        },
+        "nodes": [
+          12374869549,
+          12374869550,
+          12374869551
+        ],
+        "geometry": [
+          {
+            "lat": 26.1486323,
+            "lon": -97.6886117
+          },
+          {
+            "lat": 26.1492799,
+            "lon": -97.6881512
+          },
+          {
+            "lat": 26.1500316,
+            "lon": -97.6874458
+          }
+        ],
+        "tags": {
+          "golf": "hole",
+          "handicap": "8"
+        }
+      },
+      {
+        "type": "way",
+        "id": 1337838567,
+        "bounds": {
+          "minlat": 26.1475558,
+          "minlon": -97.6891996,
+          "maxlat": 26.1484014,
+          "maxlon": -97.6885832
+        },
+        "nodes": [
+          12374869552,
+          12374869553
+        ],
+        "geometry": [
+          {
+            "lat": 26.1475558,
+            "lon": -97.6891996
+          },
+          {
+            "lat": 26.1484014,
+            "lon": -97.6885832
+          }
+        ],
+        "tags": {
+          "golf": "hole",
+          "ref": "7"
+        }
+      }
+    ]
+  }
+}

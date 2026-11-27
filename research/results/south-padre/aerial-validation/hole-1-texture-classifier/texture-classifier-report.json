@@ -1,0 +1,153 @@
+{
+  "method": "ExtraTrees research diagnostic trained on spatially blocked and buffered OSM fairway/rough seed pixels from one or more holes, using RGBIR, multi-scale local texture, spectral ratios, centreline distance, structure-tensor coherence, and edge magnitude.",
+  "training_course": "south-padre",
+  "radiometry_mode": "raw",
+  "training_holes": [
+    "1"
+  ],
+  "training_scene_count": 1,
+  "learned_corridor_half_width_m": 20.62,
+  "target_hole_ref": "1",
+  "weak_label_boundary_erosion_m": 2.0,
+  "training_samples": {
+    "fairway": 3072,
+    "rough": 20056
+  },
+  "spatial_block_holdout": {
+    "threshold": 0.5,
+    "fairway_recall": 0.9315,
+    "rough_false_positive_rate": 0.0,
+    "fairway_precision": 1.0,
+    "f1": 0.9645,
+    "roc_auc": 0.9903,
+    "average_precision": 0.9921,
+    "test_pixels": 13486
+  },
+  "training_scene_reports": [
+    {
+      "hole_ref": "1",
+      "training_samples": {
+        "fairway": 3072,
+        "rough": 20056
+      },
+      "spatial_block_holdout": {
+        "threshold": 0.5,
+        "fairway_recall": 0.9315,
+        "rough_false_positive_rate": 0.0,
+        "fairway_precision": 1.0,
+        "f1": 0.9645,
+        "roc_auc": 0.9903,
+        "average_precision": 0.9921,
+        "test_pixels": 13486
+      }
+    }
+  ],
+  "target_distribution_shift_diagnostic": {
+    "sample_pixels": 57206,
+    "feature_outside_training_p01_p99_fraction": {
+      "red": 0.0441,
+      "green": 0.0894,
+      "blue": 0.0637,
+      "nir": 0.0677,
+      "ndvi": 0.0155,
+      "excess_green": 0.0314,
+      "vari": 0.0139,
+      "nir_green_ratio": 0.0183,
+      "red_green_ratio": 0.0141,
+      "gray_std_3px": 0.0083,
+      "gray_std_6px": 0.0056,
+      "gray_std_13px": 0.0025,
+      "nir_std_3px": 0.0426,
+      "nir_std_8px": 0.0549,
+      "ndvi_std_5px": 0.0269,
+      "centerline_distance_m": 0.0,
+      "texture_coherence": 0.0371,
+      "edge_magnitude": 0.0139
+    },
+    "pixels_outside_bounds_on_3_or_more_features_fraction": 0.0687,
+    "candidate_pixels_outside_bounds_on_3_or_more_features_fraction": 0.0749
+  },
+  "target_weak_label_evaluation_only": {
+    "mapped_fairway_recall": 0.9679,
+    "mapped_rough_false_positive_rate": 0.0,
+    "mapped_fairway_pixels": 47895,
+    "mapped_rough_pixels": 60292
+  },
+  "candidate_area_m2": 9218.0,
+  "candidate_fraction_of_corridor": 0.6184,
+  "feature_importance": [
+    {
+      "feature": "green",
+      "importance": 0.31192
+    },
+    {
+      "feature": "blue",
+      "importance": 0.24947
+    },
+    {
+      "feature": "nir",
+      "importance": 0.23481
+    },
+    {
+      "feature": "red",
+      "importance": 0.14117
+    },
+    {
+      "feature": "centerline_distance_m",
+      "importance": 0.01858
+    },
+    {
+      "feature": "nir_std_8px",
+      "importance": 0.01771
+    },
+    {
+      "feature": "excess_green",
+      "importance": 0.00819
+    },
+    {
+      "feature": "nir_std_3px",
+      "importance": 0.00478
+    },
+    {
+      "feature": "nir_green_ratio",
+      "importance": 0.00344
+    },
+    {
+      "feature": "vari",
+      "importance": 0.00329
+    },
+    {
+      "feature": "red_green_ratio",
+      "importance": 0.00293
+    },
+    {
+      "feature": "ndvi",
+      "importance": 0.00205
+    },
+    {
+      "feature": "gray_std_13px",
+      "importance": 0.00079
+    },
+    {
+      "feature": "ndvi_std_5px",
+      "importance": 0.00071
+    },
+    {
+      "feature": "texture_coherence",
+      "importance": 7e-05
+    },
+    {
+      "feature": "gray_std_3px",
+      "importance": 3e-05
+    },
+    {
+      "feature": "gray_std_6px",
+      "importance": 3e-05
+    },
+    {
+      "feature": "edge_magnitude",
+      "importance": 3e-05
+    }
+  ],
+  "warning": "OSM labels are incomplete weak labels, not independent ground truth. Spatial block holdout is within one hole/acquisition; cross-hole/course evaluation is diagnostic only. This sklearn model is research-only and is not an Android runtime dependency."
+}

@@ -1,0 +1,137 @@
+{
+  "course_hole": "1",
+  "hole_osm_id": 1337838559,
+  "method": "Pixel-wise robust RGBIR vegetation/texture score, Gaussian smoothing, corridor-local threshold, and connected-component filtering near the hole centreline.",
+  "selection_independence": {
+    "fairway_polygons_used_for_selection": false,
+    "rough_polygons_used_for_selection": false,
+    "mapped_green_bunker_water_tee_used_only_as_exclusions": true,
+    "selection_features": [
+      "NDVI",
+      "excess_green",
+      "multi_scale_texture",
+      "centerline_distance",
+      "per_pixel_corridor_score"
+    ]
+  },
+  "image": {
+    "width": 639,
+    "height": 1100,
+    "metres_per_pixel": 0.196
+  },
+  "analysis_pixels": 201026,
+  "superpixel_count": 2760,
+  "selected_cluster": 901,
+  "selected_cluster_score_diagnostic_only": 8.1018,
+  "pixel_score_threshold_percentile": 58.0,
+  "pixel_score_threshold": 0.05487,
+  "threshold_sweep_diagnostics": [
+    {
+      "score_percentile": 50,
+      "threshold": -0.06563,
+      "candidate_area_m2": 3876.3,
+      "corridor_fraction": 0.5,
+      "mapped_fairway_overlap": null,
+      "mapped_rough_overlap": null
+    },
+    {
+      "score_percentile": 58,
+      "threshold": 0.05487,
+      "candidate_area_m2": 3256.1,
+      "corridor_fraction": 0.42,
+      "mapped_fairway_overlap": null,
+      "mapped_rough_overlap": null
+    },
+    {
+      "score_percentile": 65,
+      "threshold": 0.1566,
+      "candidate_area_m2": 2713.4,
+      "corridor_fraction": 0.35,
+      "mapped_fairway_overlap": null,
+      "mapped_rough_overlap": null
+    },
+    {
+      "score_percentile": 70,
+      "threshold": 0.23159,
+      "candidate_area_m2": 2325.8,
+      "corridor_fraction": 0.3,
+      "mapped_fairway_overlap": null,
+      "mapped_rough_overlap": null
+    },
+    {
+      "score_percentile": 75,
+      "threshold": 0.3118,
+      "candidate_area_m2": 1938.2,
+      "corridor_fraction": 0.25,
+      "mapped_fairway_overlap": null,
+      "mapped_rough_overlap": null
+    },
+    {
+      "score_percentile": 80,
+      "threshold": 0.39839,
+      "candidate_area_m2": 1550.5,
+      "corridor_fraction": 0.2,
+      "mapped_fairway_overlap": null,
+      "mapped_rough_overlap": null
+    },
+    {
+      "score_percentile": 85,
+      "threshold": 0.49621,
+      "candidate_area_m2": 1162.9,
+      "corridor_fraction": 0.15,
+      "mapped_fairway_overlap": null,
+      "mapped_rough_overlap": null
+    }
+  ],
+  "cluster_feature_means": {
+    "ndvi": 0.39816,
+    "excess_green": 0.08755,
+    "texture": 0.0106,
+    "centerline_distance_m": 5.18415
+  },
+  "candidate_pixels": 80592,
+  "candidate_selection": "per-pixel score threshold; not a single superpixel",
+  "candidate_area_m2": 3108.0,
+  "candidate_fraction_of_corridor": 0.4009,
+  "centerline_sample_coverage_within_link_distance": 1.0,
+  "retained_components": [
+    {
+      "component": 1,
+      "area_m2": 1420.9
+    },
+    {
+      "component": 2,
+      "area_m2": 629.4
+    },
+    {
+      "component": 4,
+      "area_m2": 115.7
+    },
+    {
+      "component": 5,
+      "area_m2": 168.3
+    },
+    {
+      "component": 15,
+      "area_m2": 729.3
+    },
+    {
+      "component": 19,
+      "area_m2": 46.9
+    }
+  ],
+  "weak_label_evaluation_only": {
+    "mapped_fairway_seed_pixels": 0,
+    "candidate_overlap_with_mapped_fairway_seed": null,
+    "mapped_rough_seed_pixels": 0,
+    "candidate_overlap_with_mapped_rough_seed": null,
+    "warning": "These are incomplete OSM agreement diagnostics, not independent accuracy estimates. They did not influence candidate selection."
+  },
+  "status": "unverified_candidate",
+  "files": [
+    "seedless-fairway-candidate.jpg",
+    "seedless-clusters.jpg",
+    "seedless-fairway-candidate.geojson",
+    "seedless-report.json"
+  ]
+}

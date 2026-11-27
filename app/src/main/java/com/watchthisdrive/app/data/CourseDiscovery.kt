@@ -16,7 +16,8 @@ data class GolfCourse(
     val name: String,
     val latitude: Double,
     val longitude: Double,
-    val distanceMeters: Float
+    val distanceMeters: Float,
+    val expectedHoleCount: Int? = null
 ) {
     val distanceMiles: Double
         get() = distanceMeters / 1609.344
@@ -72,12 +73,21 @@ object CourseDiscovery {
         }
     }
 
+    internal fun buildGeocodingUrl(searchText: String): String {
+        val normalized = searchText.trim()
+        val zip = Regex("^\\d{5}(?:-\\d{4})?$").matches(normalized)
+        val query = if (zip) {
+            val postalCode = normalized.take(5)
+            "postalcode=${URLEncoder.encode(postalCode, "UTF-8")}" +
+                "&country=United%20States&countrycodes=us"
+        } else {
+            "q=${URLEncoder.encode(normalized, "UTF-8")}"
+        }
+        return "https://nominatim.openstreetmap.org/search?$query&format=jsonv2&limit=1"
+    }
+
     private fun geocode(searchText: String): SearchLocation {
-        val encoded = URLEncoder.encode(searchText.trim(), "UTF-8")
-        val url = URL(
-            "https://nominatim.openstreetmap.org/search" +
-                "?q=$encoded&format=jsonv2&limit=1"
-        )
+        val url = URL(buildGeocodingUrl(searchText))
 
         val connection = url.openConnection() as HttpURLConnection
 
@@ -128,7 +138,6 @@ object CourseDiscovery {
         val query = """
             [out:json][timeout:25];
             (
-              node["leisure"="golf_course"](around:$SEARCH_RADIUS_METERS,$latitude,$longitude);
               way["leisure"="golf_course"](around:$SEARCH_RADIUS_METERS,$latitude,$longitude);
               relation["leisure"="golf_course"](around:$SEARCH_RADIUS_METERS,$latitude,$longitude);
             );
@@ -202,6 +211,14 @@ object CourseDiscovery {
         }
     }
 
+
+    internal fun parseExpectedHoleCount(tags: JSONObject): Int? {
+        return listOf("holes", "golf:holes", "golf_holes")
+            .asSequence()
+            .mapNotNull { tags.optString(it).toIntOrNull() }
+            .firstOrNull { it == 9 || it == 18 }
+    }
+
     private fun parseCourses(
         response: String,
         userLatitude: Double,
@@ -250,7 +267,8 @@ object CourseDiscovery {
                     name = name,
                     latitude = lat,
                     longitude = lon,
-                    distanceMeters = distance[0]
+                    distanceMeters = distance[0],
+                    expectedHoleCount = parseExpectedHoleCount(tags)
                 )
             )
         }

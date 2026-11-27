@@ -1,0 +1,194 @@
+{
+  "course": "South Padre Island Golf Club",
+  "location": "Laguna Vista, Texas, USA",
+  "method": "Geodesic sum of consecutive OSM golf=hole LineString segments using a spherical Earth radius of 6,371,008.8 m; metres converted to yards.",
+  "tolerance_percent": 5,
+  "reference_tee": "Back/Black tees, total 6,931 yards",
+  "references": [
+    {
+      "url": "https://spigolf.com/course/",
+      "description": "Official club course page; publishes individual yardages and a 6,931-yard total, but its Hole 18 card entry appears inconsistent (541 yd) with that total."
+    },
+    {
+      "url": "https://www.grassy.golf/courses/south-padre-island-golf-club-us-tx/scorecard",
+      "description": "Hole-by-hole scorecard matching the club's 6,931-yard total; Hole 18 listed as 410 yd."
+    },
+    {
+      "url": "https://www.golfify.io/courses/south-padre-island-golf-club",
+      "description": "Independent cross-check of the same 18-hole scorecard and 6,931-yard total."
+    }
+  ],
+  "official_hole_18_note": "The official club page displays Hole 18 as 541 yd, but this makes its hole totals inconsistent with the published 6,931-yard course total; two independent scorecard sources list 410 yd. The 410 yd value is used pending direct club confirmation.",
+  "summary": {
+    "holes": 18,
+    "within_tolerance": 18,
+    "max_difference_percent": 4.3,
+    "sum_of_osm_hole_lines_yards": 6820.8,
+    "scorecard_total_yards": 6931
+  },
+  "holes": [
+    {
+      "hole": 1,
+      "osm_length_m": 356.55,
+      "osm_length_yards": 389.9,
+      "scorecard_yards": 396,
+      "absolute_difference_yards": 6.1,
+      "difference_percent": 1.53,
+      "status": "within_5_percent"
+    },
+    {
+      "hole": 2,
+      "osm_length_m": 361.49,
+      "osm_length_yards": 395.3,
+      "scorecard_yards": 403,
+      "absolute_difference_yards": 7.7,
+      "difference_percent": 1.9,
+      "status": "within_5_percent"
+    },
+    {
+      "hole": 3,
+      "osm_length_m": 170.55,
+      "osm_length_yards": 186.5,
+      "scorecard_yards": 190,
+      "absolute_difference_yards": 3.5,
+      "difference_percent": 1.83,
+      "status": "within_5_percent"
+    },
+    {
+      "hole": 4,
+      "osm_length_m": 514.08,
+      "osm_length_yards": 562.2,
+      "scorecard_yards": 571,
+      "absolute_difference_yards": 8.8,
+      "difference_percent": 1.54,
+      "status": "within_5_percent"
+    },
+    {
+      "hole": 5,
+      "osm_length_m": 293.16,
+      "osm_length_yards": 320.6,
+      "scorecard_yards": 335,
+      "absolute_difference_yards": 14.4,
+      "difference_percent": 4.3,
+      "status": "within_5_percent"
+    },
+    {
+      "hole": 6,
+      "osm_length_m": 143.6,
+      "osm_length_yards": 157,
+      "scorecard_yards": 163,
+      "absolute_difference_yards": 6,
+      "difference_percent": 3.66,
+      "status": "within_5_percent"
+    },
+    {
+      "hole": 7,
+      "osm_length_m": 479.18,
+      "osm_length_yards": 524,
+      "scorecard_yards": 528,
+      "absolute_difference_yards": 4,
+      "difference_percent": 0.75,
+      "status": "within_5_percent"
+    },
+    {
+      "hole": 8,
+      "osm_length_m": 375.98,
+      "osm_length_yards": 411.2,
+      "scorecard_yards": 415,
+      "absolute_difference_yards": 3.8,
+      "difference_percent": 0.92,
+      "status": "within_5_percent"
+    },
+    {
+      "hole": 9,
+      "osm_length_m": 413.08,
+      "osm_length_yards": 451.8,
+      "scorecard_yards": 455,
+      "absolute_difference_yards": 3.2,
+      "difference_percent": 0.71,
+      "status": "within_5_percent"
+    },
+    {
+      "hole": 10,
+      "osm_length_m": 360.11,
+      "osm_length_yards": 393.8,
+      "scorecard_yards": 407,
+      "absolute_difference_yards": 13.2,
+      "difference_percent": 3.24,
+      "status": "within_5_percent"
+    },
+    {
+      "hole": 11,
+      "osm_length_m": 370.8,
+      "osm_length_yards": 405.5,
+      "scorecard_yards": 409,
+      "absolute_difference_yards": 3.5,
+      "difference_percent": 0.85,
+      "status": "within_5_percent"
+    },
+    {
+      "hole": 12,
+      "osm_length_m": 117.64,
+      "osm_length_yards": 128.7,
+      "scorecard_yards": 133,
+      "absolute_difference_yards": 4.3,
+      "difference_percent": 3.27,
+      "status": "within_5_percent"
+    },
+    {
+      "hole": 13,
+      "osm_length_m": 489.98,
+      "osm_length_yards": 535.8,
+      "scorecard_yards": 547,
+      "absolute_difference_yards": 11.2,
+      "difference_percent": 2.04,
+      "status": "within_5_percent"
+    },
+    {
+      "hole": 14,
+      "osm_length_m": 402.29,
+      "osm_length_yards": 440,
+      "scorecard_yards": 435,
+      "absolute_difference_yards": 5,
+      "difference_percent": 1.14,
+      "status": "within_5_percent"
+    },
+    {
+      "hole": 15,
+      "osm_length_m": 145.44,
+      "osm_length_yards": 159.1,
+      "scorecard_yards": 165,
+      "absolute_difference_yards": 5.9,
+      "difference_percent": 3.6,
+      "status": "within_5_percent"
+    },
+    {
+      "hole": 16,
+      "osm_length_m": 389.16,
+      "osm_length_yards": 425.6,
+      "scorecard_yards": 428,
+      "absolute_difference_yards": 2.4,
+      "difference_percent": 0.56,
+      "status": "within_5_percent"
+    },
+    {
+      "hole": 17,
+      "osm_length_m": 482.89,
+      "osm_length_yards": 528.1,
+      "scorecard_yards": 541,
+      "absolute_difference_yards": 12.9,
+      "difference_percent": 2.39,
+      "status": "within_5_percent"
+    },
+    {
+      "hole": 18,
+      "osm_length_m": 370.99,
+      "osm_length_yards": 405.7,
+      "scorecard_yards": 410,
+      "absolute_difference_yards": 4.3,
+      "difference_percent": 1.04,
+      "status": "within_5_percent"
+    }
+  ],
+  "warning": "This validates the OSM centerline length against scorecard yardage only. It does not validate tee/green geometry, feature membership, or exact on-course pin distance."
+}

@@ -1,0 +1,241 @@
+{
+  "course_hole_osm_id": 1383052942,
+  "source": "Texas NAIP 2022 RGBIR 4-band orthophotography",
+  "band_order_assumption": [
+    "red",
+    "green",
+    "blue",
+    "near_infrared"
+  ],
+  "tiff_mode": "RGBA",
+  "tiff_dimensions": [
+    1600,
+    885
+  ],
+  "channel_semantics": [
+    "red",
+    "green",
+    "blue",
+    "near_infrared"
+  ],
+  "ndvi_formula": "(NIR - Red) / (NIR + Red)",
+  "weak_seed_label_warning": "OSM polygons may be incomplete, generalized, misclassified, or offset. Pixel samples are spatially correlated and are not independent ground truth.",
+  "class_samples": {
+    "fairway": {
+      "ndvi": {
+        "pixels": 84997,
+        "p10": 0.0954,
+        "p25": 0.1233,
+        "median": 0.1548,
+        "p75": 0.185,
+        "p90": 0.2151
+      },
+      "excess_green": {
+        "pixels": 84997,
+        "p10": 0.1608,
+        "p25": 0.1804,
+        "median": 0.2039,
+        "p75": 0.2314,
+        "p90": 0.251
+      }
+    },
+    "rough": {
+      "ndvi": {
+        "pixels": 149079,
+        "p10": -0.0337,
+        "p25": 0.0804,
+        "median": 0.1852,
+        "p75": 0.3222,
+        "p90": 0.4222
+      },
+      "excess_green": {
+        "pixels": 149079,
+        "p10": 0.0471,
+        "p25": 0.0941,
+        "median": 0.1529,
+        "p75": 0.2,
+        "p90": 0.2353
+      }
+    },
+    "green": {
+      "ndvi": {
+        "pixels": 10983,
+        "p10": 0.2381,
+        "p25": 0.2665,
+        "median": 0.3012,
+        "p75": 0.3333,
+        "p90": 0.3493
+      },
+      "excess_green": {
+        "pixels": 10983,
+        "p10": 0.2157,
+        "p25": 0.2314,
+        "median": 0.2471,
+        "p75": 0.2627,
+        "p90": 0.2706
+      }
+    },
+    "bunker": {
+      "ndvi": {
+        "pixels": 4652,
+        "p10": -0.0799,
+        "p25": -0.0588,
+        "median": -0.0485,
+        "p75": -0.03,
+        "p90": 0.0287
+      },
+      "excess_green": {
+        "pixels": 4652,
+        "p10": 0.0392,
+        "p25": 0.0627,
+        "median": 0.0745,
+        "p75": 0.098,
+        "p90": 0.1373
+      }
+    },
+    "water_hazard": {
+      "ndvi": {
+        "pixels": 3048,
+        "p10": -0.3281,
+        "p25": -0.3097,
+        "median": -0.2542,
+        "p75": -0.0872,
+        "p90": 0.0673
+      },
+      "excess_green": {
+        "pixels": 3048,
+        "p10": -0.0039,
+        "p25": 0.0235,
+        "median": 0.051,
+        "p75": 0.0745,
+        "p90": 0.1059
+      }
+    },
+    "tee": {
+      "ndvi": {
+        "pixels": 6577,
+        "p10": 0.1576,
+        "p25": 0.1757,
+        "median": 0.2089,
+        "p75": 0.2317,
+        "p90": 0.2524
+      },
+      "excess_green": {
+        "pixels": 6577,
+        "p10": 0.1647,
+        "p25": 0.1804,
+        "median": 0.2,
+        "p75": 0.2196,
+        "p90": 0.2471
+      }
+    }
+  },
+  "pairwise_fairway_seed_separability": {
+    "fairway_vs_rough": {
+      "ndvi": {
+        "fairway_minus_other_mean": -0.0383,
+        "cohens_d": -0.327,
+        "absolute_cohens_d": 0.327,
+        "sample_pixels": {
+          "fairway": 84997,
+          "other": 149079
+        }
+      },
+      "excess_green": {
+        "fairway_minus_other_mean": 0.0571,
+        "cohens_d": 1.0124,
+        "absolute_cohens_d": 1.0124,
+        "sample_pixels": {
+          "fairway": 84997,
+          "other": 149079
+        }
+      }
+    },
+    "fairway_vs_green": {
+      "ndvi": {
+        "fairway_minus_other_mean": -0.1408,
+        "cohens_d": -2.9967,
+        "absolute_cohens_d": 2.9967,
+        "sample_pixels": {
+          "fairway": 84997,
+          "other": 10983
+        }
+      },
+      "excess_green": {
+        "fairway_minus_other_mean": -0.0409,
+        "cohens_d": -1.352,
+        "absolute_cohens_d": 1.352,
+        "sample_pixels": {
+          "fairway": 84997,
+          "other": 10983
+        }
+      }
+    },
+    "fairway_vs_bunker": {
+      "ndvi": {
+        "fairway_minus_other_mean": 0.1922,
+        "cohens_d": 4.02,
+        "absolute_cohens_d": 4.02,
+        "sample_pixels": {
+          "fairway": 84997,
+          "other": 4652
+        }
+      },
+      "excess_green": {
+        "fairway_minus_other_mean": 0.1222,
+        "cohens_d": 3.2884,
+        "absolute_cohens_d": 3.2884,
+        "sample_pixels": {
+          "fairway": 84997,
+          "other": 4652
+        }
+      }
+    },
+    "fairway_vs_water_hazard": {
+      "ndvi": {
+        "fairway_minus_other_mean": 0.3414,
+        "cohens_d": 2.8801,
+        "absolute_cohens_d": 2.8801,
+        "sample_pixels": {
+          "fairway": 84997,
+          "other": 3048
+        }
+      },
+      "excess_green": {
+        "fairway_minus_other_mean": 0.1548,
+        "cohens_d": 3.7519,
+        "absolute_cohens_d": 3.7519,
+        "sample_pixels": {
+          "fairway": 84997,
+          "other": 3048
+        }
+      }
+    },
+    "fairway_vs_tee": {
+      "ndvi": {
+        "fairway_minus_other_mean": -0.05,
+        "cohens_d": -1.1499,
+        "absolute_cohens_d": 1.1499,
+        "sample_pixels": {
+          "fairway": 84997,
+          "other": 6577
+        }
+      },
+      "excess_green": {
+        "fairway_minus_other_mean": 0.0032,
+        "cohens_d": 0.0935,
+        "absolute_cohens_d": 0.0935,
+        "sample_pixels": {
+          "fairway": 84997,
+          "other": 6577
+        }
+      }
+    }
+  },
+  "interpretation": "Spectral separability is exploratory only. NDVI alone does not identify fairway boundaries; compare seed distributions and the preview with the aerial image.",
+  "files": [
+    "ndvi-preview.png",
+    "excess-green-preview.png",
+    "spectral-summary.json"
+  ]
+}
